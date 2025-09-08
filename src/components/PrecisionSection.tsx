@@ -101,15 +101,16 @@ const PrecisionSection = () => {
           </div>
 
           {/* Right: Image */}
-          <div className="flex justify-center">
-            <div className="">
-              <img
-                src="/lovable-uploads/placeholder.png"
-                alt="Uploaded"
-                className="w-full h-full object-cover"
-              />
-            </div>
-          </div>
+         <div className="flex justify-center">
+  <div className="hidden md:block">
+    <img
+      src="/lovable-uploads/placeholder.png"
+      alt="Uploaded"
+      className="w-full h-full object-cover"
+    />
+  </div>
+</div>
+
         </div>
       </div>
     </section>

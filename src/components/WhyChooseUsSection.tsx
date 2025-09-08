@@ -13,11 +13,11 @@ const WhyChooseUsSection = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left: Data Collection Workflow Image */}
-  <div className="relative h-[500px] w-[600px] flex items-center justify-center overflow-hidden mx-auto">
+ <div className="relative w-full max-w-3xl mx-auto flex items-center justify-center overflow-hidden">
   <img
     src="/lovable-uploads/placeholder2.jpg"
     alt="Data Collection and Processing Workflow - From manual entries and IoT devices to interactive dashboards and claims management"
-    className="max-h-full max-w-full object-contain p-6 rounded-2xl shadow-lg"
+    className="w-full h-auto object-contain p-6 rounded-2xl shadow-lg"
   />
 </div>
 
