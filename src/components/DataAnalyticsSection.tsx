@@ -29,36 +29,37 @@ const DataAnalyticsSection = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center min-h-screen">
           {/* Left: Content */}
-          <div>
-            <h2 className="text-4xl md:text-5xl font-bold mb-8 text-primary">
-              Complete Data Analytics Workflow
-            </h2>
-            
-            <p className="text-xl text-construction-grey mb-10 leading-relaxed">
-              From initial data collection to final claims and tendering - our comprehensive workflow ensures every piece of construction data is captured, processed, and utilized for maximum project efficiency.
-            </p>
-            
-            <div className="space-y-6">
-              {analyticsFeatures.map((feature, index) => {
-                const IconComponent = feature.icon;
-                return (
-                  <div key={index} className="flex items-start gap-4 group">
-                    <div className="bg-primary/10 rounded-xl p-3 group-hover:bg-primary/20 transition-colors duration-300 flex-shrink-0">
-                      <IconComponent className="w-6 h-6 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="text-lg font-bold text-foreground mb-2">
-                        {feature.title}
-                      </h4>
-                      <p className="text-construction-grey leading-relaxed">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+         <div className="h-screen flex flex-col justify-center px-6">
+  <h2 className="text-4xl md:text-5xl font-bold mb-6 text-primary">
+    Complete Data Analytics Workflow
+  </h2>
+
+ <p className="text-lg md:text-xl text-construction-grey mb-8 leading-relaxed max-w-3xl">
+  From collection to claims – our workflow turns data into actionable insights.
+</p>
+
+  <div className="space-y-5">
+    {analyticsFeatures.map((feature, index) => {
+      const IconComponent = feature.icon;
+      return (
+        <div key={index} className="flex items-start gap-4 group">
+          <div className="bg-primary/10 rounded-xl p-3 group-hover:bg-primary/20 transition-colors duration-300 flex-shrink-0">
+            <IconComponent className="w-6 h-6 text-primary" />
           </div>
+          <div>
+            <h4 className="text-lg font-bold text-foreground mb-1">
+              {feature.title}
+            </h4>
+            <p className="text-construction-grey text-sm md:text-base leading-relaxed">
+              {feature.description}
+            </p>
+          </div>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
           
           {/* Right: Data Analytics Workflow Image */}
           <div className="bg-card rounded-3xl p-8 shadow-lg border border-border/50">
@@ -67,7 +68,7 @@ const DataAnalyticsSection = () => {
             </h3>
             <div className="bg-gradient-to-br from-secondary/10 to-primary/10 rounded-2xl overflow-hidden h-96">
               <img 
-                src="/lovable-uploads/f0ebb96a-3d74-4d90-9183-be310ec0d49a.png" 
+                src="/lovable-uploads/bgremoved2.png" 
                 alt="Data Analytics Workflow - Complete process from data collection through processing to interactive dashboards and claims management"
                 className="w-full h-full object-contain p-4"
               />

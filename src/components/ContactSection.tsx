@@ -41,30 +41,14 @@ const ContactSection = () => {
   };
 
   const contactInfo = [
-    {
-      icon: Phone,
-      title: "Call Us",
-      info: "+1 (555) 123-4567",
-      subinfo: "Mon-Fri 8AM-6PM"
-    },
+   
     {
       icon: Mail,
       title: "Email Us",
-      info: "info@coconsultants.com",
+      info: "admin@thecoconsultants.com",
       subinfo: "We respond within 24hrs"
     },
-    {
-      icon: MapPin,
-      title: "Visit Us",
-      info: "123 Construction Ave",
-      subinfo: "New York, NY 10001"
-    },
-    {
-      icon: Clock,
-      title: "Business Hours",
-      info: "Mon-Fri: 8AM-6PM",
-      subinfo: "Sat: 9AM-4PM"
-    }
+  
   ];
 
   return (

@@ -156,7 +156,7 @@ const ProcessSection = () => {
             </h3>
             <div className="bg-gradient-to-br from-secondary/10 to-primary/10 rounded-2xl overflow-hidden h-80">
               <img 
-                src="/lovable-uploads/e16bd476-d588-4b30-bdc4-057f398c3ad6.png" 
+                src="/lovable-uploads/bgremoved.png" 
                 alt="Construction Consultancy Workflow - From site data collection through Bluetooth devices and manual entries to structured data management, dashboards, and claims arbitration"
                 className="w-full h-full object-contain p-6"
               />
