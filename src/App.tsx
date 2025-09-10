@@ -21,6 +21,9 @@ import StarredPage from "./pages/CustomerPanel/StarredPage";
 import SharedPage from "./pages/CustomerPanel/SharedPage";
 import TrashPage from "./pages/CustomerPanel/TrashPage";
 import ProfilePage from "./pages/CustomerPanel/ProfilePage";
+import { CustomerLayout } from "./pages/CustomerPanel/CustomerLayout";
+import { AuthGuard, RoleBasedRedirect } from "./pages/Auths/ProtectedRoute";
+
 
 const queryClient = new QueryClient();
 
@@ -33,49 +36,168 @@ const App = () => (
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Index />} />
- <Route path="/login" element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          {/* Admin routes inside AdminLayout */}
-          <Route element={<AdminLayout />}>
-            <Route path="/dash" element={<Dashboard />} />
-            <Route path="/users" element={<Users />} />
-            <Route path="/files" element={<Files />} />
-            <Route path="/roles" element={<Roles />} />
-            <Route path="/storage" element={<Storage />} />
-            <Route path="/reports" element={<Reports />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/profile" element={<Profile />} />
+          
+          {/* Protected route that redirects based on role */}
+          <Route path="/dashboard" element={<RoleBasedRedirect />} />
+          
+          {/* Admin routes - only accessible by admin role */}
+          <Route
+            path="/dash"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Dashboard />} />
           </Route>
- <Route path="/filemanager" element={<RefactoredCloudVaultLayout />} />
+          
+          <Route
+            path="/users"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Users />} />
+          </Route>
+          
+          <Route
+            path="/files"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Files />} />
+          </Route>
+          
+          <Route
+            path="/roles"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Roles />} />
+          </Route>
+          
+          <Route
+            path="/storage"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Storage />} />
+          </Route>
+          
+          <Route
+            path="/reports"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Reports />} />
+          </Route>
+          
+          <Route
+            path="/settings"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Settings />} />
+          </Route>
+          
+          <Route
+            path="/profile"
+            element={
+              <AuthGuard requiredRole="admin">
+                <AdminLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<Profile />} />
+          </Route>
+
+          {/* Customer routes - accessible by customers and fallback for authenticated users */}
+          <Route
+            path="/filemanager"
+            element={
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<></>} />
+          </Route>
+          
           <Route
             path="/starred"
             element={
-              <RefactoredCloudVaultLayout>
-                <StarredPage />
-              </RefactoredCloudVaultLayout>
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
             }
-          />
+          >
+            <Route index element={<StarredPage />} />
+          </Route>
+          
           <Route
             path="/shared"
             element={
-              <RefactoredCloudVaultLayout>
-                <SharedPage />
-              </RefactoredCloudVaultLayout>
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
             }
-          />
+          >
+            <Route index element={<SharedPage />} />
+          </Route>
+          
           <Route
             path="/trash"
             element={
-              <RefactoredCloudVaultLayout>
-                <TrashPage />
-              </RefactoredCloudVaultLayout>
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
             }
-          />
+          >
+            <Route index element={<TrashPage />} />
+          </Route>
+          
           <Route
             path="/folder/:folderId"
-            element={<RefactoredCloudVaultLayout />}
-          />
-          <Route path="/customerprofile" element={<ProfilePage />} />
+            element={
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<></>} />
+          </Route>
+          
+          <Route
+            path="/customerprofile"
+            element={
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<ProfilePage />} />
+          </Route>
+
           {/* Catch all */}
           <Route path="*" element={<NotFound />} />
         </Routes>
