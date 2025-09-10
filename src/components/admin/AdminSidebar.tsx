@@ -17,8 +17,8 @@ export function AdminSidebar() {
   return (
     <div className="flex h-screen w-64 flex-col bg-card border-r border-border">
       <div className="flex items-center gap-3 px-6 py-6 border-b border-border">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-admin-primary">
-          <FolderOpen className="h-5 w-5 text-admin-primary-foreground" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-panel">
+          <FolderOpen className="h-5 w-5 text-panel-foreground" />
         </div>
         <span className="text-lg font-semibold">Cloud Storage</span>
       </div>
@@ -33,8 +33,8 @@ export function AdminSidebar() {
                   cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
-                      ? "bg-admin-primary text-admin-primary-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-panel text-panel-foreground"
+                      : "text-foreground hover:bg-gray-200 hover:text-accent-foreground"
                   )
                 }
               >

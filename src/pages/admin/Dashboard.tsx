@@ -63,7 +63,7 @@ export default function Dashboard() {
             <div className="space-y-4">
               <div className="grid grid-cols-6 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
                 <div>Name</div>
-                {/* <div className="col-span-2">Email</div> */}
+                <div className="col-span-2">Email</div>
                 <div>Storage Used</div>
                 <div>Last Active</div>
                 <div>Status</div>
@@ -76,9 +76,9 @@ export default function Dashboard() {
                     </Avatar>
                     <span className="font-medium text-sm">{user.name}</span>
                   </div>
-                  {/* <div className="col-span-2 text-sm text-muted-foreground">{user.email}</div> */}
+                  <div className="col-span-2 text-sm text-muted-foreground">{user.email}</div>
                   <div className="text-sm">
-                    <div className="w-20 bg-white rounded-full h-2 mb-1">
+                    <div className="w-20 bg-gray-200 rounded-full h-2 mb-1">
                       <div className="bg-panel h-2 rounded-full" style={{ width: '75%' }}></div>
                     </div>
                     {user.storage}
@@ -102,8 +102,8 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {activities.map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-accent/50">
-                  <div className={`p-2 rounded-lg bg-white/50 ${activity.color}`}>
+                <div key={index} className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-200">
+                  <div className={`p-2 rounded-lg bg-accent ${activity.color}`}>
                     <activity.icon className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">

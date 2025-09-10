@@ -16,6 +16,11 @@ import Settings from "./pages/admin/Settings";
 import Profile from "./pages/admin/Profile";
 import LoginPage from "./pages/Auths/Login";
 import RegisterPage from "./pages/Auths/Register";
+import RefactoredCloudVaultLayout from "./components/RefactoredCloudVaultLayout";
+import StarredPage from "./pages/CustomerPanel/StarredPage";
+import SharedPage from "./pages/CustomerPanel/SharedPage";
+import TrashPage from "./pages/CustomerPanel/TrashPage";
+import ProfilePage from "./pages/CustomerPanel/ProfilePage";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +46,36 @@ const App = () => (
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
-
+ <Route path="/filemanager" element={<RefactoredCloudVaultLayout />} />
+          <Route
+            path="/starred"
+            element={
+              <RefactoredCloudVaultLayout>
+                <StarredPage />
+              </RefactoredCloudVaultLayout>
+            }
+          />
+          <Route
+            path="/shared"
+            element={
+              <RefactoredCloudVaultLayout>
+                <SharedPage />
+              </RefactoredCloudVaultLayout>
+            }
+          />
+          <Route
+            path="/trash"
+            element={
+              <RefactoredCloudVaultLayout>
+                <TrashPage />
+              </RefactoredCloudVaultLayout>
+            }
+          />
+          <Route
+            path="/folder/:folderId"
+            element={<RefactoredCloudVaultLayout />}
+          />
+          <Route path="/customerprofile" element={<ProfilePage />} />
           {/* Catch all */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -201,14 +201,14 @@ export default function Users() {
               <div>Actions</div>
             </div>
             {filteredUsers.map((user) => (
-              <div key={user.id} className="grid grid-cols-8 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-accent/50 rounded-lg px-2">
+              <div key={user.id} className="grid grid-cols-8 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-gray-100 rounded-lg px-2">
                 <div className="col-span-2 flex items-center gap-3">
                   <Avatar className="h-10 w-10">
                     <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
                   </Avatar>
                   <div>
                     <div className="font-medium text-sm">{user.name}</div>
-                    <Badge variant={user.status === 'Active' ? 'default' : 'secondary'} className="text-xs mt-1">
+                    <Badge variant={user.status === 'Active' ? 'default' : 'outline'} className="text-xs mt-1">
                       {user.status}
                     </Badge>
                   </div>
@@ -220,8 +220,8 @@ export default function Users() {
                   </Badge>
                 </div>
                 <div className="text-sm">
-                  <div className="w-20 bg-secondary rounded-full h-2 mb-1">
-                    <div className="bg-primary h-2 rounded-full" style={{ width: '75%' }}></div>
+                  <div className="w-20 bg-gray-200 rounded-full h-2 mb-1">
+                    <div className="bg-panel h-2 rounded-full" style={{ width: '75%' }}></div>
                   </div>
                   {user.storage}
                 </div>
