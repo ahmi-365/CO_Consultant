@@ -1,0 +1,233 @@
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Folder, FolderOpen, ChevronRight, ChevronDown } from "lucide-react";
+import { apiService, FolderItem } from "@/services/api";
+import { toast } from "sonner";
+
+interface MoveFileModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  fileId: string;
+  fileName: string;
+  onFileMoved: () => void;
+}
+
+interface FolderTreeItem extends FolderItem {
+  children?: FolderTreeItem[];
+  isExpanded?: boolean;
+  isLoading?: boolean;
+}
+
+export default function MoveFileModal({
+  isOpen,
+  onClose,
+  fileId,
+  fileName,
+  onFileMoved,
+}: MoveFileModalProps) {
+  const [folders, setFolders] = useState<FolderTreeItem[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(
+    new Set()
+  );
+  const [isMoving, setIsMoving] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadFolders();
+    }
+  }, [isOpen]);
+
+  const loadFolders = async () => {
+    try {
+      const response = await apiService.getFolders();
+      if (response.success) {
+        const foldersWithState = response.data.map((folder) => ({
+          ...folder,
+          children: [],
+          isExpanded: false,
+          isLoading: false,
+        }));
+        setFolders(foldersWithState);
+      }
+    } catch (error) {
+      console.error("Error loading folders:", error);
+      toast.error("Error loading folders");
+    }
+  };
+
+  const loadSubfolders = async (folderId: string) => {
+    try {
+      const response = await apiService.getFolders(folderId);
+      if (response.success) {
+        setFolders((prevFolders) =>
+          updateFolderInTree(prevFolders, folderId, {
+            children: response.data.map((folder) => ({
+              ...folder,
+              children: [],
+              isExpanded: false,
+              isLoading: false,
+            })),
+            isLoading: false,
+          })
+        );
+      }
+    } catch (error) {
+      console.error("Error loading subfolders:", error);
+      toast.error("Error loading subfolders");
+    }
+  };
+
+  const updateFolderInTree = (
+    folders: FolderTreeItem[],
+    folderId: string,
+    updates: Partial<FolderTreeItem>
+  ): FolderTreeItem[] => {
+    return folders.map((folder) => {
+      if (folder.id === folderId) {
+        return { ...folder, ...updates };
+      }
+      if (folder.children && folder.children.length > 0) {
+        return {
+          ...folder,
+          children: updateFolderInTree(folder.children, folderId, updates),
+        };
+      }
+      return folder;
+    });
+  };
+
+  const toggleFolder = async (folderId: string) => {
+    const newExpanded = new Set(expandedFolders);
+    const isCurrentlyExpanded = newExpanded.has(folderId);
+
+    if (isCurrentlyExpanded) {
+      newExpanded.delete(folderId);
+    } else {
+      newExpanded.add(folderId);
+      // Load subfolders when expanding
+      setFolders((prevFolders) =>
+        updateFolderInTree(prevFolders, folderId, { isLoading: true })
+      );
+      await loadSubfolders(folderId);
+    }
+
+    setExpandedFolders(newExpanded);
+  };
+
+  const handleMove = async () => {
+    if (!selectedFolderId) {
+      toast.error("Please select a destination folder");
+      return;
+    }
+
+    setIsMoving(true);
+    try {
+      const response = await apiService.moveFile(fileId, selectedFolderId);
+      if (response.success) {
+        toast.success("File moved successfully");
+        onFileMoved();
+        onClose();
+      } else {
+        toast.error("Failed to move file");
+      }
+    } catch (error) {
+      console.error("Error moving file:", error);
+      toast.error("Error moving file");
+    } finally {
+      setIsMoving(false);
+    }
+  };
+
+  const renderFolder = (folder: FolderTreeItem, level = 0) => {
+    const isExpanded = expandedFolders.has(folder.id);
+    const isSelected = selectedFolderId === folder.id;
+
+    return (
+      <div key={folder.id} className="space-y-1">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => toggleFolder(folder.id)}
+            className="p-0.5 hover:bg-muted rounded transition-colors"
+            disabled={folder.isLoading}
+          >
+            {folder.isLoading ? (
+              <div className="w-3 h-3 animate-spin border border-muted-foreground border-t-transparent rounded-full" />
+            ) : isExpanded ? (
+              <ChevronDown className="w-3 h-3 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="w-3 h-3 text-muted-foreground" />
+            )}
+          </button>
+          <button
+            onClick={() => setSelectedFolderId(folder.id)}
+            className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors ${
+              isSelected ? "bg-panel text-panel-foreground" : "hover:bg-muted"
+            }`}
+            style={{ marginLeft: `${level * 16}px` }}
+          >
+            {isExpanded ? (
+              <FolderOpen className="w-4 h-4" />
+            ) : (
+              <Folder className="w-4 h-4" />
+            )}
+            <span className="truncate">{folder.name}</span>
+          </button>
+        </div>
+
+        {isExpanded && folder.children && folder.children.length > 0 && (
+          <div className="ml-4">
+            {folder.children.map((child) => renderFolder(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const handleClose = () => {
+    setSelectedFolderId("");
+    setExpandedFolders(new Set());
+    onClose();
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Move File</DialogTitle>
+          <DialogDescription>
+            Select a destination folder for "{fileName}"
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <ScrollArea className="h-64 w-full border rounded-md p-2">
+            <div className="space-y-1">
+              {folders.map((folder) => renderFolder(folder))}
+            </div>
+          </ScrollArea>
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleMove}
+              disabled={!selectedFolderId || isMoving}
+            >
+              {isMoving ? "Moving..." : "Move File"}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
