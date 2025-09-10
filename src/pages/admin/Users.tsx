@@ -1,253 +1,200 @@
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Plus, Search, Filter, MoreHorizontal } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
+"use client"
 
-const users = [
-  { id: 1, name: "Ethan Carter", email: "ethan.carter@example.com", role: "Admin", storage: "60 GB", lastActive: "2 days ago", status: "Active" },
-  { id: 2, name: "Olivia Bennett", email: "olivia.bennett@example.com", role: "Editor", storage: "80 GB", lastActive: "1 day ago", status: "Active" },
-  { id: 3, name: "Noah Harper", email: "noah.harper@example.com", role: "Viewer", storage: "45 GB", lastActive: "3 days ago", status: "Active" },
-  { id: 4, name: "Ava Foster", email: "ava.foster@example.com", role: "Editor", storage: "70 GB", lastActive: "1 week ago", status: "Inactive" },
-  { id: 5, name: "Liam Hayes", email: "liam.hayes@example.com", role: "Viewer", storage: "55 GB", lastActive: "2 weeks ago", status: "Inactive" },
-  { id: 6, name: "Emma Davis", email: "emma.davis@example.com", role: "Admin", storage: "120 GB", lastActive: "5 hours ago", status: "Active" },
-  { id: 7, name: "Mason Wilson", email: "mason.wilson@example.com", role: "Editor", storage: "35 GB", lastActive: "1 day ago", status: "Active" },
-  { id: 8, name: "Sophie Brown", email: "sophie.brown@example.com", role: "Uploader", storage: "25 GB", lastActive: "4 days ago", status: "Active" },
-];
+import type React from "react"
+import { useState, useMemo } from "react"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { userService } from "@/services/User-service"
+import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
+import { useToast } from "@/hooks/use-toast"
+import type { User, ApiResponse } from "@/Types/UserTypes"
+import { UserListComponent } from "@/components/admin/ListUsers"
+import { UserForm } from "@/components/admin/AddUser"
 
-export default function Users() {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [roleFilter, setRoleFilter] = useState("all");
-  const [newUserName, setNewUserName] = useState("");
-  const [newUserEmail, setNewUserEmail] = useState("");
-  const [newUserRole, setNewUserRole] = useState("");
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
+const Users: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [roleFilter, setRoleFilter] = useState("all")
+  const [userTypeFilter, setUserTypeFilter] = useState("all")
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
 
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === "all" || user.status.toLowerCase() === statusFilter;
-    const matchesRole = roleFilter === "all" || user.role.toLowerCase() === roleFilter;
-    
-    return matchesSearch && matchesStatus && matchesRole;
-  });
+  const { data, isLoading, isError, error } = useQuery<ApiResponse | User[]>({
+    queryKey: ["users"],
+    queryFn: async () => {
+      try {
+        const response = await userService.getAll()
+        // Ensure 'data' property is always present
+        if (typeof response === "object" && response !== null && "success" in response) {
+          return {
+            success: response.success,
+            data: response.data ?? [],
+            message: response.message ?? "",
+          }
+        }
+        // fallback: treat as array of users
+        return {
+          success: true,
+          data: Array.isArray(response) ? response : [],
+          message: "",
+        }
+      } catch (err: any) {
+        console.error("API Error:", err)
+        throw err
+      }
+    },
+    refetchOnWindowFocus: false,
+    retry: 2,
+    staleTime: 5 * 60 * 1000,
+  })
 
-  const handleCreateUser = () => {
-    if (!newUserName || !newUserEmail || !newUserRole) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
-      return;
+  const users = useMemo(() => {
+    if (Array.isArray(data)) return data
+    if (data && typeof data === "object" && "success" in data) {
+      if (!data.success) return []
+      if (Array.isArray(data.data)) return data.data
+      if (Array.isArray((data as any).data?.data)) return (data as any).data.data
     }
+    return []
+  }, [data])
 
-    toast({
-      title: "Success",
-      description: `User ${newUserName} has been created successfully`,
-    });
-    
-    setNewUserName("");
-    setNewUserEmail("");
-    setNewUserRole("");
-    setIsDialogOpen(false);
-  };
+  // 🔹 Create User Mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (newUser: { name: string; email: string; password: string; role: string; user_type: string }) => {
+      return await userService.create(newUser)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      toast({ title: "Success", description: "User created successfully" })
+    },
+    onError: (error: any) => {
+      console.error("Create user error:", error)
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to create user"
+      toast({ title: "Error", description: errorMessage, variant: "destructive" })
+    },
+  })
 
-  const handleEditUser = (userId: number) => {
-    toast({
-      title: "Edit User",
-      description: `Editing user with ID: ${userId}`,
-    });
-  };
+  // 🔹 Update User Mutation
+  const updateUserMutation = useMutation({
+    mutationFn: async (data: any & { id: number }) => {
+      return await userService.update(data.id, data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      toast({ title: "Success", description: "User updated successfully" })
+    },
+    onError: (error: any) => {
+      console.error("Update user error:", error)
+      const errorMessage = error?.response?.data?.message || error?.message || "Failed to update user"
+      toast({ title: "Error", description: errorMessage, variant: "destructive" })
+    },
+  })
 
-  const handleChangeRole = (userId: number) => {
-    toast({
-      title: "Role Change",
-      description: `Changing role for user with ID: ${userId}`,
-    });
-  };
+  const handleAddUser = (userData: { name: string; email: string; password: string; role: string }) => {
+    createUserMutation.mutate({
+      ...userData,
+      user_type: "user", // default
+    })
+  }
 
-  const handleViewActivity = (userId: number) => {
-    toast({
-      title: "User Activity",
-      description: `Viewing activity for user with ID: ${userId}`,
-    });
-  };
+  const handleUpdateUser = (userData: any & { id?: number }) => {
+    if (userData.id) {
+      updateUserMutation.mutate(userData)
+    }
+  }
 
-  const handleDeactivateUser = (userId: number) => {
-    const user = users.find(u => u.id === userId);
-    const action = user?.status === 'Active' ? 'deactivated' : 'activated';
-    
-    toast({
-      title: "User Status Updated",
-      description: `User has been ${action} successfully`,
-    });
-  };
+  const getUserStatus = (
+    user: User,
+  ): { status: string; color: "default" | "secondary" | "destructive" | "outline" } => {
+    if (user.email_verified_at) return { status: "Active", color: "default" }
+    return { status: "Pending", color: "secondary" }
+  }
+
+  const getUserRole = (user: User): string => {
+    if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+      return user.roles[0].name
+    }
+    return user.user_type || "user"
+  }
+
+  const filteredUsers = useMemo(() => {
+    if (!Array.isArray(users)) return []
+    return users.filter((user: User) => {
+      if (!user.name || !user.email || !user.id) return false
+
+      const matchesSearch =
+        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.id.toString().includes(searchTerm)
+
+      const userStatus = getUserStatus(user).status.toLowerCase()
+      const matchesStatus = statusFilter === "all" || userStatus === statusFilter
+
+      const userRole = getUserRole(user).toLowerCase()
+      const matchesRole = roleFilter === "all" || userRole === roleFilter
+
+      const matchesUserType = userTypeFilter === "all" || user.user_type === userTypeFilter
+
+      return matchesSearch && matchesStatus && matchesRole && matchesUserType
+    })
+  }, [users, searchTerm, statusFilter, roleFilter, userTypeFilter])
+
+  if (isLoading) {
+    return (
+      <div className="p-8 flex items-center justify-center min-h-[400px]">
+        <p className="text-muted-foreground">Loading users...</p>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="text-red-500 mb-2">⚠️</div>
+              <h3 className="font-semibold mb-2">Failed to load users</h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {error instanceof Error ? error.message : "An unexpected error occurred"}
+              </p>
+              <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["users"] })}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-8 space-y-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-foreground">User Management</h1>
-          <p className="text-muted-foreground mt-1">Manage team members and their permissions</p>
+          <p className="text-muted-foreground mt-1">
+            Manage team members and their permissions • {users.length} total users
+          </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New User</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Full Name</Label>
-                <Input 
-                  id="name" 
-                  placeholder="Enter full name" 
-                  value={newUserName}
-                  onChange={(e) => setNewUserName(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="Enter email address" 
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select value={newUserRole} onValueChange={setNewUserRole}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="editor">Editor</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                    <SelectItem value="uploader">Uploader</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button className="w-full" onClick={handleCreateUser}>Create User</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+
+        {/* 🔹 Yahan sirf UserForm ka Add wala button */}
+        <UserForm onSubmit={handleAddUser} isLoading={createUserMutation.isPending} />
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>All Users ({filteredUsers.length})</CardTitle>
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                <Input 
-                  placeholder="Search users..." 
-                  className="pl-9 w-64"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                  <SelectItem value="uploader">Uploader</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-8 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-              <div className="col-span-2">User</div>
-              <div className="col-span-2">Email</div>
-              <div>Role</div>
-              <div>Storage</div>
-              <div>Last Active</div>
-              <div>Actions</div>
-            </div>
-            {filteredUsers.map((user) => (
-              <div key={user.id} className="grid grid-cols-8 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-gray-100 rounded-lg px-2">
-                <div className="col-span-2 flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback>{user.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium text-sm">{user.name}</div>
-                    <Badge variant={user.status === 'Active' ? 'default' : 'outline'} className="text-xs mt-1">
-                      {user.status}
-                    </Badge>
-                  </div>
-                </div>
-                <div className="col-span-2 text-sm text-muted-foreground">{user.email}</div>
-                <div>
-                  <Badge variant="outline" className="text-xs">
-                    {user.role}
-                  </Badge>
-                </div>
-                <div className="text-sm">
-                  <div className="w-20 bg-gray-200 rounded-full h-2 mb-1">
-                    <div className="bg-panel h-2 rounded-full" style={{ width: '75%' }}></div>
-                  </div>
-                  {user.storage}
-                </div>
-                <div className="text-sm text-muted-foreground">{user.lastActive}</div>
-                <div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="sm">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem onClick={() => handleEditUser(user.id)}>Edit User</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleChangeRole(user.id)}>Change Role</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleViewActivity(user.id)}>View Activity</DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeactivateUser(user.id)} className="text-destructive">
-                        {user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <UserListComponent
+        users={users}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        roleFilter={roleFilter}
+        setRoleFilter={setRoleFilter}
+        userTypeFilter={userTypeFilter}
+        setUserTypeFilter={setUserTypeFilter}
+        filteredUsers={filteredUsers}
+      />
     </div>
-  );
+  )
 }
+
+export default Users

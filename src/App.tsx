@@ -34,15 +34,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          {/* Public routes */}
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
-          {/* Protected route that redirects based on role */}
           <Route path="/dashboard" element={<RoleBasedRedirect />} />
           
-          {/* Admin routes - only accessible by admin role */}
           <Route
             path="/dash"
             element={
