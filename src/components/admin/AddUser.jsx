@@ -1,6 +1,5 @@
 "use client"
 
-
 import { useEffect, useState } from "react"
 import {
   Dialog,
@@ -19,18 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Plus, User, Mail, Shield, Key, Pencil } from "lucide-react"
-
-
-
-/**
- * @typedef {Object} UserFormProps
- * @property {(userData: UserFormData) => void} onSubmit
- * @property {boolean} [isLoading]
- * @property {UserFormData} [initialData]
- * @property {"add" | "edit"} [mode]
- */
+import { User, Mail, Plus } from "lucide-react"
 
 export function UserForm({
   onSubmit,
@@ -39,7 +27,7 @@ export function UserForm({
   mode = "add",
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const [formData, setFormData] = useState<UserFormData>({
+  const [formData, setFormData] = useState({
     id: undefined,
     name: "",
     email: "",
@@ -49,17 +37,15 @@ export function UserForm({
 
   useEffect(() => {
     if (initialData && mode === "edit") {
-      setFormData({ ...initialData, password: "" }) // password blank rakhenge
+      setFormData({ ...initialData, password: "" })
     }
   }, [initialData, mode])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-
     if (!formData.name.trim() || !formData.email.trim() || !formData.role.trim()) {
       return
     }
-
     onSubmit(formData)
     setIsOpen(false)
     resetForm()
@@ -83,18 +69,15 @@ export function UserForm({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-       <span className="flex items-center text-sm font-medium text-gray-700">
-  {mode === "edit" ? (
-    <>
-      Edit
-    </>
-  ) : (
-    <>
-      <Plus className="h-4 w-4 mr-2" /> Add User
-    </>
-  )}
-</span>
-
+        {mode === "edit" ? (
+          <Button variant="ghost" size="sm">
+            Edit
+          </Button>
+        ) : (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" /> Add User
+          </Button>
+        )}
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl">
@@ -186,13 +169,9 @@ export function UserForm({
             </div>
           </div>
 
+          {/* Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleClose}
-              className="flex-1 bg-transparent"
-            >
+            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
             <Button type="submit" disabled={isLoading} className="flex-1">

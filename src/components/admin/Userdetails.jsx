@@ -1,14 +1,41 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+"use client"
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { User, Mail, Calendar, Shield, Key, Clock } from "lucide-react"
+
+/**
+ * Safe date formatter
+ */
+function formatDate(dateString) {
+  if (!dateString) return "N/A"
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  } catch {
+    return "Invalid date"
+  }
+}
+
 /**
  * @typedef {Object} UserType
  * @property {number} id
  * @property {string} name
  * @property {string} email
  * @property {string|null} email_verified_at
- * @property {"admin"|"manager"|"user"} user_type
+ * @property {"admin"|"manager"|"user"|string} user_type
  * @property {Array<{
  *   id: number,
  *   name: string,
@@ -35,7 +62,6 @@ import { User, Mail, Calendar, Shield, Key, Clock } from "lucide-react"
 export function UserDetailsModal({ user, isOpen, onClose }) {
   if (!user) return null
 
-
   const getStatusBadge = () => {
     if (user.email_verified_at) {
       return (
@@ -48,13 +74,20 @@ export function UserDetailsModal({ user, isOpen, onClose }) {
   }
 
   const getUserTypeBadge = () => {
+    if (!user.user_type || typeof user.user_type !== "string") {
+      return <Badge variant="secondary">Unknown</Badge>
+    }
+
     const colors = {
       admin: "bg-red-500",
       manager: "bg-blue-500",
       user: "bg-gray-500",
     }
+
+    const color = colors[user.user_type] || "bg-gray-400"
+
     return (
-      <Badge variant="default" className={colors[user.user_type]}>
+      <Badge variant="default" className={color}>
         {user.user_type.charAt(0).toUpperCase() + user.user_type.slice(1)}
       </Badge>
     )
@@ -181,7 +214,9 @@ export function UserDetailsModal({ user, isOpen, onClose }) {
                 )}
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Refresh Token</label>
-                  <p className="text-sm font-medium">{user.onedrive_refresh_token ? "Available" : "Not available"}</p>
+                  <p className="text-sm font-medium">
+                    {user.onedrive_refresh_token ? "Available" : "Not available"}
+                  </p>
                 </div>
               </div>
             </CardContent>

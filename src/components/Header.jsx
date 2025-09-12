@@ -1,26 +1,34 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Building2, Menu, X } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // ✅ ye import karein
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const navigate = useNavigate(); // ✅ hook se function milega
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({ behavior: "smooth" });
       setIsMobileMenuOpen(false);
     }
+  };
+
+  // ✅ Correct navigation
+  const handleClick = () => {
+    navigate("/login");
+    setIsMobileMenuOpen(false);
   };
 
   const menuItems = [
@@ -28,24 +36,30 @@ const Header = () => {
     { label: "Services", id: "services" },
     { label: "Why Choose Us", id: "why-choose-us" },
     { label: "Projects", id: "projects" },
-    { label: "Contact", id: "contact" }
+    { label: "Contact", id: "contact" },
   ];
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'bg-primary/95 backdrop-blur-md shadow-card' : 'bg-transparent'
-    }`}>
+    <header
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? "bg-primary/95 backdrop-blur-md shadow-card"
+          : "bg-transparent"
+      }`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div 
+          <div
             className="flex items-center gap-3 cursor-pointer"
-            onClick={() => scrollToSection('hero')}
+            onClick={() => scrollToSection("hero")}
           >
             <div className="w-10 h-10 bg-accent rounded-lg flex items-center justify-center">
               <Building2 className="w-6 h-6 text-primary" />
             </div>
-            <span className="text-2xl font-bold text-white">CO Consultants</span>
+            <span className="text-2xl font-bold text-white">
+              CO Consultants
+            </span>
           </div>
 
           {/* Desktop Navigation */}
@@ -59,12 +73,8 @@ const Header = () => {
                 {item.label}
               </button>
             ))}
-            <Button 
-              variant="hero-outline" 
-              size="sm"
-              onClick={() => scrollToSection('contact')}
-            >
-              Get Quote
+            <Button variant="hero-outline" size="sm" onClick={handleClick}>
+              Login
             </Button>
           </nav>
 
@@ -91,13 +101,13 @@ const Header = () => {
                 </button>
               ))}
               <div className="px-4 pt-2">
-                <Button 
-                  variant="hero-outline" 
+                <Button
+                  variant="hero-outline"
                   size="sm"
                   className="w-full"
-                  onClick={() => scrollToSection('contact')}
+                  onClick={handleClick}
                 >
-                  Get Quote
+                  Login
                 </Button>
               </div>
             </nav>

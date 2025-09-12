@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
-import {authService} from "@/services/Auth-service"
+import { authService } from "@/services/Auth-service"
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
     firstName: "",
@@ -38,55 +38,55 @@ export default function RegisterPage() {
     if (!acceptTerms) return "Please accept the terms and conditions"
     return null
   }
-const handleSubmit = async (e) => {
-  e.preventDefault()
+  const handleSubmit = async (e) => {
+    e.preventDefault()
 
-  const validationError = validateForm()
-  if (validationError) {
-    toast({
-      title: "Registration Error",
-      description: validationError,
-      variant: "destructive",
-    })
-    return
-  }
-
-  setIsLoading(true)
-
-  try {
-    const response = await authService.register({
-      name: `${formData.firstName} ${formData.lastName}`.trim(),
-      email: formData.email,
-      password: formData.password,
-    })
-
-    if (response.success) {
-      setSuccess(true)
+    const validationError = validateForm()
+    if (validationError) {
       toast({
-        title: "Account Created 🎉",
-        description: "Redirecting to dashboard...",
-      })
-
-      setTimeout(() => {
-        window.location.href = "/filemanager" // ✅ redirect to file manager
-      }, 2000)
-    } else {
-      toast({
-        title: "Registration Failed",
-        description: response.message || "Something went wrong",
+        title: "Registration Error",
+        description: validationError,
         variant: "destructive",
       })
+      return
     }
-  } catch (error) {
-    toast({
-      title: "Unexpected Error",
-      description: "Please try again later",
-      variant: "destructive",
-    })
-  } finally {
-    setIsLoading(false)
+
+    setIsLoading(true)
+
+    try {
+      const response = await authService.register({
+        name: `${formData.firstName} ${formData.lastName}`.trim(),
+        email: formData.email,
+        password: formData.password,
+      })
+
+      if (response.success) {
+        setSuccess(true)
+        toast({
+          title: "Account Created 🎉",
+          description: "Redirecting to dashboard...",
+        })
+
+        setTimeout(() => {
+          window.location.href = "/filemanager" // ✅ redirect to file manager
+        }, 2000)
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: response.message || "Something went wrong",
+          variant: "destructive",
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Unexpected Error",
+        description: "Please try again later",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
   }
-}
 
 
   return (
@@ -140,156 +140,203 @@ const handleSubmit = async (e) => {
         <div className="absolute top-1/3 left-8 w-4 h-4 bg-white/40 rounded-full animate-bounce"></div>
       </div>
 
-   <div className="w-full lg:w-1/2 flex items-center justify-center p-3 lg:p-4 animate-slide-in-right bg-white text-black">
-  <div className="w-full max-w-md space-y-3">
-    <div className="space-y-3">
-      <div>
-        <h2 className="text-xl font-bold mb-1">Join Our Team</h2>
-        <p className="text-xs text-gray-600">
-          Create your CO Consultants account to access premium business consulting services
-        </p>
+      <div className="w-full lg:w-1/2 flex items-center justify-center p-3 lg:p-4 animate-slide-in-right bg-white text-black">
+        <div className="w-full max-w-md space-y-3">
+          <div className="space-y-3">
+            <div>
+              <h2 className="text-xl font-bold mb-1">Join Our Team</h2>
+              <p className="text-xs text-gray-600">
+                Create your CO Consultants account for premium consulting.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmit} className="space-y-2.5">
+              {/* First / Last Name */}
+              <div className="grid grid-cols-2 gap-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="firstName" className="text-xs font-medium text-gray-900">
+                    First Name
+                  </Label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="John"
+                    value={formData.firstName}
+                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    className="h-9 bg-white border border-gray-300 rounded-xl px-3 text-sm text-black"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="lastName" className="text-xs font-medium text-gray-900">
+                    Last Name
+                  </Label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Doe"
+                    value={formData.lastName}
+                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    className="h-9 bg-white border border-gray-300 rounded-xl px-3 text-sm text-black"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Email */}
+              <div className="space-y-1">
+                <Label htmlFor="email" className="text-xs font-medium text-gray-900">
+                  Enter your email
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="john@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  className="h-9 bg-white border border-gray-300 rounded-xl px-3 text-sm text-black"
+                  required
+                />
+              </div>
+
+              {/* Password */}
+              <div className="space-y-1">
+                <Label htmlFor="password" className="text-xs font-medium text-gray-900">
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Create a password"
+                    value={formData.password}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    className="h-9 bg-white border border-gray-300 rounded-xl px-3 pr-10 text-sm text-black"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+                  >
+                    {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-1">
+                <Label htmlFor="confirmPassword" className="text-xs font-medium text-gray-900">
+                  Confirm Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    placeholder="Confirm your password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                    className="h-9 bg-white border border-gray-300 rounded-xl px-3 pr-10 text-sm text-black"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
+                  >
+                    {showConfirmPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <div className="flex items-center space-x-2 py-1">
+                <Checkbox
+                  id="terms"
+                  checked={acceptTerms}
+                  onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+                  className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
+                />
+
+                <Label htmlFor="terms" className="text-xs text-gray-900">
+                  I agree to the{" "}
+                  <Link to="/terms" className="text-blue-600 hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link to="/privacy" className="text-blue-600 hover:underline">
+                    Privacy Policy
+                  </Link>
+                </Label>
+              </div>
+
+              {/* Button */}
+              <Button
+                type="submit"
+                disabled={isLoading || !acceptTerms}
+                className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-sm"
+              >
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Button>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-border"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-background text-muted-foreground">Or sign in with</span>
+                </div>
+              </div>
+
+              {/* Social Login Buttons */}
+              {/* Social Login Buttons */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Google Button */}
+                <Button
+                  type="button"
+                  className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
+                >
+                  <img
+                    src="https://www.svgrepo.com/show/355037/google.svg"
+                    alt="Google"
+                    className="w-4 h-4"
+                  />
+                  <span className="text-sm font-medium">Google</span>
+                </Button>
+
+                {/* Facebook Button */}
+                <Button
+                  type="button"
+                  className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-[#1877F2] text-white hover:bg-[#166FE0] shadow-sm transition-colors"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 
+              5.373-12 12c0 5.99 4.388 10.954 10.125 
+              11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 
+              1.792-4.669 4.533-4.669 1.312 0 
+              2.686.235 2.686.235v2.953H15.83c-1.491 
+              0-1.956.925-1.956 1.874v2.25h3.328l-.532 
+              3.47h-2.796v8.385C19.612 23.027 24 
+              18.062 24 12.073z" />
+                  </svg>
+                  <span className="text-sm font-medium">Facebook</span>
+                </Button>
+              </div>
+
+              {/* Login Redirect */}
+              <div className="text-center pt-1">
+                <span className="text-xs text-gray-600">Already have an account? </span>
+                <Link to="/login" className="text-xs text-blue-600 hover:underline font-medium">
+                  Sign in
+                </Link>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
-
-      <form onSubmit={handleSubmit} className="space-y-2.5">
-        {/* First / Last Name */}
-        <div className="grid grid-cols-2 gap-2.5">
-          <div className="space-y-1">
-            <Label htmlFor="firstName" className="text-xs font-medium text-gray-900">
-              First Name
-            </Label>
-            <Input
-              id="firstName"
-              type="text"
-              placeholder="John"
-              value={formData.firstName}
-              onChange={(e) => handleInputChange("firstName", e.target.value)}
-              className="h-9 bg-white border border-gray-300 rounded-xl px-3 text-sm text-black"
-              required
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="lastName" className="text-xs font-medium text-gray-900">
-              Last Name
-            </Label>
-            <Input
-              id="lastName"
-              type="text"
-              placeholder="Doe"
-              value={formData.lastName}
-              onChange={(e) => handleInputChange("lastName", e.target.value)}
-              className="h-9 bg-white border border-gray-300 rounded-xl px-3 text-sm text-black"
-              required
-            />
-          </div>
-        </div>
-
-        {/* Email */}
-        <div className="space-y-1">
-          <Label htmlFor="email" className="text-xs font-medium text-gray-900">
-            Enter your email
-          </Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="john@example.com"
-            value={formData.email}
-            onChange={(e) => handleInputChange("email", e.target.value)}
-            className="h-9 bg-white border border-gray-300 rounded-xl px-3 text-sm text-black"
-            required
-          />
-        </div>
-
-        {/* Password */}
-        <div className="space-y-1">
-          <Label htmlFor="password" className="text-xs font-medium text-gray-900">
-            Password
-          </Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="Create a password"
-              value={formData.password}
-              onChange={(e) => handleInputChange("password", e.target.value)}
-              className="h-9 bg-white border border-gray-300 rounded-xl px-3 pr-10 text-sm text-black"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
-            >
-              {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Confirm Password */}
-        <div className="space-y-1">
-          <Label htmlFor="confirmPassword" className="text-xs font-medium text-gray-900">
-            Confirm Password
-          </Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type={showConfirmPassword ? "text" : "password"}
-              placeholder="Confirm your password"
-              value={formData.confirmPassword}
-              onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-              className="h-9 bg-white border border-gray-300 rounded-xl px-3 pr-10 text-sm text-black"
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black"
-            >
-              {showConfirmPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Terms */}
-        <div className="flex items-center space-x-2 py-1">
-          <Checkbox
-  id="terms"
-  checked={acceptTerms}
-  onCheckedChange={(checked) => setAcceptTerms(checked === true)}
-  className="data-[state=checked]:bg-red-600 data-[state=checked]:border-red-600"
-/>
-
-          <Label htmlFor="terms" className="text-xs text-gray-900">
-            I agree to the{" "}
-            <Link to="/terms" className="text-blue-600 hover:underline">
-              Terms of Service
-            </Link>{" "}
-            and{" "}
-            <Link to="/privacy" className="text-blue-600 hover:underline">
-              Privacy Policy
-            </Link>
-          </Label>
-        </div>
-
-        {/* Button */}
-        <Button
-          type="submit"
-          disabled={isLoading || !acceptTerms}
-          className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-sm"
-        >
-          {isLoading ? "Creating Account..." : "Create Account"}
-        </Button>
-
-        {/* Login Redirect */}
-        <div className="text-center pt-1">
-          <span className="text-xs text-gray-600">Already have an account? </span>
-          <Link to="/login" className="text-xs text-blue-600 hover:underline font-medium">
-            Sign in
-          </Link>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
     </div>
   )
