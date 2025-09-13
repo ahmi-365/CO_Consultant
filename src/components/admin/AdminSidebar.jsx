@@ -1,5 +1,5 @@
-import { Home, Files, Users, Shield, BarChart3, Settings, FolderOpen, Database, User } from "lucide-react";
-import { NavLink } from "react-router-dom";
+import { Home, Files, Users, Shield, BarChart3, Settings, FolderOpen, Database, User, LogOut } from "lucide-react";
+import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -14,6 +14,14 @@ const navigation = [
 ];
 
 export function AdminSidebar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
     <div className="flex h-screen w-64 flex-col bg-card border-r border-border">
       <div className="flex items-center gap-3 px-6 py-6 border-b border-border">
@@ -22,7 +30,6 @@ export function AdminSidebar() {
         </div>
         <span className="text-lg font-semibold">Cloud Storage</span>
       </div>
-      
       <nav className="flex-1 px-4 py-6">
         <ul className="space-y-2">
           {navigation.map((item) => (
@@ -45,11 +52,14 @@ export function AdminSidebar() {
           ))}
         </ul>
       </nav>
-      
-      <div className="border-t border-border p-4">
-        <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground">
-          <Users className="h-4 w-4" />
-          Invite team
+
+      <div className="border-t border-border p-4 space-y-2">
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-gray-200 hover:text-accent-foreground"
+        >
+          <LogOut className="h-4 w-4" />
+          Logout
         </button>
       </div>
     </div>

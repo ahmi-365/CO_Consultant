@@ -18,7 +18,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { User, Mail, Plus } from "lucide-react"
+import { User, Mail, Plus, Loader2 } from "lucide-react"
+
+// Role service to fetch roles from API
+const roleService = {
+  async getAll() {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/roles`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+
+      const result = await res.json();
+
+      if (!res.ok) {
+        return { success: false, message: result.message || "Failed to fetch roles" };
+      }
+
+      return { success: true, data: result };
+    } catch (err) {
+      console.error("❌ Get roles error:", err);
+      return { success: false, message: "Something went wrong" };
+    }
+  },
+};
 
 export function UserForm({
   onSubmit,
@@ -27,6 +53,8 @@ export function UserForm({
   mode = "add",
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const [roles, setRoles] = useState([])
+  const [rolesLoading, setRolesLoading] = useState(false)
   const [formData, setFormData] = useState({
     id: undefined,
     name: "",
@@ -35,11 +63,48 @@ export function UserForm({
     role: "",
   })
 
+  // Fetch roles when component mounts or dialog opens
+  useEffect(() => {
+    if (isOpen && roles.length === 0) {
+      fetchRoles()
+    }
+  }, [isOpen])
+
   useEffect(() => {
     if (initialData && mode === "edit") {
       setFormData({ ...initialData, password: "" })
     }
   }, [initialData, mode])
+
+  const fetchRoles = async () => {
+    setRolesLoading(true)
+    try {
+      const res = await roleService.getAll()
+      if (res.success) {
+        // Handle different response formats
+        let rolesData = []
+        if (Array.isArray(res.data)) {
+          rolesData = res.data
+        } else if (res.data?.data && Array.isArray(res.data.data)) {
+          rolesData = res.data.data
+        } else if (res.data?.status === "success" && Array.isArray(res.data.data)) {
+          rolesData = res.data.data
+        }
+        
+        setRoles(rolesData)
+        console.log("Roles loaded for user form:", rolesData)
+      } else {
+        console.error("Failed to fetch roles:", res.message)
+        // Show error but don't prevent form from opening
+        alert(`⚠️ Failed to load roles: ${res.message}`)
+      }
+    } catch (error) {
+      console.error("Failed to fetch roles:", error)
+      alert("⚠️ Failed to load roles")
+    } finally {
+      setRolesLoading(false)
+    }
+  }
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -131,24 +196,44 @@ export function UserForm({
                 onValueChange={(value) =>
                   setFormData((prev) => ({ ...prev, role: value }))
                 }
+                disabled={rolesLoading}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="editor">Editor</SelectItem>
-                  <SelectItem value="viewer">Viewer</SelectItem>
-                  <SelectItem value="uploader">Uploader</SelectItem>
-                  <SelectItem value="user">User</SelectItem>
+                  {rolesLoading ? (
+                    <SelectItem value="loading" disabled>
+                      <div className="flex items-center">
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        Loading roles...
+                      </div>
+                    </SelectItem>
+                  ) : roles.length > 0 ? (
+                    roles.map((role) => (
+                      <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                        {role.name}
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-roles" disabled>
+                      No roles available
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {!rolesLoading && roles.length === 0 && (
+                <p className="text-xs text-muted-foreground text-red-500">
+                  Unable to load roles. Please try refreshing the page.
+                </p>
+              )}
             </div>
 
             {/* Password */}
             <div className="space-y-2 col-span-3">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">
+                Password {mode === "add" ? "*" : ""}
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -156,6 +241,7 @@ export function UserForm({
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, password: e.target.value }))
                 }
+                required={mode === "add"}
               />
               {mode === "add" ? (
                 <p className="text-xs text-muted-foreground">
@@ -174,7 +260,11 @@ export function UserForm({
             <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading} className="flex-1">
+            <Button 
+              type="submit" 
+              disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)} 
+              className="flex-1"
+            >
               {isLoading
                 ? mode === "edit"
                   ? "Updating..."
