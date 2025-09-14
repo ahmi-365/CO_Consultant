@@ -54,7 +54,7 @@ const handleCreate = async () => {
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-">
             <Folder className="h-5 w-5 text-panel" />
             Create New Folder
           </DialogTitle>
@@ -85,6 +85,7 @@ const handleCreate = async () => {
           <Button
             onClick={handleCreate}
             disabled={!folderName.trim() || isCreating}
+            varient="variant" 
           >
             {isCreating ? "Creating..." : "Create Folder"}
           </Button>

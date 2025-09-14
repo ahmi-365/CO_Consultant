@@ -62,8 +62,6 @@ const getFileIconComponent = (filename, type) => {
   }
 };
 
-
-
 export default function FileItem({ 
   item, 
   onSelect, 
@@ -105,170 +103,196 @@ export default function FileItem({
     setIsRenaming(false);
   };
 
-const handleDownload = () => {
-  if (item.type === 'file' && item.download_url) {
-    console.log("📥 Starting download:", item.download_url);
+  const handleDownload = () => {
+    if (item.type === 'file' && item.download_url) {
+      console.log("📥 Starting download:", item.download_url);
 
-    const link = document.createElement('a');
-    link.href = item.download_url;
-    link.download = item.name || 'file'; // Suggested file name
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+      const link = document.createElement('a');
+      link.href = item.download_url;
+      link.download = item.name || 'file';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
 
-    toast({
-      title: "Download Started",
-      description: `Downloading ${item.name}`,
-    });
-  } else {
-    console.warn("⚠️ No download URL found for item:", item);
-    toast({
-      title: "Error",
-      description: "Download URL not available",
-      variant: "destructive",
-    });
-  }
-};
+      toast({
+        title: "Download Started",
+        description: `Downloading ${item.name}`,
+      });
+    } else {
+      console.warn("⚠️ No download URL found for item:", item);
+      toast({
+        title: "Error",
+        description: "Download URL not available",
+        variant: "destructive",
+      });
+    }
+  };
 
+  const handleManageAccess = (e) => {
+    e.stopPropagation();
+    onManagePermissions?.(item);
+  };
+
+  const handlePreviewClick = (e) => {
+    e.stopPropagation();
+    onPreview?.(item);
+  };
+
+  const handleMoveClick = (e) => {
+    e.stopPropagation();
+    onMove?.(item.id);
+  };
+
+  const handleDeleteClick = (e) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
+      onDelete?.(item.id);
+    }
+  };
+
+  const handleRenameClick = (e) => {
+    e.stopPropagation();
+    setIsRenaming(true);
+  };
 
   const marginLeft = depth * 24;
 
   return (
     <div className="animate-fade-in">
-      <div 
-        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-card-hover transition-smooth cursor-pointer group shadow-file bg-gradient-file"
-        style={{ marginLeft: `${marginLeft}px` }}
-        onClick={!isRenaming ? handleItemClick : undefined}
-      >
-        <div className="flex items-center gap-3 flex-1">
-          {getFileIconComponent(item.name, item.type)}
-          
-          <div className="flex-1 min-w-0">
-            {isRenaming ? (
-              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                <Input
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleRename();
-                    if (e.key === 'Escape') handleCancelRename();
-                  }}
-                  className="h-8 text-sm flex-1"
-                  autoFocus
-                />
-                <Button size="sm" variant="ghost" onClick={handleRename}>
-                  <Check className="h-4 w-4 text-success" />
-                </Button>
-                <Button size="sm" variant="ghost" onClick={handleCancelRename}>
-                  <X className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            ) : (
-              <>
-<div className="font-medium text-foreground truncate overflow-hidden whitespace-nowrap max-w-[150px] sm:max-w-[200px] md:max-w-[450px]
-">
-  {item.name}
-</div>
-                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                  {item.type === 'file' && item.size && (
-                    <span>{formatFileSize(item.size)}</span>
-                  )}
-                  <span>{formatDate(item.created_at)}</span>
-                  {item.owner && (
-                    <span>by {item.owner.name}</span>
-                  )}
+     <div 
+  className="flex flex-col p-3 border border-border rounded-lg hover:bg-card-hover transition-smooth cursor-pointer group shadow-file bg-gradient-file h-full min-h-[80px]"
+  onClick={!isRenaming ? handleItemClick : undefined}
+>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {getFileIconComponent(item.name, item.type)}
+            
+            <div className="flex-1 min-w-0">
+              {isRenaming ? (
+                // Rename input section
+                <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleRename();
+                      if (e.key === 'Escape') handleCancelRename();
+                    }}
+                    className="h-8 text-sm flex-1"
+                    autoFocus
+                  />
+                  <div className="flex gap-1">
+                    <Button size="sm" variant="ghost" onClick={handleRename}>
+                      <Check className="h-4 w-4 text-success" />
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={handleCancelRename}>
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
                 </div>
-              </>
-            )}
+              ) : (
+                <div className="font-medium text-foreground truncate text-sm" title={item.name}>
+                  {item.name}
+                </div>
+              )}
+            </div>
           </div>
-          
-          {/* User avatars for permissions */}
-          {item.type === 'folder' && !isRenaming && (
-            <div className="flex -space-x-2 opacity-0 group-hover:opacity-100 transition-smooth">
-              <Avatar 
-                className="h-6 w-6 border-2 border-background cursor-pointer hover:scale-110 transition-smooth"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onManagePermissions?.(item);
-                }}
-              >
-                <AvatarFallback className="text-xs bg-primary-light text-primary">
-                  <Users className="h-3 w-3" />
-                </AvatarFallback>
-              </Avatar>
+
+          {/* Actions section */}
+          {!isRenaming && (
+            <div className="flex items-center gap-1">
+              {/* User permissions icon for folders */}
+              {item.type === 'folder' && (
+                <Avatar 
+                  className="h-6 w-6 border-2 border-background cursor-pointer hover:scale-110 transition-smooth opacity-0 group-hover:opacity-100"
+                  onClick={handleManageAccess}
+                >
+                  <AvatarFallback className="text-xs bg-primary-light text-primary">
+                    <Users className="h-3 w-3" />
+                  </AvatarFallback>
+                </Avatar>
+              )}
+
+              {/* Quick download for files - removed hover opacity */}
+              {item.type === 'file' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload();
+                  }}
+                  className="h-8 w-8 p-0"
+                >
+                  <Download className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* More options dropdown - removed hover opacity */}
+           <DropdownMenu>
+  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+    <Button 
+      variant="ghost" 
+      size="sm" 
+      className="h-8 w-8 p-0 cursor-pointer"
+    >
+      <MoreHorizontal className="h-4 w-4" />
+    </Button>
+  </DropdownMenuTrigger>
+
+  <DropdownMenuContent align="end" className="w-48">
+    {item.type === 'file' && (
+      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }} className="cursor-pointer">
+        <Download className="h-4 w-4 mr-2" />
+        Download
+      </DropdownMenuItem>
+    )}
+
+    <DropdownMenuItem onClick={handleManageAccess} className="cursor-pointer">
+      <Users className="h-4 w-4 mr-2" />
+      Manage Access
+    </DropdownMenuItem>
+
+    <DropdownMenuItem onClick={handleRenameClick} className="cursor-pointer">
+      <Edit className="h-4 w-4 mr-2" />
+      Rename
+    </DropdownMenuItem>
+
+    <DropdownMenuItem onClick={handleMoveClick} className="cursor-pointer">
+      <Move className="h-4 w-4 mr-2" />
+      Move
+    </DropdownMenuItem>
+
+    <DropdownMenuSeparator />
+
+    <DropdownMenuItem onClick={handleDeleteClick} className="text-destructive cursor-pointer">
+      <Trash2 className="h-4 w-4 mr-2" />
+      Delete
+    </DropdownMenuItem>
+  </DropdownMenuContent>
+</DropdownMenu>
+
             </div>
           )}
         </div>
 
+        {/* File info section */}
         {!isRenaming && (
-          <>
-            {/* Quick download button for files */}
-            {item.type === 'file' && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDownload();
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-smooth mr-2"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            )}
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="opacity-0 group-hover:opacity-100 transition-smooth"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
-                {item.type === 'file' && (
-                  <>
-                    {/* <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPreview?.(item); }}>
-                      <Eye className="h-4 w-4 mr-2" />
-                      Preview
-                    </DropdownMenuItem> */}
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
-                      <Download className="h-4 w-4 mr-2" />
-                      Download
-                    </DropdownMenuItem>
-                  </>
+          <div className="mt-auto">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex items-center gap-2">
+                {item.type === 'file' && item.size && (
+                  <span>{formatFileSize(item.size)}</span>
                 )}
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Rename
-                </DropdownMenuItem>
-                {onMove && (
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(item.id); }}>
-                    <Move className="h-4 w-4 mr-2" />
-                    Move
-                  </DropdownMenuItem>
-                )}
-                {onManagePermissions && (
-                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onManagePermissions(item); }}>
-                    <Share className="h-4 w-4 mr-2" />
-                    Manage Access
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuSeparator />
-                {onDelete && (
-                  <DropdownMenuItem 
-                    onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
-                    className="text-destructive focus:text-destructive"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+                <span>{formatDate(item.created_at)}</span>
+              </div>
+              {item.owner && (
+                <span className="truncate max-w-[80px]" title={item.owner.name}>
+                  {item.owner.name}
+                </span>
+              )}
+            </div>
+          </div>
         )}
       </div>
 

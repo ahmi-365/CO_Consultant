@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Building2, Menu, X } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // ✅ ye import karein
+import { useNavigate } from "react-router-dom";
 
 const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useNavigate(); // ✅ hook se function milega
+  const [user, setUser] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -17,6 +18,19 @@ const Header = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  useEffect(() => {
+    // Get user data from localStorage
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing user data from localStorage:', error);
+      }
+    }
+  }, []);
+
   const scrollToSection = (sectionId) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -25,10 +39,31 @@ const Header = () => {
     }
   };
 
-  // ✅ Correct navigation
-  const handleClick = () => {
-    navigate("/login");
+  const handleNavigation = () => {
+    if (!user) {
+      // User not logged in - show login
+      navigate("/login");
+    } else if (user.roles && user.roles.includes("admin")) {
+      // User is admin - show dashboard
+      navigate("/dash");
+    } else if (user.roles && user.roles.includes("manager")) {
+      // User is manager - show dashboard
+      navigate("/dash");
+    } else {
+      // Regular user - show file manager
+      navigate("/filemanager");
+    }
     setIsMobileMenuOpen(false);
+  };
+
+  const getButtonText = () => {
+    if (!user) {
+      return "Login";
+    } else if (user.roles && (user.roles.includes("admin") || user.roles.includes("manager"))) {
+      return "Dashboard";
+    } else {
+      return "File Manager";
+    }
   };
 
   const menuItems = [
@@ -73,8 +108,8 @@ const Header = () => {
                 {item.label}
               </button>
             ))}
-            <Button variant="hero-outline" size="sm" onClick={handleClick}>
-              Login
+            <Button variant="hero-outline" size="sm" onClick={handleNavigation}>
+              {getButtonText()}
             </Button>
           </nav>
 
@@ -105,9 +140,9 @@ const Header = () => {
                   variant="hero-outline"
                   size="sm"
                   className="w-full"
-                  onClick={handleClick}
+                  onClick={handleNavigation}
                 >
-                  Login
+                  {getButtonText()}
                 </Button>
               </div>
             </nav>

@@ -7,7 +7,7 @@ const navigation = [
   { name: "Files", href: "/files", icon: Files },
   { name: "Users", href: "/users", icon: Files },
   { name: "Roles", href: "/roles", icon: Shield },
-  { name: "Storage", href: "/storage", icon: Database },
+  // { name: "Storage", href: "/storage", icon: Database },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Settings", href: "/settings", icon: Settings },
   { name: "Profile", href: "/profile", icon: User },
@@ -28,7 +28,7 @@ export function AdminSidebar() {
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-panel">
           <FolderOpen className="h-5 w-5 text-panel-foreground" />
         </div>
-        <span className="text-lg font-semibold">Cloud Storage</span>
+        <span className="text-lg font-semibold">Admin Panel</span>
       </div>
       <nav className="flex-1 px-4 py-6">
         <ul className="space-y-2">

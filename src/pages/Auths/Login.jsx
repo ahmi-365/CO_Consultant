@@ -162,7 +162,7 @@ export default function LoginPage() {
             </form>
 
             {/* Divider */}
-            <div className="relative">
+            {/* <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-border"></div>
               </div>
@@ -171,10 +171,8 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Social Login Buttons */}
-            {/* Social Login Buttons */}
+          
             <div className="grid grid-cols-2 gap-3">
-              {/* Google Button */}
               <Button
                 type="button"
                 className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
@@ -187,7 +185,6 @@ export default function LoginPage() {
                 <span className="text-sm font-medium">Google</span>
               </Button>
 
-              {/* Facebook Button */}
               <Button
                 type="button"
                 className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-[#1877F2] text-white hover:bg-[#166FE0] shadow-sm transition-colors"
@@ -208,7 +205,7 @@ export default function LoginPage() {
                 </svg>
                 <span className="text-sm font-medium">Facebook</span>
               </Button>
-            </div>
+            </div> */}
 
 
             <div className="text-center text-sm text-muted-foreground">

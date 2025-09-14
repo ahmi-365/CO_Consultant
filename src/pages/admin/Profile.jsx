@@ -220,34 +220,6 @@ export default function Profile() {
               </div>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                <div className="flex items-center gap-3">
-                  {theme === "light" ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
-                  <div>
-                    <div className="font-medium text-sm">Dark Mode</div>
-                    <div className="text-xs text-muted-foreground">
-                      {theme === "light" ? "Light theme active" : "Dark theme active"}
-                    </div>
-                  </div>
-                </div>
-                <Switch 
-                  checked={theme === "dark"}
-                  onCheckedChange={toggleTheme}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>

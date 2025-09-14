@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import FolderUsersDialog from "./FolderUsersDialog";
 import UserSearchDialog from "./UserSearchDialog";
 
-export default function UserPermissions({ selectedItem, onPermissionChange, openUsersDialog, onOpenUsersDialogChange }) {
+export default function UserPermissions({ selectedItem, onPermissionChange, openUsersDialog, onClose }) {
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showUsersDialog, setShowUsersDialog] = useState(false);

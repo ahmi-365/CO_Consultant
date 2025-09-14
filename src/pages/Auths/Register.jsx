@@ -278,7 +278,7 @@ export default function RegisterPage() {
               >
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
-              <div className="relative">
+              {/* <div className="relative">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-border"></div>
                 </div>
@@ -286,11 +286,7 @@ export default function RegisterPage() {
                   <span className="px-2 bg-background text-muted-foreground">Or sign in with</span>
                 </div>
               </div>
-
-              {/* Social Login Buttons */}
-              {/* Social Login Buttons */}
               <div className="grid grid-cols-2 gap-3">
-                {/* Google Button */}
                 <Button
                   type="button"
                   className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
@@ -303,7 +299,6 @@ export default function RegisterPage() {
                   <span className="text-sm font-medium">Google</span>
                 </Button>
 
-                {/* Facebook Button */}
                 <Button
                   type="button"
                   className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-[#1877F2] text-white hover:bg-[#166FE0] shadow-sm transition-colors"
@@ -324,7 +319,7 @@ export default function RegisterPage() {
                   </svg>
                   <span className="text-sm font-medium">Facebook</span>
                 </Button>
-              </div>
+              </div> */}
 
               {/* Login Redirect */}
               <div className="text-center pt-1">

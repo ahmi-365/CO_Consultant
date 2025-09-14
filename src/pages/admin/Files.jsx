@@ -28,7 +28,8 @@ import {
   Move,
   ArrowUp,
   MoreHorizontal,
-  X
+  X,
+  Loader2
 } from "lucide-react";
 import FileItem from "@/components/admin/FileItem";
 import UserPermissions from "@/components/admin/UserPermissions";
@@ -58,6 +59,19 @@ export default function FileManagement() {
   const [preview, setPreview] = useState(null);
   const [openUsersDialog, setOpenUsersDialog] = useState(false);
   const [dragActive, setDragActive] = useState(false);
+  const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
+  const [itemForPermissions, setItemForPermissions] = useState(null);
+  
+  // New loading states
+  const [isCreating, setIsCreating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isMoving, setIsMoving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState({});
+  const [isDownloading, setIsDownloading] = useState({});
+  const [isRenaming, setIsRenaming] = useState({});
+  const [isSearching, setIsSearching] = useState(false);
+  const [loadingFolders, setLoadingFolders] = useState(false);
+  
   const { toast } = useToast();
 
   // Load files on component mount and path changes
@@ -70,14 +84,18 @@ export default function FileManagement() {
     initializeSearch();
   }, []);
 
-  // Handle search term changes
+  // Handle search term changes with debounce
   useEffect(() => {
-    if (searchTerm.trim()) {
-      handleSearch();
-    } else {
-      setIsGlobalSearch(false);
-      setSearchResults([]);
-    }
+    const timeoutId = setTimeout(() => {
+      if (searchTerm.trim()) {
+        handleSearch();
+      } else {
+        setIsGlobalSearch(false);
+        setSearchResults([]);
+      }
+    }, 300); // Debounce search by 300ms
+
+    return () => clearTimeout(timeoutId);
   }, [searchTerm]);
 
   // Load available folders for move dialog
@@ -139,6 +157,7 @@ export default function FileManagement() {
       return;
     }
 
+    setIsSearching(true);
     try {
       // First ensure search index is ready
       if (indexing) {
@@ -157,6 +176,8 @@ export default function FileManagement() {
         variant: "destructive",
       });
       setIsGlobalSearch(false);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -180,6 +201,7 @@ export default function FileManagement() {
   };
 
   const loadAvailableFolders = async () => {
+    setLoadingFolders(true);
     try {
       // Get folders from root level for move destination
       const data = await fileApi.listFiles(null);
@@ -194,12 +216,15 @@ export default function FileManagement() {
         variant: "destructive",
       });
       setAvailableFolders([]);
+    } finally {
+      setLoadingFolders(false);
     }
   };
 
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     
+    setIsCreating(true);
     try {
       const parentId = currentPath.length > 0 
         ? currentPath[currentPath.length - 1].id 
@@ -221,10 +246,13 @@ export default function FileManagement() {
         description: "Failed to create folder",
         variant: "destructive",
       });
+    } finally {
+      setIsCreating(false);
     }
   };
 
   const handleUploadFile = async (file, targetFolderId) => {
+    setIsUploading(true);
     try {
       const parentId = targetFolderId || (currentPath.length > 0 
         ? currentPath[currentPath.length - 1].id 
@@ -248,6 +276,8 @@ export default function FileManagement() {
         description: `Failed to upload file "${file.name}"`,
         variant: "destructive",
       });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -266,9 +296,11 @@ export default function FileManagement() {
   const handleFileDrop = async (files, targetFolderId) => {
     const fileArray = Array.from(files);
     
+    setIsUploading(true);
     for (const file of fileArray) {
       await handleUploadFile(file, targetFolderId);
     }
+    setIsUploading(false);
   };
 
   const handleFileSelect = (item) => {
@@ -279,6 +311,7 @@ export default function FileManagement() {
   };
 
   const handleDownload = async (id, filename) => {
+    setIsDownloading(prev => ({ ...prev, [id]: true }));
     try {
       await fileApi.downloadFile(id, filename);
       toast({
@@ -291,10 +324,13 @@ export default function FileManagement() {
         description: "Failed to download file",
         variant: "destructive",
       });
+    } finally {
+      setIsDownloading(prev => ({ ...prev, [id]: false }));
     }
   };
 
   const handleDelete = async (id) => {
+    setIsDeleting(prev => ({ ...prev, [id]: true }));
     try {
       await fileApi.deleteItem(id);
       toast({
@@ -316,6 +352,8 @@ export default function FileManagement() {
         description: "Failed to delete item",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(prev => ({ ...prev, [id]: false }));
     }
   };
 
@@ -323,60 +361,65 @@ export default function FileManagement() {
     setItemToMove(id);
     setIsMoveDialogOpen(true);
   };
-const handleConfirmMove = async () => {
-  if (!itemToMove || !moveDestination) {
-    console.warn("⚠️ No itemToMove or moveDestination provided", {
-      itemToMove,
-      moveDestination,
-    });
-    toast({
-      title: "Error",
-      description: "Please select an item and destination",
-      variant: "destructive",
-    });
-    return;
-  }
 
-  try {
-    const dest = moveDestination === 'root' ? null : moveDestination;
-
-    console.log("📦 Moving item", { itemToMove, dest });
-
-    const result = await fileApi.moveItem(itemToMove, dest);
-    console.log("✅ Move result:", result);
-
-    toast({
-      title: "Success",
-      description: "Item moved successfully",
-    });
-
-    setIsMoveDialogOpen(false);
-    setItemToMove(null);
-    setMoveDestination("");
-
-    // wait for files to reload before indexing
-    await loadFiles({ force: true });
-
-    console.log("🔍 Refreshing search index...");
-    await searchService.clearIndex();
-    await searchService.indexAllFiles(true);
-    console.log("🔍 Index refresh done");
-  } catch (error) {
-    console.error("🚨 Move failed:", error);
-
-    if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
-      console.error("🌐 Possible CORS/network issue during move request");
+  const handleConfirmMove = async () => {
+    if (!itemToMove || !moveDestination) {
+      console.warn("⚠️ No itemToMove or moveDestination provided", {
+        itemToMove,
+        moveDestination,
+      });
+      toast({
+        title: "Error",
+        description: "Please select an item and destination",
+        variant: "destructive",
+      });
+      return;
     }
 
-    toast({
-      title: "Error",
-      description: "Failed to move item",
-      variant: "destructive",
-    });
-  }
-};
+    setIsMoving(true);
+    try {
+      const dest = moveDestination === 'root' ? null : moveDestination;
+
+      console.log("📦 Moving item", { itemToMove, dest });
+
+      const result = await fileApi.moveItem(itemToMove, dest);
+      console.log("✅ Move result:", result);
+
+      toast({
+        title: "Success",
+        description: "Item moved successfully",
+      });
+
+      setIsMoveDialogOpen(false);
+      setItemToMove(null);
+      setMoveDestination("");
+
+      // wait for files to reload before indexing
+      await loadFiles({ force: true });
+
+      console.log("🔍 Refreshing search index...");
+      await searchService.clearIndex();
+      await searchService.indexAllFiles(true);
+      console.log("🔍 Index refresh done");
+    } catch (error) {
+      console.error("🚨 Move failed:", error);
+
+      if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
+        console.error("🌐 Possible CORS/network issue during move request");
+      }
+
+      toast({
+        title: "Error",
+        description: "Failed to move item",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMoving(false);
+    }
+  };
 
   const handleRename = async (id, newName) => {
+    setIsRenaming(prev => ({ ...prev, [id]: true }));
     try {
       await fileApi.renameItem(id, newName);
       loadFiles({ force: true });
@@ -395,28 +438,30 @@ const handleConfirmMove = async () => {
         description: "Failed to rename item",
         variant: "destructive",
       });
+    } finally {
+      setIsRenaming(prev => ({ ...prev, [id]: false }));
     }
   };
 
   const handleManagePermissions = (item) => {
-    setSelectedItem(item);
-    setOpenUsersDialog(true);
+    setItemForPermissions(item);
+    setShowPermissionsDialog(true);
   };
 
-  // const handlePreview = async (item) => {
-  //   if (item.type !== 'file') return;
-  //   try {
-  //     const url = await fileApi.getDownloadUrl(item.id);
-  //     const ext = item.name.split('.').pop()?.toLowerCase() || '';
-  //     setPreview({ open: true, url, name: item.name, type: ext });
-  //   } catch (error) {
-  //     toast({ 
-  //       title: 'Error', 
-  //       description: 'Failed to load preview', 
-  //       variant: 'destructive' 
-  //     });
-  //   }
-  // };
+  const handlePreview = async (item) => {
+    if (item.type !== 'file') return;
+    try {
+      const url = await fileApi.getDownloadUrl(item.id);
+      const ext = item.name.split('.').pop()?.toLowerCase() || '';
+      setPreview({ open: true, url, name: item.name, type: ext });
+    } catch (error) {
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to load preview', 
+        variant: 'destructive' 
+      });
+    }
+  };
 
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
@@ -461,310 +506,392 @@ const handleConfirmMove = async () => {
     <DragDropZone onFileDrop={handleFileDrop}>
       <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
         <div className="p-8 max-w-7xl mx-auto">
-        {/* Header */}
-   <div className="flex items-center justify-between mb-6 border-b pb-4">
-      {/* Left side: title and subtitle */}
-      <div>
-        <h1 className="text-3xl font-semibold text-gray-800">
-          File Management
-        </h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Organize and manage your team’s files with ease
-        </p>
-      </div>
+          {/* Upload Progress Overlay */}
+          {isUploading && (
+            <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Uploading files...
+            </div>
+          )}
 
-      {/* Right side: buttons */}
-      <div className="flex gap-3">
-        {/* Sync Button */}
-        <button
-          onClick={handleSync}
-          disabled={loading}
-          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition disabled:opacity-50"
-        >
-          <RefreshCw
-            className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-          />
-          Sync
-        </button>
+          {/* Header */}
+          <div className="flex items-center justify-between mb-6 border-b pb-4">
+            {/* Left side: title and subtitle */}
+            <div>
+              <h1 className="text-3xl font-semibold text-gray-800">
+                File Management
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Organize and manage your team's files with ease
+              </p>
+            </div>
 
-        {/* Upload Button */}
-        <button
-          onClick={() => setIsUploadOpen(true)}
-          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          Upload
-        </button>
-
-        {/* New Folder Button */}
-        <button
-          onClick={() => setIsCreateFolderOpen(true)}
-          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-panel hover:bg-panel/60 rounded-lg transition"
-        >
-          <FolderPlus className="h-4 w-4 mr-2" />
-          New Folder
-        </button>
-      </div>
-    </div>
-
-
-        {/* Breadcrumb Navigation */}
-        <div className="mb-6 animate-fade-in">
-          <nav className="flex items-center justify-between bg-card p-4 rounded-lg shadow-file border">
-            <div className="flex items-center space-x-2 text-sm">
-              <button 
-                onClick={() => handleBreadcrumbClick(-1)}
-                className="flex items-center gap-2 text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium"
+            {/* Right side: buttons */}
+            <div className="flex gap-3">
+              {/* Sync Button */}
+              <button
+                onClick={handleSync}
+                disabled={loading}
+                className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition disabled:opacity-50"
               >
-                <Home className="h-4 w-4" />
-                Root
+                <RefreshCw
+                  className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+                />
+                {loading ? 'Syncing...' : 'Sync'}
               </button>
-              {currentPath.map((folder, index) => (
-                <div key={folder.id} className="flex items-center">
-                  <span className="mx-2 text-muted-foreground">/</span>
-                  <button 
-                    onClick={() => handleBreadcrumbClick(index)}
-                    className="text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium"
-                  >
-                    {folder.name}
-                  </button>
-                </div>
-              ))}
+
+              {/* Upload Button */}
+              <button
+                onClick={() => setIsUploadOpen(true)}
+                disabled={isUploading}
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50"
+              >
+                {isUploading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </button>
+
+              {/* New Folder Button */}
+              <button
+                onClick={() => setIsCreateFolderOpen(true)}
+                disabled={isCreating}
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-panel hover:bg-panel/60 rounded-lg transition disabled:opacity-50"
+              >
+                {isCreating ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderPlus className="h-4 w-4 mr-2" />
+                )}
+                {isCreating ? 'Creating...' : 'New Folder'}
+              </button>
             </div>
-            
-            {/* Parent folder navigation */}
-            {currentPath.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleBreadcrumbClick(currentPath.length - 2)}
-                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+          </div>
+
+          {/* Breadcrumb Navigation */}
+          <div className="mb-6 animate-fade-in">
+            <nav className="flex items-center justify-between bg-card p-4 rounded-lg shadow-file border">
+              <div className="flex items-center space-x-2 text-sm">
+                <button 
+                  onClick={() => handleBreadcrumbClick(-1)}
+                  disabled={loading}
+                  className="flex items-center gap-2 text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium disabled:opacity-50"
                 >
-                  <ArrowUp className="h-4 w-4" />
-                  Back
-                </Button>
-              
-              </div>
-            )}
-          </nav>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main File Area */}
-          <div className="lg:col-span-2 animate-fade-in">
-            <Card className="shadow-card border-0 bg-gradient-file">
-              <CardHeader className="bg-card/95 backdrop-blur-sm rounded-t-lg border-b">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-foreground">
-                    <HardDrive className="h-5 w-5 text-primary" />
-                    {isGlobalSearch ? 'Global Search Results' : 'Files & Folders'}
-                    {indexing && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
-                  </CardTitle>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input 
-                      placeholder={indexing ? "Indexing files..." : "Search all files and folders..."} 
-                      className="pl-9 w-64 border-border bg-background"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      disabled={indexing}
-                    />
-                    {isGlobalSearch && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setIsGlobalSearch(false);
-                          setSearchResults([]);
-                        }}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    )}
+                  <Home className="h-4 w-4" />
+                  Root
+                </button>
+                {currentPath.map((folder, index) => (
+                  <div key={folder.id} className="flex items-center">
+                    <span className="mx-2 text-muted-foreground">/</span>
+                    <button 
+                      onClick={() => handleBreadcrumbClick(index)}
+                      disabled={loading}
+                      className="text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium disabled:opacity-50"
+                    >
+                      {folder.name}
+                    </button>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-6">
-                <div className="space-y-3">
-                  {loading || indexing ? (
-                    <div className="text-center py-12">
-                      <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
-                      <p className="text-muted-foreground">
-                        {indexing ? "Indexing files for search..." : "Loading files..."}
-                      </p>
-                    </div>
-                  ) : displayItems.length === 0 ? (
-                    <div className="text-center py-12">
-                      <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">
-                        {searchTerm ? "No files found" : "No files available"}
-                      </h3>
-                      <p className="text-muted-foreground">
-                        {searchTerm 
-                          ? `No results found for "${searchTerm}". Try different search terms.` 
-                          : "Start by uploading files or creating folders"
-                        }
-                      </p>
-                    </div>
-                  ) : (
-                    displayItems.map((item) => (
-                      <div key={item.id} className="relative">
-                        {isGlobalSearch && 'path' in item && (
-                          <div className="text-xs text-muted-foreground mb-1 pl-4">
-                            <span>📁 {item.path}</span>
-                          </div>
-                        )}
-                        <DragDropZone 
-                          onFileDrop={handleFileDrop} 
-                          folderId={item.id} 
-                          isFolder={item.type === 'folder'}
-                          className="rounded-lg"
-                        >
-                          <FileItem
-                            item={item}
-                            onSelect={isGlobalSearch ? handleSearchResultSelect : handleFileSelect}
-                            onDelete={handleDelete}
-                            onMove={handleMove}
-                            onDownload={handleDownload}
-                            onRename={handleRename}
-                            onManagePermissions={handleManagePermissions}
-                            // onPreview={handlePreview}
-                          />
-                        </DragDropZone>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* User Permissions Panel */}
-          <div className="animate-fade-in">
-            <UserPermissions 
-              selectedItem={selectedItem} 
-              onPermissionChange={() => loadFiles({ force: true })}
-              openUsersDialog={openUsersDialog}
-              onOpenUsersDialogChange={setOpenUsersDialog}
-            />
-          </div>
-        </div>
-
-        {/* Create Folder Dialog */}
-        <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
-          <DialogContent className="bg-card shadow-card">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">Create New Folder</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Enter a name for the new folder
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Input
-                placeholder="Folder name"
-                value={newFolderName}
-                onChange={(e) => setNewFolderName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-                className="border-border"
-              />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCreateFolderOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="folder" onClick={handleCreateFolder} disabled={!newFolderName.trim()}>
-                Create Folder
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
-        {/* Upload File Dialog */}
-        <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-          <DialogContent className="bg-card shadow-card">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">Upload Files</DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Select files to upload to the current folder
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Input
-                type="file"
-                onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                className="cursor-pointer border-border"
-                multiple
-              />
-              {selectedFile && (
-                <div className="mt-3 p-3 bg-primary-light rounded-lg">
-                  <p className="text-sm text-primary font-medium">
-                    Selected: {selectedFile.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                  </p>
+                ))}
+              </div>
+              
+              {/* Parent folder navigation */}
+              {currentPath.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleBreadcrumbClick(currentPath.length - 2)}
+                    disabled={loading}
+                    className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                    Back
+                  </Button>
                 </div>
               )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
-                Cancel
-              </Button>
-              <Button variant="upload" onClick={handleMultipleFilesUpload} disabled={!selectedFile}>
-                Upload File
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+            </nav>
+          </div>
 
-        {/* Move Item Dialog */}
-        <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
-          <DialogContent className="bg-card shadow-card">
-            <DialogHeader>
-              <DialogTitle className="text-foreground flex items-center gap-2">
-                <Move className="h-5 w-5" />
-                Move Item
-              </DialogTitle>
-              <DialogDescription className="text-muted-foreground">
-                Select the destination folder for this item
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Select value={moveDestination} onValueChange={setMoveDestination}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select destination folder" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="root">Root folder</SelectItem>
-                  {availableFolders.map((folder) => (
-                    <SelectItem key={folder.id} value={folder.id}>
-                      <div className="flex items-center gap-2">
-                        <FolderOpen className="h-4 w-4 mr-2 text-primary" />
-                        {folder.name}
+          <div className="grid grid-cols-1 gap-8">
+            {/* Main File Area */}
+            <div className="animate-fade-in">
+              <Card className="shadow-card border-0 bg-gradient-file">
+                <CardHeader className="bg-card/95 backdrop-blur-sm rounded-t-lg border-b">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="flex items-center gap-2 text-foreground">
+                      <HardDrive className="h-5 w-5 text-primary" />
+                      {isGlobalSearch ? 'Global Search Results' : 'Files & Folders'}
+                      {(indexing || isSearching) && (
+                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                    </CardTitle>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                      <Input 
+                        placeholder={indexing ? "Indexing files..." : isSearching ? "Searching..." : "Search all files and folders..."} 
+                        className="pl-9 w-64 border-border bg-background"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        disabled={indexing}
+                      />
+                      {isSearching && (
+                        <Loader2 className="absolute right-8 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                      )}
+                      {isGlobalSearch && !isSearching && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSearchTerm("");
+                            setIsGlobalSearch(false);
+                            setSearchResults([]);
+                          }}
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-6">
+                  <div className="space-y-3">
+                    {loading || indexing ? (
+                      <div className="text-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+                        <p className="text-muted-foreground">
+                          {indexing ? "Indexing files for search..." : "Loading files..."}
+                        </p>
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsMoveDialogOpen(false)}>Cancel</Button>
-              <Button onClick={handleConfirmMove} disabled={!moveDestination}>Move</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+                    ) : displayItems.length === 0 ? (
+                      <div className="text-center py-12">
+                        <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                        <h3 className="text-lg font-medium text-foreground mb-2">
+                          {searchTerm ? "No files found" : "No files available"}
+                        </h3>
+                        <p className="text-muted-foreground">
+                          {searchTerm 
+                            ? `No results found for "${searchTerm}". Try different search terms.` 
+                            : "Start by uploading files or creating folders"
+                          }
+                        </p>
+                      </div>
+                    ) : (
+                      // Grid layout for 3 columns
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {displayItems.map((item) => (
+                          <div key={item.id} className="relative">
+                            {isGlobalSearch && 'path' in item && (
+                              <div className="text-xs text-muted-foreground mb-1 pl-2">
+                                <span>📁 {item.path}</span>
+                              </div>
+                            )}
+                            <DragDropZone 
+                              onFileDrop={handleFileDrop} 
+                              folderId={item.id} 
+                              isFolder={item.type === 'folder'}
+                              className="rounded-lg h-full"
+                            >
+                              <FileItem
+                                item={item}
+                                onSelect={isGlobalSearch ? handleSearchResultSelect : handleFileSelect}
+                                onDelete={handleDelete}
+                                onMove={handleMove}
+                                onDownload={handleDownload}
+                                onRename={handleRename}
+                                onManagePermissions={handleManagePermissions}
+                                isDeleting={isDeleting[item.id]}
+                                isDownloading={isDownloading[item.id]}
+                                isRenaming={isRenaming[item.id]}
+                              />
+                            </DragDropZone>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>         
+          </div>
 
-     
-        {/* File Preview Dialog */}
-        <FilePreviewDialog
-          open={preview?.open || false}
-          onOpenChange={(open) => setPreview(open ? preview : null)}
-          file={preview}
-          onDownload={preview ? () => handleDownload(selectedItem?.id || '', preview.name) : undefined}
-        />
+          {/* Create Folder Dialog */}
+          <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
+            <DialogContent className="bg-card shadow-card">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">Create New Folder</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Enter a name for the new folder
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="py-4">
+                <Input
+                  placeholder="Folder name"
+                  value={newFolderName}
+                  onChange={(e) => setNewFolderName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && !isCreating && handleCreateFolder()}
+                  className="border-border"
+                  disabled={isCreating}
+                />
+              </div>
+
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsCreateFolderOpen(false)}
+                  disabled={isCreating}
+                >
+                  Cancel
+                </Button>
+
+                <Button
+                  className="bg-panel flex items-center gap-2"
+                  onClick={handleCreateFolder}
+                  disabled={!newFolderName.trim() || isCreating}
+                >
+                  {isCreating && (
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                  )}
+                  {isCreating ? 'Creating...' : 'Create Folder'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Upload File Dialog */}
+          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+            <DialogContent className="bg-card shadow-card">
+              <DialogHeader>
+                <DialogTitle className="text-foreground">Upload Files</DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Select files to upload to the current folder
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                <Input
+                  type="file"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="cursor-pointer border-border"
+                  multiple
+                  disabled={isUploading}
+                />
+                {selectedFile && (
+                  <div className="mt-3 p-3 bg-primary-light rounded-lg">
+                    <p className="text-sm text-primary font-medium">
+                      Selected: {selectedFile.name}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsUploadOpen(false)}
+                  disabled={isUploading}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  variant="upload" 
+                  onClick={handleMultipleFilesUpload} 
+                  disabled={!selectedFile || isUploading}
+                  className="flex items-center gap-2"
+                >
+                  {isUploading && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {isUploading ? 'Uploading...' : 'Upload File'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Move Item Dialog */}
+          <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
+            <DialogContent className="bg-card shadow-card">
+              <DialogHeader>
+                <DialogTitle className="text-foreground flex items-center gap-2">
+                  <Move className="h-5 w-5" />
+                  Move Item
+                  {isMoving && <Loader2 className="h-4 w-4 animate-spin" />}
+                </DialogTitle>
+                <DialogDescription className="text-muted-foreground">
+                  Select the destination folder for this item
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-4">
+                {loadingFolders ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="ml-2 text-muted-foreground">Loading folders...</span>
+                  </div>
+                ) : (
+                  <Select value={moveDestination} onValueChange={setMoveDestination} disabled={isMoving}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select destination folder" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="root">Root folder</SelectItem>
+                      {availableFolders.map((folder) => (
+                        <SelectItem key={folder.id} value={folder.id}>
+                          <div className="flex items-center gap-2">
+                            <FolderOpen className="h-4 w-4 mr-2 text-primary" />
+                            {folder.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+              <DialogFooter>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsMoveDialogOpen(false)}
+                  disabled={isMoving}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleConfirmMove} 
+                  disabled={!moveDestination || isMoving}
+                  className="flex items-center gap-2"
+                >
+                  {isMoving && (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  )}
+                  {isMoving ? 'Moving...' : 'Move'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* User Permissions Dialog */}
+          <Dialog open={showPermissionsDialog} onOpenChange={setShowPermissionsDialog}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <UserPermissions 
+                selectedItem={itemForPermissions} 
+                onPermissionChange={() => loadFiles({ force: true })}
+                openUsersDialog={false}
+                onOpenUsersDialogChange={() => {}}
+                onClose={() => setShowPermissionsDialog(false)}
+              />
+            </DialogContent>
+          </Dialog>
+       
+          {/* File Preview Dialog */}
+          <FilePreviewDialog
+            open={preview?.open || false}
+            onOpenChange={(open) => setPreview(open ? preview : null)}
+            file={preview}
+            onDownload={preview ? () => handleDownload(selectedItem?.id || '', preview.name) : undefined}
+          />
         </div>
       </div>
     </DragDropZone>
