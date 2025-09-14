@@ -105,15 +105,31 @@ export default function FileItem({
     setIsRenaming(false);
   };
 
-  const handleDownload = () => {
-    if (item.type === 'file') {
-      onDownload?.(item.id, item.name);
-      toast({
-        title: "Download Started",
-        description: `Downloading ${item.name}`,
-      });
-    }
-  };
+const handleDownload = () => {
+  if (item.type === 'file' && item.download_url) {
+    console.log("📥 Starting download:", item.download_url);
+
+    const link = document.createElement('a');
+    link.href = item.download_url;
+    link.download = item.name || 'file'; // Suggested file name
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    toast({
+      title: "Download Started",
+      description: `Downloading ${item.name}`,
+    });
+  } else {
+    console.warn("⚠️ No download URL found for item:", item);
+    toast({
+      title: "Error",
+      description: "Download URL not available",
+      variant: "destructive",
+    });
+  }
+};
+
 
   const marginLeft = depth * 24;
 
@@ -149,7 +165,10 @@ export default function FileItem({
               </div>
             ) : (
               <>
-                <div className="font-medium text-foreground truncate">{item.name}</div>
+<div className="font-medium text-foreground truncate overflow-hidden whitespace-nowrap max-w-[150px] sm:max-w-[200px] md:max-w-[450px]
+">
+  {item.name}
+</div>
                 <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
                   {item.type === 'file' && item.size && (
                     <span>{formatFileSize(item.size)}</span>
@@ -211,10 +230,10 @@ export default function FileItem({
               <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
                 {item.type === 'file' && (
                   <>
-                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPreview?.(item); }}>
+                    {/* <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPreview?.(item); }}>
                       <Eye className="h-4 w-4 mr-2" />
                       Preview
-                    </DropdownMenuItem>
+                    </DropdownMenuItem> */}
                     <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
                       <Download className="h-4 w-4 mr-2" />
                       Download

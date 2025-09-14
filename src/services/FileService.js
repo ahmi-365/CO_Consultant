@@ -221,30 +221,58 @@ export const fileApi = {
   },
 
   // Move item - enhanced implementation matching API documentation
-  async moveItem(id, new_parent_id) {
-    const response = await fetch(`${BASE_URL}/onedrive/move/${id}`, {
+async moveItem(id, new_parent_id) {
+  const token = localStorage.getItem('token');
+  const url = `https://co-consultant.majesticsofts.com/api/onedrive/move/${id}`;
+
+  console.log("📦 moveItem called with:", { id, new_parent_id });
+  console.log("🌍 URL:", url);
+  console.log("🔑 Token exists:", !!token);
+
+  if (!token) {
+    throw new Error("No auth token found — please login again");
+  }
+
+  try {
+    const response = await fetch(url, {
       method: 'POST',
+      mode: 'cors',                     // <-- Ensure CORS mode is set
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        new_parent_id: new_parent_id ? parseInt(new_parent_id) : null 
+      body: JSON.stringify({
+        new_parent_id: new_parent_id ? parseInt(new_parent_id) : null,
       }),
+    }).catch((err) => {
+      console.error("🌐 Network request failed before reaching server:", err);
+      throw new Error("Network request failed (likely CORS or DNS issue)");
     });
+
+    if (!response) {
+      throw new Error("No response received — likely blocked by CORS");
+    }
+
+    console.log("📥 Move response status:", response.status);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Failed to move item');
+      console.error("❌ Server responded with error:", errorData);
+      throw new Error(errorData.message || `Move failed with status ${response.status}`);
     }
 
-    const result = await response.json();
-    
-    // Clear cache since item moved between folders - invalidate both old and new parent caches
+    const result = await response.json().catch(() => null);
+    console.log("✅ Move successful:", result);
+
     fileCache.clear();
-    
-    return result.data || result; // Return data object as per API spec
-  },
+    return result?.data || result;
+
+  } catch (err) {
+    console.error("🚨 moveItem failed:", err.message, err);
+    throw err;
+  }
+}
+,
 
   // Rename item
   async renameItem(id, newName) {
@@ -398,28 +426,51 @@ export const permissionsApi = {
   },
 
   // Assign permission - grant specific permissions to users
-  async assignPermission(file_id, user_id, permission) {
-    const response = await fetch(`${BASE_URL}/files/permissions/assign`, {
+async assignPermission(file_id, user_id, permission) {
+  const url = `${BASE_URL}/files/permissions/assign`;
+  const token = localStorage.getItem('token');
+  const payload = {
+    file_id: parseInt(file_id),
+    user_id,
+    permission
+  };
+
+  const startTime = Date.now();
+
+  try {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
-        file_id: parseInt(file_id), // Ensure numeric type as per API spec
-        user_id, 
-        permission 
-      }),
+      body: JSON.stringify(payload),
     });
 
+
+    const duration = Date.now() - startTime;
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
+      let errorData = {};
+      try {
+        errorData = await response.json();
+      } catch {
+        console.warn("⚠️ Could not parse error JSON");
+      }
+      console.error("❌ Server responded with error:", errorData);
       throw new Error(errorData.message || 'Failed to assign permission');
     }
 
-    return response.json();
-  },
+    const data = await response.json();
 
+    return data;
+  } catch (err) {
+    console.error("Network/Fetch failed:", err?.message || err);
+    throw err;
+  }
+}
+
+,
   // Remove permission - revoke specific permissions from users
   async removePermission(file_id, user_id, permission) {
     const response = await fetch(`${BASE_URL}/files/permissions/remove`, {

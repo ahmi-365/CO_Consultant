@@ -176,7 +176,7 @@ export default function FileManagement() {
     // If it's a file, you could trigger download or preview
     if (result.type === 'file') {
       handlePreview(result);
-    }
+    } 
   };
 
   const loadAvailableFolders = async () => {
@@ -323,33 +323,58 @@ export default function FileManagement() {
     setItemToMove(id);
     setIsMoveDialogOpen(true);
   };
+const handleConfirmMove = async () => {
+  if (!itemToMove || !moveDestination) {
+    console.warn("⚠️ No itemToMove or moveDestination provided", {
+      itemToMove,
+      moveDestination,
+    });
+    toast({
+      title: "Error",
+      description: "Please select an item and destination",
+      variant: "destructive",
+    });
+    return;
+  }
 
-  const handleConfirmMove = async () => {
-    if (!itemToMove || !moveDestination) return;
+  try {
+    const dest = moveDestination === 'root' ? null : moveDestination;
 
-    try {
-      const dest = moveDestination === 'root' ? null : moveDestination;
-      await fileApi.moveItem(itemToMove, dest);
-      toast({
-        title: "Success",
-        description: "Item moved successfully",
-      });
-      setIsMoveDialogOpen(false);
-      setItemToMove(null);
-      setMoveDestination("");
-      loadFiles({ force: true });
-      
-      // Refresh search index
-      searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to move item",
-        variant: "destructive",
-      });
+    console.log("📦 Moving item", { itemToMove, dest });
+
+    const result = await fileApi.moveItem(itemToMove, dest);
+    console.log("✅ Move result:", result);
+
+    toast({
+      title: "Success",
+      description: "Item moved successfully",
+    });
+
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+    setMoveDestination("");
+
+    // wait for files to reload before indexing
+    await loadFiles({ force: true });
+
+    console.log("🔍 Refreshing search index...");
+    await searchService.clearIndex();
+    await searchService.indexAllFiles(true);
+    console.log("🔍 Index refresh done");
+  } catch (error) {
+    console.error("🚨 Move failed:", error);
+
+    if (error.name === "TypeError" && error.message.includes("Failed to fetch")) {
+      console.error("🌐 Possible CORS/network issue during move request");
     }
-  };
+
+    toast({
+      title: "Error",
+      description: "Failed to move item",
+      variant: "destructive",
+    });
+  }
+};
 
   const handleRename = async (id, newName) => {
     try {
@@ -378,20 +403,20 @@ export default function FileManagement() {
     setOpenUsersDialog(true);
   };
 
-  const handlePreview = async (item) => {
-    if (item.type !== 'file') return;
-    try {
-      const url = await fileApi.getDownloadUrl(item.id);
-      const ext = item.name.split('.').pop()?.toLowerCase() || '';
-      setPreview({ open: true, url, name: item.name, type: ext });
-    } catch (error) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to load preview', 
-        variant: 'destructive' 
-      });
-    }
-  };
+  // const handlePreview = async (item) => {
+  //   if (item.type !== 'file') return;
+  //   try {
+  //     const url = await fileApi.getDownloadUrl(item.id);
+  //     const ext = item.name.split('.').pop()?.toLowerCase() || '';
+  //     setPreview({ open: true, url, name: item.name, type: ext });
+  //   } catch (error) {
+  //     toast({ 
+  //       title: 'Error', 
+  //       description: 'Failed to load preview', 
+  //       variant: 'destructive' 
+  //     });
+  //   }
+  // };
 
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
@@ -437,28 +462,51 @@ export default function FileManagement() {
       <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
         <div className="p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div className="animate-slide-up">
-            <h1 className="text-4xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              File Management
-            </h1>
-            <p className="text-muted-foreground mt-2">Organize and manage your team's files with ease</p>
-          </div>
-          <div className="flex gap-3 animate-slide-up">
-            <Button variant="ghost" onClick={handleSync} disabled={loading}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              Sync
-            </Button>
-            <Button variant="upload" onClick={() => setIsUploadOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Upload Files
-            </Button>
-            <Button variant="folder" onClick={() => setIsCreateFolderOpen(true)}>
-              <FolderPlus className="h-4 w-4 mr-2" />
-              New Folder
-            </Button>
-          </div>
-        </div>
+   <div className="flex items-center justify-between mb-6 border-b pb-4">
+      {/* Left side: title and subtitle */}
+      <div>
+        <h1 className="text-3xl font-semibold text-gray-800">
+          File Management
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Organize and manage your team’s files with ease
+        </p>
+      </div>
+
+      {/* Right side: buttons */}
+      <div className="flex gap-3">
+        {/* Sync Button */}
+        <button
+          onClick={handleSync}
+          disabled={loading}
+          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg transition disabled:opacity-50"
+        >
+          <RefreshCw
+            className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
+          />
+          Sync
+        </button>
+
+        {/* Upload Button */}
+        <button
+          onClick={() => setIsUploadOpen(true)}
+          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
+        >
+          <Upload className="h-4 w-4 mr-2" />
+          Upload
+        </button>
+
+        {/* New Folder Button */}
+        <button
+          onClick={() => setIsCreateFolderOpen(true)}
+          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-panel hover:bg-panel/60 rounded-lg transition"
+        >
+          <FolderPlus className="h-4 w-4 mr-2" />
+          New Folder
+        </button>
+      </div>
+    </div>
+
 
         {/* Breadcrumb Navigation */}
         <div className="mb-6 animate-fade-in">
@@ -496,15 +544,7 @@ export default function FileManagement() {
                   <ArrowUp className="h-4 w-4" />
                   Back
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleBreadcrumbClick(-1)}
-                  className="p-2"
-                  title="Go to Root"
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+              
               </div>
             )}
           </nav>
@@ -591,7 +631,7 @@ export default function FileManagement() {
                             onDownload={handleDownload}
                             onRename={handleRename}
                             onManagePermissions={handleManagePermissions}
-                            onPreview={handlePreview}
+                            // onPreview={handlePreview}
                           />
                         </DragDropZone>
                       </div>
@@ -717,35 +757,7 @@ export default function FileManagement() {
           </DialogContent>
         </Dialog>
 
-        {/* Preview Dialog */}
-        <Dialog open={!!preview?.open} onOpenChange={(open) => setPreview(open ? preview : null)}>
-          <DialogContent className="bg-card shadow-card max-w-3xl">
-            <DialogHeader>
-              <DialogTitle className="text-foreground">Preview: {preview?.name}</DialogTitle>
-              <DialogDescription className="text-muted-foreground">Quick preview</DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              {preview && (
-                preview.type.match(/^(png|jpg|jpeg|gif|svg)$/) ? (
-                  <img src={preview.url} alt={preview.name} className="max-h-[60vh] w-full object-contain rounded-md" />
-                ) : preview.type === 'pdf' ? (
-                  <iframe src={preview.url} className="w-full h-[60vh] rounded-md" />
-                ) : preview.type.match(/^(mp4|webm|ogg)$/) ? (
-                  <video src={preview.url} controls className="w-full rounded-md" />
-                ) : (
-                  <div className="text-sm text-muted-foreground">Preview not supported. You can download the file instead.</div>
-                )
-              )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPreview(null)}>Close</Button>
-              {preview && (
-                <Button onClick={() => window.open(preview.url, '_blank')}>Open in new tab</Button>
-              )}
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-
+     
         {/* File Preview Dialog */}
         <FilePreviewDialog
           open={preview?.open || false}

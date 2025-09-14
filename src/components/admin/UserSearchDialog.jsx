@@ -150,7 +150,7 @@ export default function UserSearchDialog({ isOpen, onClose, onAddUser }) {
                     key={user.id}
                     className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
                       selectedUser?.id === user.id
-                        ? 'bg-primary/10 border-primary'
+                        ? 'bg-panel/10 border-panel'
                         : 'bg-card hover:bg-muted/50'
                     }`}
                     onClick={() => handleUserSelect(user)}
@@ -217,7 +217,7 @@ export default function UserSearchDialog({ isOpen, onClose, onAddUser }) {
           <Button 
             onClick={handleAddUser}
             disabled={!selectedUser || selectedPermissions.length === 0}
-            className="bg-gradient-primary hover:bg-gradient-primary/90"
+            className="bg-panel hover:bg-panel/60"
           >
             <UserPlus className="h-4 w-4 mr-2" />
             Add Access
