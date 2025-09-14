@@ -80,7 +80,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     }
   };
 
-  const handleAddUserAccess = async (userId , permissions ) => {
+  const handleAddUserAccess = async (userId , permissions) => {
     if (!selectedItem) return;
 
     try {
@@ -105,7 +105,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     }
   };
 
-  const handleRemovePermission = async (userId, permission ) => {
+  const handleRemovePermission = async (userId , permission ) => {
     if (!selectedItem) return;
 
     try {

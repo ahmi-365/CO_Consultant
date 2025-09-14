@@ -14,7 +14,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Search, UserPlus, Check } from "lucide-react";
 
 
-
 // Mock users - replace with actual user API
 const mockUsers = [
   { id: 1, name: "Alice Johnson", email: "alice.johnson@example.com", role: "Manager" },

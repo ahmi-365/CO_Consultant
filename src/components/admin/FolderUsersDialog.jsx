@@ -14,7 +14,6 @@ import { permissionsApi } from "@/services/FileService";
 import { useToast } from "@/hooks/use-toast";
 
 
-
 const permissionConfig = {
   read: { label: 'Viewer', icon: Eye, color: 'bg-secondary text-secondary-foreground' },
   create_folder: { label: 'Creator', icon: Users, color: 'bg-primary/20 text-primary' },
@@ -149,7 +148,7 @@ export default function FolderUsersDialog({ isOpen, onClose, selectedItem }) {
             ) : (
               groupedPermissions.map((user) => {
                 const highestPermission = getHighestPermission(user.permissions);
-                const config = permissionConfig[highestPermission];
+                const config = permissionConfig[highestPermission ];
                 const Icon = config.icon;
                 
                 return (

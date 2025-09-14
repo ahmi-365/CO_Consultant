@@ -25,13 +25,18 @@ import {
   Home,
   HardDrive,
   FolderOpen,
-  Move
+  Move,
+  ArrowUp,
+  MoreHorizontal,
+  X
 } from "lucide-react";
 import FileItem from "@/components/admin/FileItem";
 import UserPermissions from "@/components/admin/UserPermissions";
+import FilePreviewDialog from "@/components/admin/FilePreviewDialog";
+import DragDropZone from "@/components/admin/DragDropZone";
 import { fileApi,  getCachedFiles } from "@/services/FileService";
+import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
-
 
 
 export default function FileManagement() {
@@ -39,15 +44,18 @@ export default function FileManagement() {
   const [currentPath, setCurrentPath] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [isGlobalSearch, setIsGlobalSearch] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [indexing, setIndexing] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
-  const [itemToMove, setItemToMove] = useState(null);
+  const [itemToMove, setItemToMove] = useState (null);
   const [moveDestination, setMoveDestination] = useState("");
-  const [availableFolders, setAvailableFolders] = useState()
+  const [availableFolders, setAvailableFolders] = useState([]);
   const [preview, setPreview] = useState(null);
   const [openUsersDialog, setOpenUsersDialog] = useState(false);
   const [dragActive, setDragActive] = useState(false);
@@ -58,6 +66,21 @@ export default function FileManagement() {
     loadFiles();
   }, [currentPath]);
 
+  // Index files for global search on mount
+  useEffect(() => {
+    initializeSearch();
+  }, []);
+
+  // Handle search term changes
+  useEffect(() => {
+    if (searchTerm.trim()) {
+      handleSearch();
+    } else {
+      setIsGlobalSearch(false);
+      setSearchResults([]);
+    }
+  }, [searchTerm]);
+
   // Load available folders for move dialog
   useEffect(() => {
     if (isMoveDialogOpen) {
@@ -65,42 +88,102 @@ export default function FileManagement() {
     }
   }, [isMoveDialogOpen]);
 
-  const loadFiles = async (opts) => {
-    setLoading(true);
+const loadFiles = async ({ force } = {}) => {
+  setLoading(true);
+  try {
+    const currentParentId = currentPath.length > 0 
+      ? currentPath[currentPath.length - 1].id 
+      : null;
+
+    // Use cached memory unless force is true
+    if (!force) {
+      const cached = getCachedFiles(currentParentId);
+      if (cached) {
+        setFiles(Array.isArray(cached) ? cached : []);
+        setLoading(false);
+        return;
+      }
+    }
+
+    const data = await fileApi.listFiles(currentParentId);
+    const safeData = Array.isArray(data) ? data : [];
+    setFiles(safeData);
+  } catch (error) {
+    // Only show toast if nothing cached and nothing to show
+    if (!files.length) {
+      toast({
+        title: "Offline",
+        description: "Using cached data (or mock) while network is unavailable",
+        variant: "destructive",
+      });
+      // Fallback mock data for testing only (API remains wired)
+      setFiles([
+        { id: '1', name: 'Documents', type: 'folder', created_at: new Date().toISOString() },
+        { id: '2', name: 'sample.pdf', type: 'file', size: 345678, created_at: new Date().toISOString() },
+      ]);
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const initializeSearch = async () => {
+    setIndexing(true);
     try {
-      const currentParentId = currentPath.length > 0 
-        ? currentPath[currentPath.length - 1].id 
-        : null;
-
-      // Use cached memory unless force is true
-      if (!opts?.force) {
-        const cached = getCachedFiles(currentParentId);
-        if (cached) {
-          setFiles(Array.isArray(cached) ? cached : []);
-          setLoading(false);
-          return;
-        }
-      }
-
-      const data = await fileApi.listFiles(currentParentId);
-      const safeData = Array.isArray(data) ? data : [];
-      setFiles(safeData);
+      await searchService.indexAllFiles();
+      console.log('Global search index initialized');
     } catch (error) {
-      // Only show toast if nothing cached and nothing to show
-      if (!files.length) {
-        toast({
-          title: "Offline",
-          description: "Using cached data (or mock) while network is unavailable",
-          variant: "destructive",
-        });
-        // Fallback mock data for testing only (API remains wired)
-        setFiles([
-          { id: '1', name: 'Documents', type: 'folder', created_at: new Date().toISOString() },
-          { id: '2', name: 'sample.pdf', type: 'file', size: 345678, created_at: new Date().toISOString() },
-        ]);
-      }
+      console.warn('Failed to initialize search index:', error);
     } finally {
-      setLoading(false);
+      setIndexing(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setIsGlobalSearch(false);
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      // First ensure search index is ready
+      if (indexing) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        return handleSearch(); // Retry after short delay
+      }
+
+      const results = searchService.search(searchTerm);
+      setSearchResults(results);
+      setIsGlobalSearch(true);
+    } catch (error) {
+      console.warn('Search failed:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search files. Using local folder search.",
+        variant: "destructive",
+      });
+      setIsGlobalSearch(false);
+    }
+  };
+
+  const handleSearchResultSelect = (result ) => {
+    // Navigate to parent folder if needed
+    if (result.parent_path && result.parent_path !== '/') {
+      // This would require path parsing to set correct breadcrumb
+      // For now, we'll just show a message
+      toast({
+        title: "File Found",
+        description: `File located at: ${result.path}`,
+      });
+    }
+    
+    setSelectedItem(result);
+    
+    // If it's a file, you could trigger download or preview
+    if (result.type === 'file') {
+      handlePreview(result);
     }
   };
   const loadAvailableFolders = async () => {
@@ -148,34 +231,54 @@ export default function FileManagement() {
     }
   };
 
-  const handleUploadFile = async () => {
-    if (!selectedFile) return;
-
+  const handleUploadFile = async (file , targetFolderId ) => {
     try {
-      const parentId = currentPath.length > 0 
+      const parentId = targetFolderId || (currentPath.length > 0 
         ? currentPath[currentPath.length - 1].id 
-        : null;
+        : null);
       
-      await fileApi.uploadFile(selectedFile, parentId);
+      await fileApi.uploadFile(file, parentId);
       
       toast({
         title: "Success",
-        description: "File uploaded successfully",
+        description: `File "${file.name}" uploaded successfully`,
       });
       
-      setSelectedFile(null);
-      setIsUploadOpen(false);
       loadFiles({ force: true });
+      
+      // Refresh search index
+      searchService.clearIndex();
+      await searchService.indexAllFiles(true);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to upload file",
+        description: `Failed to upload file "${file.name}"`,
         variant: "destructive",
       });
     }
   };
 
-  const handleFileSelect = (item) => {
+  const handleMultipleFilesUpload = async () => {
+    if (!selectedFile) return;
+
+    try {
+      await handleUploadFile(selectedFile);
+      setSelectedFile(null);
+      setIsUploadOpen(false);
+    } catch (error) {
+      // Error already handled in handleUploadFile
+    }
+  };
+
+  const handleFileDrop = async (files , targetFolderId ) => {
+    const fileArray = Array.from(files);
+    
+    for (const file of fileArray) {
+      await handleUploadFile(file, targetFolderId);
+    }
+  };
+
+  const handleFileSelect = (item ) => {
     if (item.type === 'folder') {
       setCurrentPath([...currentPath, { id: item.id, name: item.name }]);
     }
@@ -185,6 +288,10 @@ export default function FileManagement() {
   const handleDownload = async (id , filename ) => {
     try {
       await fileApi.downloadFile(id, filename);
+      toast({
+        title: "Download Started",
+        description: `Downloading ${filename}`,
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -194,7 +301,7 @@ export default function FileManagement() {
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id ) => {
     try {
       await fileApi.deleteItem(id);
       toast({
@@ -202,6 +309,11 @@ export default function FileManagement() {
         description: "Item deleted successfully",
       });
       loadFiles({ force: true });
+      
+      // Refresh search index
+      searchService.clearIndex();
+      await searchService.indexAllFiles(true);
+      
       if (selectedItem?.id === id) {
         setSelectedItem(null);
       }
@@ -214,7 +326,7 @@ export default function FileManagement() {
     }
   };
 
-  const handleMove = async (id) => {
+  const handleMove = async (id ) => {
     setItemToMove(id);
     setIsMoveDialogOpen(true);
   };
@@ -233,6 +345,10 @@ export default function FileManagement() {
       setItemToMove(null);
       setMoveDestination("");
       loadFiles({ force: true });
+      
+      // Refresh search index
+      searchService.clearIndex();
+      await searchService.indexAllFiles(true);
     } catch (error) {
       toast({
         title: "Error",
@@ -242,10 +358,19 @@ export default function FileManagement() {
     }
   };
 
-  const handleRename = async (id, newName) => {
+  const handleRename = async (id , newName ) => {
     try {
-    await fileApi.renameItem(id, newName);
-    loadFiles({ force: true });
+      await fileApi.renameItem(id, newName);
+      loadFiles({ force: true });
+      
+      // Refresh search index
+      searchService.clearIndex();
+      await searchService.indexAllFiles(true);
+      
+      toast({
+        title: "Success",
+        description: "Item renamed successfully",
+      });
     } catch (error) {
       toast({
         title: "Error",
@@ -255,23 +380,27 @@ export default function FileManagement() {
     }
   };
 
-  const handleManagePermissions = (item) => {
+  const handleManagePermissions = (item ) => {
     setSelectedItem(item);
     setOpenUsersDialog(true);
   };
 
-  const handlePreview = async (item) => {
+  const handlePreview = async (item ) => {
     if (item.type !== 'file') return;
     try {
       const url = await fileApi.getDownloadUrl(item.id);
       const ext = item.name.split('.').pop()?.toLowerCase() || '';
       setPreview({ open: true, url, name: item.name, type: ext });
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to load preview', variant: 'destructive' });
+      toast({ 
+        title: 'Error', 
+        description: 'Failed to load preview', 
+        variant: 'destructive' 
+      });
     }
   };
 
-  const handleBreadcrumbClick = (index) => {
+  const handleBreadcrumbClick = (index ) => {
     if (index === -1) {
       // Root level
       setCurrentPath([]);
@@ -285,6 +414,11 @@ export default function FileManagement() {
     try {
       await fileApi.syncFiles();
       loadFiles({ force: true });
+      
+      // Refresh search index after sync
+      searchService.clearIndex();
+      await searchService.indexAllFiles(true);
+      
       toast({
         title: "Success",
         description: "Files synchronized successfully",
@@ -300,13 +434,18 @@ export default function FileManagement() {
     }
   };
 
-  const filteredFiles = files.filter(file =>
-    file.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+// Determine what to display based on search state
+const displayItems = isGlobalSearch
+  ? searchResults
+  : files.filter(file =>
+      file.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-      <div className="p-8 max-w-7xl mx-auto">
+    <DragDropZone onFileDrop={handleFileDrop}>
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
+        <div className="p-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="animate-slide-up">
@@ -333,25 +472,51 @@ export default function FileManagement() {
 
         {/* Breadcrumb Navigation */}
         <div className="mb-6 animate-fade-in">
-          <nav className="flex items-center space-x-2 text-sm bg-card p-4 rounded-lg shadow-file border">
-            <button 
-              onClick={() => handleBreadcrumbClick(-1)}
-              className="flex items-center gap-2 text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium"
-            >
-              <Home className="h-4 w-4" />
-              Root
-            </button>
-            {currentPath.map((folder, index) => (
-              <div key={folder.id} className="flex items-center">
-                <span className="mx-2 text-muted-foreground">/</span>
-                <button 
-                  onClick={() => handleBreadcrumbClick(index)}
-                  className="text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium"
+          <nav className="flex items-center justify-between bg-card p-4 rounded-lg shadow-file border">
+            <div className="flex items-center space-x-2 text-sm">
+              <button 
+                onClick={() => handleBreadcrumbClick(-1)}
+                className="flex items-center gap-2 text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium"
+              >
+                <Home className="h-4 w-4" />
+                Root
+              </button>
+              {currentPath.map((folder, index) => (
+                <div key={folder.id} className="flex items-center">
+                  <span className="mx-2 text-muted-foreground">/</span>
+                  <button 
+                    onClick={() => handleBreadcrumbClick(index)}
+                    className="text-primary hover:text-primary/80 cursor-pointer transition-smooth font-medium"
+                  >
+                    {folder.name}
+                  </button>
+                </div>
+              ))}
+            </div>
+            
+            {/* Parent folder navigation */}
+            {currentPath.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleBreadcrumbClick(currentPath.length - 2)}
+                  className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
                 >
-                  {folder.name}
-                </button>
+                  <ArrowUp className="h-4 w-4" />
+                  Back
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleBreadcrumbClick(-1)}
+                  className="p-2"
+                  title="Go to Root"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
               </div>
-            ))}
+            )}
           </nav>
         </div>
 
@@ -363,47 +528,83 @@ export default function FileManagement() {
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2 text-foreground">
                     <HardDrive className="h-5 w-5 text-primary" />
-                    Files & Folders
+                    {isGlobalSearch ? 'Global Search Results' : 'Files & Folders'}
+                    {indexing && <RefreshCw className="h-4 w-4 animate-spin text-muted-foreground" />}
                   </CardTitle>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                     <Input 
-                      placeholder="Search files..." 
+                      placeholder={indexing ? "Indexing files..." : "Search all files and folders..."} 
                       className="pl-9 w-64 border-border bg-background"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      disabled={indexing}
                     />
+                    {isGlobalSearch && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setIsGlobalSearch(false);
+                          setSearchResults([]);
+                        }}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-6">
                 <div className="space-y-3">
-                  {loading ? (
+                  {loading || indexing ? (
                     <div className="text-center py-12">
                       <RefreshCw className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
-                      <p className="text-muted-foreground">Loading files...</p>
+                      <p className="text-muted-foreground">
+                        {indexing ? "Indexing files for search..." : "Loading files..."}
+                      </p>
                     </div>
-                  ) : filteredFiles.length === 0 ? (
+                  ) : displayItems.length === 0 ? (
                     <div className="text-center py-12">
                       <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium text-foreground mb-2">No files found</h3>
+                      <h3 className="text-lg font-medium text-foreground mb-2">
+                        {searchTerm ? "No files found" : "No files available"}
+                      </h3>
                       <p className="text-muted-foreground">
-                        {searchTerm ? "Try adjusting your search terms" : "Start by uploading files or creating folders"}
+                        {searchTerm 
+                          ? `No results found for "${searchTerm}". Try different search terms.` 
+                          : "Start by uploading files or creating folders"
+                        }
                       </p>
                     </div>
                   ) : (
-                    filteredFiles.map((item) => (
-                      <FileItem
-                        key={item.id}
-                        item={item}
-                        onSelect={handleFileSelect}
-                        onDelete={handleDelete}
-                        onMove={handleMove}
-                        onDownload={handleDownload}
-                        onRename={handleRename}
-                        onManagePermissions={handleManagePermissions}
-                        onPreview={handlePreview}
-                      />
+                    displayItems.map((item) => (
+                      <div key={item.id} className="relative">
+                        {isGlobalSearch && 'path' in item && (
+                          <div className="text-xs text-muted-foreground mb-1 pl-4">
+                            <span>📁 {(item ).path}</span>
+                          </div>
+                        )}
+                        <DragDropZone 
+                          onFileDrop={handleFileDrop} 
+                          folderId={item.id} 
+                          isFolder={item.type === 'folder'}
+                          className="rounded-lg"
+                        >
+                          <FileItem
+                            item={item}
+                            onSelect={isGlobalSearch ? handleSearchResultSelect : handleFileSelect}
+                            onDelete={handleDelete}
+                            onMove={handleMove}
+                            onDownload={handleDownload}
+                            onRename={handleRename}
+                            onManagePermissions={handleManagePermissions}
+                            onPreview={handlePreview}
+                          />
+                        </DragDropZone>
+                      </div>
                     ))
                   )}
                 </div>
@@ -482,7 +683,7 @@ export default function FileManagement() {
               <Button variant="outline" onClick={() => setIsUploadOpen(false)}>
                 Cancel
               </Button>
-              <Button variant="upload" onClick={handleUploadFile} disabled={!selectedFile}>
+              <Button variant="upload" onClick={handleMultipleFilesUpload} disabled={!selectedFile}>
                 Upload File
               </Button>
             </DialogFooter>
@@ -510,14 +711,14 @@ export default function FileManagement() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="root">Root folder</SelectItem>
-                  {/* {availableFolders.map((folder) => (
+                  {availableFolders.map((folder) => (
                     <SelectItem key={folder.id} value={folder.id}>
                       <div className="flex items-center gap-2">
                         <FolderOpen className="h-4 w-4 mr-2 text-primary" />
                         {folder.name}
                       </div>
                     </SelectItem>
-                  ))} */}
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -556,7 +757,16 @@ export default function FileManagement() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* File Preview Dialog */}
+        <FilePreviewDialog
+          open={preview?.open || false}
+          onOpenChange={(open) => setPreview(open ? preview : null)}
+          file={preview}
+          onDownload={preview ? () => handleDownload(selectedItem?.id || '', preview.name) : undefined}
+        />
+        </div>
       </div>
-    </div>
+    </DragDropZone>
   );
 }
