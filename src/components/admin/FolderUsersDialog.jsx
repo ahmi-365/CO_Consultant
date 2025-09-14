@@ -98,7 +98,7 @@ export default function FolderUsersDialog({ isOpen, onClose, selectedItem }) {
       });
     }
     return acc;
-  }, [] );
+  }, []);
 
   const getHighestPermission = (permissions) => {
     const hierarchy = ['read', 'create_folder', 'upload', 'edit', 'delete', 'manage'];

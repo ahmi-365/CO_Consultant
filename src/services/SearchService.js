@@ -1,56 +1,86 @@
 import { fileApi } from './FileService';
 
-/**
- * @typedef {import('./FileService').FileItem} FileItem
- * 
- * @typedef {Object} SearchResult
- * @property {string} id - File/folder ID
- * @property {string} name - File/folder name
- * @property {'file'|'folder'} type - Item type
- * @property {number} [size] - File size in bytes (optional for folders)
- * @property {string} created_at - Creation date
- * @property {string} [updated_at] - Last update date
- * @property {Object} [owner] - File owner information
- * @property {number} owner.id - Owner ID
- * @property {string} owner.name - Owner name
- * @property {FileItem[]} [items] - Child items for folders
- * @property {string} path - Full path to the file/folder
- * @property {string} [parent_path] - Path to the parent folder
- */
+/*
+SearchResult structure (for documentation/reference):
+{
+  // All FileItem properties
+  id: string,
+  name: string,
+  type: 'file' | 'folder',
+  size?: number,
+  created_at: string,
+  updated_at?: string,
+  owner?: {
+    id: number,
+    name: string
+  },
+  items?: FileItem[],
+  // Additional search properties
+  path: string,
+  parent_path?: string
+}
+*/
 
 class SearchService {
   constructor() {
     this.allFiles = new Map();
+    this.flatFileList = [];
     this.isIndexing = false;
+    this.lastIndexTime = 0;
+    this.INDEX_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
   }
 
-  // Index all files across all folders
+  // Fast indexing - only index when needed and use cached data
   async indexAllFiles(forceRefresh = false) {
     if (this.isIndexing) return;
         
+    const now = Date.now();
+    if (!forceRefresh && 
+        this.flatFileList.length > 0 && 
+        now - this.lastIndexTime < this.INDEX_CACHE_DURATION) {
+      return; // Use cached index
+    }
+        
     this.isIndexing = true;
     try {
-      if (!forceRefresh && this.allFiles.size > 0) {
-        return; // Already indexed
-      }
-
       this.allFiles.clear();
-      await this.indexFolder(null, '/');
+      this.flatFileList = [];
+            
+      // Only index root level initially for speed
+      await this.quickIndexFolder(null, '/');
+      this.lastIndexTime = now;
     } finally {
       this.isIndexing = false;
     }
   }
 
-  async indexFolder(parentId, path) {
+  // Faster indexing - build flat list directly without deep recursion
+  async quickIndexFolder(parentId, path) {
     try {
       const files = await fileApi.listFiles(parentId);
       this.allFiles.set(parentId || 'root', files);
 
-      // Recursively index subfolders
+      // Build flat list for faster searching
       for (const file of files) {
-        if (file.type === 'folder') {
+        this.flatFileList.push({
+          ...file,
+          path: `${path}${file.name}${file.type === 'folder' ? '/' : ''}`,
+          parent_path: path
+        });
+
+        // Only index first level subfolders to avoid deep recursion
+        if (file.type === 'folder' && path === '/') {
           const subPath = `${path}${file.name}/`;
-          await this.indexFolder(file.id, subPath);
+          const subFiles = await fileApi.listFiles(file.id);
+          this.allFiles.set(file.id, subFiles);
+                    
+          for (const subFile of subFiles) {
+            this.flatFileList.push({
+              ...subFile,
+              path: `${subPath}${subFile.name}${subFile.type === 'folder' ? '/' : ''}`,
+              parent_path: subPath
+            });
+          }
         }
       }
     } catch (error) {
@@ -58,26 +88,14 @@ class SearchService {
     }
   }
 
-  // Global search across all indexed files
+  // Fast search using pre-built flat list
   search(query) {
     if (!query.trim()) return [];
 
-    const results = [];
     const searchTerm = query.toLowerCase();
-
-    for (const [parentId, files] of this.allFiles.entries()) {
-      const parentPath = this.getParentPath(parentId);
-            
-      for (const file of files) {
-        if (file.name.toLowerCase().includes(searchTerm)) {
-          results.push({
-            ...file,
-            path: `${parentPath}${file.name}`,
-            parent_path: parentPath
-          });
-        }
-      }
-    }
+    const results = this.flatFileList.filter(file => 
+      file.name.toLowerCase().includes(searchTerm)
+    );
 
     // Sort by relevance (exact matches first, then by name)
     return results.sort((a, b) => {
@@ -108,6 +126,8 @@ class SearchService {
   // Clear the index
   clearIndex() {
     this.allFiles.clear();
+    this.flatFileList = [];
+    this.lastIndexTime = 0;
   }
 }
 

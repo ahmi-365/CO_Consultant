@@ -5,30 +5,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Search, UserPlus, X, Users } from "lucide-react";
 import { permissionsApi } from "@/services/FileService";
+import {  PERMISSION_OPTIONS, getPermissionColor } from "@/services/UserService";
 import { useToast } from "@/hooks/use-toast";
 import FolderUsersDialog from "./FolderUsersDialog";
 import UserSearchDialog from "./UserSearchDialog";
-
-
-
-const permissionOptions = [
-  { value: 'read', label: 'View Only', description: 'Can view and download' },
-  { value: 'create_folder', label: 'Create Folders', description: 'Can create new folders' },
-  { value: 'edit', label: 'Edit', description: 'Can modify files and folders' },
-  { value: 'upload', label: 'Upload', description: 'Can upload new files' },
-  { value: 'delete', label: 'Delete', description: 'Can remove files and folders' },
-  { value: 'manage', label: 'Full Control', description: 'Can manage all permissions' },
-];
-
-// Mock users - replace with actual user API
-const mockUsers = [
-  { id: 1, name: "Alice Johnson", email: "alice.johnson@example.com" },
-  { id: 2, name: "Bob Smith", email: "bob.smith@example.com" },
-  { id: 3, name: "Carol Davis", email: "carol.davis@example.com" },
-  { id: 4, name: "David Wilson", email: "david.wilson@example.com" },
-];
-
-
 
 export default function UserPermissions({ selectedItem, onPermissionChange, openUsersDialog, onOpenUsersDialogChange }) {
   const [permissions, setPermissions] = useState([]);
@@ -36,7 +16,6 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
   const [showUsersDialog, setShowUsersDialog] = useState(false);
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const { toast } = useToast();
-
 
   useEffect(() => {
     if (selectedItem) {
@@ -59,28 +38,19 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
       const data = await permissionsApi.getFilePermissions(selectedItem.id);
       setPermissions(Array.isArray(data) ? data : []);
     } catch (error) {
+      console.error('Failed to load permissions:', error);
       toast({
         title: "Error",
-        description: "Failed to load permissions (showing mock data while API returns 401)",
+        description: "Failed to load permissions. Please check your authentication.",
         variant: "destructive",
       });
-      // Fallback mock data for testing only (API remains wired)
-      setPermissions([
-        {
-          id: 1,
-          user_id: 1,
-          user_name: "Demo User",
-          permission: "read",
-          granted_at: new Date().toISOString(),
-          granted_by: "System"
-        }
-      ]);
+      setPermissions([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddUserAccess = async (userId , permissions) => {
+  const handleAddUserAccess = async (userId, permissions) => {
     if (!selectedItem) return;
 
     try {
@@ -105,7 +75,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     }
   };
 
-  const handleRemovePermission = async (userId , permission ) => {
+  const handleRemovePermission = async (userId, permission) => {
     if (!selectedItem) return;
 
     try {
@@ -124,18 +94,6 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
         description: "Failed to remove permission",
         variant: "destructive",
       });
-    }
-  };
-
-  const getPermissionColor = (permission ) => {
-    switch (permission) {
-      case 'read': return 'bg-secondary text-secondary-foreground';
-      case 'create_folder': return 'bg-primary-light text-primary';
-      case 'edit': return 'bg-warning-light text-warning';
-      case 'upload': return 'bg-success-light text-success';
-      case 'delete': return 'bg-destructive-light text-destructive';
-      case 'manage': return 'bg-accent-light text-accent';
-      default: return 'bg-muted text-muted-foreground';
     }
   };
 
@@ -230,7 +188,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
                     <div>
                       <div className="text-sm font-medium">{permission.user_name}</div>
                       <Badge variant="secondary" className={getPermissionColor(permission.permission)}>
-                        {permissionOptions.find(p => p.value === permission.permission)?.label || permission.permission}
+                        {PERMISSION_OPTIONS.find(p => p.value === permission.permission)?.label || permission.permission}
                       </Badge>
                     </div>
                   </div>

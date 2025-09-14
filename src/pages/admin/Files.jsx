@@ -34,10 +34,9 @@ import FileItem from "@/components/admin/FileItem";
 import UserPermissions from "@/components/admin/UserPermissions";
 import FilePreviewDialog from "@/components/admin/FilePreviewDialog";
 import DragDropZone from "@/components/admin/DragDropZone";
-import { fileApi,  getCachedFiles } from "@/services/FileService";
+import { fileApi, getCachedFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
-
 
 export default function FileManagement() {
   const [files, setFiles] = useState([]);
@@ -53,7 +52,7 @@ export default function FileManagement() {
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
-  const [itemToMove, setItemToMove] = useState (null);
+  const [itemToMove, setItemToMove] = useState(null);
   const [moveDestination, setMoveDestination] = useState("");
   const [availableFolders, setAvailableFolders] = useState([]);
   const [preview, setPreview] = useState(null);
@@ -88,45 +87,38 @@ export default function FileManagement() {
     }
   }, [isMoveDialogOpen]);
 
-const loadFiles = async ({ force } = {}) => {
-  setLoading(true);
-  try {
-    const currentParentId = currentPath.length > 0 
-      ? currentPath[currentPath.length - 1].id 
-      : null;
+  const loadFiles = async (opts = {}) => {
+    setLoading(true);
+    try {
+      const currentParentId = currentPath.length > 0 
+        ? currentPath[currentPath.length - 1].id 
+        : null;
 
-    // Use cached memory unless force is true
-    if (!force) {
-      const cached = getCachedFiles(currentParentId);
-      if (cached) {
-        setFiles(Array.isArray(cached) ? cached : []);
-        setLoading(false);
-        return;
+      // Use cached memory unless force is true
+      if (!opts.force) {
+        const cached = getCachedFiles(currentParentId);
+        if (cached) {
+          setFiles(Array.isArray(cached) ? cached : []);
+          setLoading(false);
+          return;
+        }
       }
-    }
 
-    const data = await fileApi.listFiles(currentParentId);
-    const safeData = Array.isArray(data) ? data : [];
-    setFiles(safeData);
-  } catch (error) {
-    // Only show toast if nothing cached and nothing to show
-    if (!files.length) {
+      const data = await fileApi.listFiles(currentParentId);
+      const safeData = Array.isArray(data) ? data : [];
+      setFiles(safeData);
+    } catch (error) {
+      console.error('Failed to load files:', error);
       toast({
-        title: "Offline",
-        description: "Using cached data (or mock) while network is unavailable",
+        title: "Error",
+        description: "Failed to load files. Please check your authentication.",
         variant: "destructive",
       });
-      // Fallback mock data for testing only (API remains wired)
-      setFiles([
-        { id: '1', name: 'Documents', type: 'folder', created_at: new Date().toISOString() },
-        { id: '2', name: 'sample.pdf', type: 'file', size: 345678, created_at: new Date().toISOString() },
-      ]);
+      setFiles([]);
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const initializeSearch = async () => {
     setIndexing(true);
@@ -168,7 +160,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleSearchResultSelect = (result ) => {
+  const handleSearchResultSelect = (result) => {
     // Navigate to parent folder if needed
     if (result.parent_path && result.parent_path !== '/') {
       // This would require path parsing to set correct breadcrumb
@@ -186,6 +178,7 @@ const loadFiles = async ({ force } = {}) => {
       handlePreview(result);
     }
   };
+
   const loadAvailableFolders = async () => {
     try {
       // Get folders from root level for move destination
@@ -231,7 +224,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleUploadFile = async (file , targetFolderId ) => {
+  const handleUploadFile = async (file, targetFolderId) => {
     try {
       const parentId = targetFolderId || (currentPath.length > 0 
         ? currentPath[currentPath.length - 1].id 
@@ -270,7 +263,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleFileDrop = async (files , targetFolderId ) => {
+  const handleFileDrop = async (files, targetFolderId) => {
     const fileArray = Array.from(files);
     
     for (const file of fileArray) {
@@ -278,14 +271,14 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleFileSelect = (item ) => {
+  const handleFileSelect = (item) => {
     if (item.type === 'folder') {
       setCurrentPath([...currentPath, { id: item.id, name: item.name }]);
     }
     setSelectedItem(item);
   };
 
-  const handleDownload = async (id , filename ) => {
+  const handleDownload = async (id, filename) => {
     try {
       await fileApi.downloadFile(id, filename);
       toast({
@@ -301,7 +294,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleDelete = async (id ) => {
+  const handleDelete = async (id) => {
     try {
       await fileApi.deleteItem(id);
       toast({
@@ -326,7 +319,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleMove = async (id ) => {
+  const handleMove = async (id) => {
     setItemToMove(id);
     setIsMoveDialogOpen(true);
   };
@@ -358,7 +351,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleRename = async (id , newName ) => {
+  const handleRename = async (id, newName) => {
     try {
       await fileApi.renameItem(id, newName);
       loadFiles({ force: true });
@@ -380,12 +373,12 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleManagePermissions = (item ) => {
+  const handleManagePermissions = (item) => {
     setSelectedItem(item);
     setOpenUsersDialog(true);
   };
 
-  const handlePreview = async (item ) => {
+  const handlePreview = async (item) => {
     if (item.type !== 'file') return;
     try {
       const url = await fileApi.getDownloadUrl(item.id);
@@ -400,7 +393,7 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-  const handleBreadcrumbClick = (index ) => {
+  const handleBreadcrumbClick = (index) => {
     if (index === -1) {
       // Root level
       setCurrentPath([]);
@@ -434,13 +427,10 @@ const loadFiles = async ({ force } = {}) => {
     }
   };
 
-// Determine what to display based on search state
-const displayItems = isGlobalSearch
-  ? searchResults
-  : files.filter(file =>
-      file.name.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
+  // Determine what to display based on search state
+  const displayItems = isGlobalSearch ? searchResults : files.filter(file =>
+    file.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <DragDropZone onFileDrop={handleFileDrop}>
@@ -584,7 +574,7 @@ const displayItems = isGlobalSearch
                       <div key={item.id} className="relative">
                         {isGlobalSearch && 'path' in item && (
                           <div className="text-xs text-muted-foreground mb-1 pl-4">
-                            <span>📁 {(item ).path}</span>
+                            <span>📁 {item.path}</span>
                           </div>
                         )}
                         <DragDropZone 
@@ -689,8 +679,6 @@ const displayItems = isGlobalSearch
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
-        {/* Move Item Dialog */}
 
         {/* Move Item Dialog */}
         <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>

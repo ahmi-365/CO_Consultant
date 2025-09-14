@@ -3,6 +3,7 @@ import { Upload, FolderOpen } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 
+
 export default function DragDropZone({ 
   onFileDrop, 
   children, 
@@ -14,7 +15,7 @@ export default function DragDropZone({
   const [isDragActive, setIsDragActive] = useState(false);
   const { toast } = useToast();
 
-  const handleDragEnter = useCallback((e) => {
+  const handleDragEnter = useCallback((e ) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -26,7 +27,7 @@ export default function DragDropZone({
     }
   }, [isFolder]);
 
-  const handleDragLeave = useCallback((e) => {
+  const handleDragLeave = useCallback((e ) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -43,7 +44,7 @@ export default function DragDropZone({
     }
   }, [isFolder]);
 
-  const handleDragOver = useCallback((e) => {
+  const handleDragOver = useCallback((e ) => {
     e.preventDefault();
     e.stopPropagation();
   }, []);
@@ -92,16 +93,6 @@ export default function DragDropZone({
         </div>
       )}
       
-      {/* Global drop overlay */}
-      {isDragActive && !isFolder && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center">
-          <div className="bg-card p-8 rounded-lg shadow-lg text-center max-w-sm mx-4">
-            <Upload className="h-12 w-12 text-primary mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">Drop Files to Upload</h3>
-            <p className="text-muted-foreground">Release to upload files to the current folder</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

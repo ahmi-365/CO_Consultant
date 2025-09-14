@@ -1,7 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Download, X, ExternalLink } from "lucide-react";
-import { File, Music } from "lucide-react";
 
 
 export default function FilePreviewDialog({ 
@@ -9,7 +8,7 @@ export default function FilePreviewDialog({
   onOpenChange, 
   file, 
   onDownload 
-}) {
+} ) {
   if (!file) return null;
 
   const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(file.type.toLowerCase());
@@ -138,3 +137,6 @@ export default function FilePreviewDialog({
     </Dialog>
   );
 }
+
+// Add missing imports at the top
+import { File, Music } from "lucide-react";

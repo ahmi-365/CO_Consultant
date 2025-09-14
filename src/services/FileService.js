@@ -281,60 +281,52 @@ export const fileApi = {
     return result.url;
   },
 
-  // Download file directly
+  // Download file directly using backend download_url
   async downloadFile(id, filename) {
     try {
-      const downloadUrl = await this.getDownloadUrl(id);
+      // Get the file with download_url from backend
+      const filesData = getCachedFiles(null) || [];
+      let fileItem = this.findFileInCache(filesData, id);
       
-      // For direct OneDrive links, we need to handle CORS and authentication properly
-      const response = await fetch(downloadUrl, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        // Add credentials if needed for cross-origin requests
-        mode: 'cors',
-        credentials: 'include'
-      });
-      
-      if (!response.ok) {
-        // If direct fetch fails, try alternative approach
-        console.warn('Direct fetch failed, using fallback method');
-        this.downloadViaIframe(downloadUrl, filename);
+      if (!fileItem || !fileItem.download_url) {
+        // Fallback to API call if not in cache
+        const downloadUrl = await this.getDownloadUrl(id);
+        this.downloadViaDirectLink(downloadUrl, filename);
         return;
       }
       
-      const blob = await response.blob();
-      
-      // Verify blob has content
-      if (blob.size === 0) {
-        console.warn('Empty blob received, using fallback method');
-        this.downloadViaIframe(downloadUrl, filename);
-        return;
-      }
-      
-      // Create object URL and download
-      const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = objectUrl;
-      link.download = filename;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      // Clean up object URL
-      URL.revokeObjectURL(objectUrl);
+      this.downloadViaDirectLink(fileItem.download_url, filename);
     } catch (error) {
       console.error('Download error:', error);
-      // Fallback to opening in new tab
-      try {
-        const downloadUrl = await this.getDownloadUrl(id);
-        this.downloadViaIframe(downloadUrl, filename);
-      } catch (fallbackError) {
-        throw new Error('Failed to download file');
+      throw new Error('Failed to download file');
+    }
+  },
+
+  // Helper method to find file in cache recursively
+  findFileInCache(files, targetId) {
+    for (const file of files) {
+      if (file.id === targetId) {
+        return file;
+      }
+      if (file.items && Array.isArray(file.items)) {
+        const found = this.findFileInCache(file.items, targetId);
+        if (found) return found;
       }
     }
+    return null;
+  },
+
+  // Direct download using browser's built-in download
+  downloadViaDirectLink(url, filename) {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   },
 
   // Fallback download method for when blob approach fails
@@ -527,17 +519,20 @@ export const formatDate = (dateString) => {
   });
 };
 
-// File types (JSDoc comments for better documentation in plain JS)
-/**
- * @typedef {Object} FileItem
- * @property {string} id - File/folder ID
- * @property {string} name - File/folder name
- * @property {'file'|'folder'} type - Item type
- * @property {number} [size] - File size in bytes (optional for folders)
- * @property {string} created_at - Creation date
- * @property {string} [updated_at] - Last update date
- * @property {Object} [owner] - File owner information
- * @property {number} owner.id - Owner ID
- * @property {string} owner.name - Owner name
- * @property {FileItem[]} [items] - Child items for folders
- */
+// File types (for documentation/reference - not enforced in JavaScript)
+/*
+FileItem structure:
+{
+  id: string,
+  name: string,
+  type: 'file' | 'folder',
+  size?: number,
+  created_at: string,
+  updated_at?: string,
+  owner?: {
+    id: number,
+    name: string
+  },
+  items?: FileItem[]
+}
+*/

@@ -3,212 +3,226 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, UserPlus, Check } from "lucide-react";
-
-
-// Mock users - replace with actual user API
-const mockUsers = [
-  { id: 1, name: "Alice Johnson", email: "alice.johnson@example.com", role: "Manager" },
-  { id: 2, name: "Bob Smith", email: "bob.smith@example.com", role: "Developer" },
-  { id: 3, name: "Carol Davis", email: "carol.davis@example.com", role: "Designer" },
-  { id: 4, name: "David Wilson", email: "david.wilson@example.com", role: "Analyst" },
-  { id: 5, name: "Emma Brown", email: "emma.brown@example.com", role: "Tester" },
-  { id: 6, name: "Frank Miller", email: "frank.miller@example.com", role: "Admin" },
-];
-
-const permissionOptions = [
-  { value: 'read', label: 'View Only', description: 'Can view and download', color: 'bg-secondary' },
-  { value: 'create_folder', label: 'Create Folders', description: 'Can create new folders', color: 'bg-primary/20 text-primary' },
-  { value: 'edit', label: 'Edit', description: 'Can modify files and folders', color: 'bg-warning/20 text-warning' },
-  { value: 'upload', label: 'Upload', description: 'Can upload new files', color: 'bg-success/20 text-success' },
-  { value: 'delete', label: 'Delete', description: 'Can remove files and folders', color: 'bg-destructive/20 text-destructive' },
-  { value: 'manage', label: 'Full Control', description: 'Can manage all permissions', color: 'bg-accent/20 text-accent' },
-];
+import { Search, UserPlus } from "lucide-react";
+import { userApi, PERMISSION_OPTIONS, getUserInitials } from "@/services/UserService";
+import { useToast } from "@/hooks/use-toast";
 
 export default function UserSearchDialog({ isOpen, onClose, onAddUser }) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedPermissions, setSelectedPermissions] = useState(['read']);
+  const [selectedPermissions, setSelectedPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (!isOpen) {
-      setSearchTerm("");
-      setSelectedUser(null);
-      setSelectedPermissions(['read']);
+    if (isOpen) {
+      loadUsers();
     }
   }, [isOpen]);
 
-  const filteredUsers = mockUsers.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  useEffect(() => {
+    filterUsers();
+  }, [searchTerm, users]);
 
-  const handlePermissionToggle = (permission ) => {
+  const loadUsers = async () => {
+    setLoading(true);
+    try {
+      const data = await userApi.getAllUsers();
+      const userList = Array.isArray(data) ? data : data.data || [];
+      setUsers(userList);
+    } catch (error) {
+      console.error('Failed to load users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please check your authentication.",
+        variant: "destructive",
+      });
+      setUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterUsers = () => {
+    if (!searchTerm.trim()) {
+      setFilteredUsers(users);
+      return;
+    }
+
+    const term = searchTerm.toLowerCase();
+    const filtered = users.filter(user => 
+      user.name.toLowerCase().includes(term) ||
+      user.email.toLowerCase().includes(term)
+    );
+    setFilteredUsers(filtered);
+  };
+
+  const handleUserSelect = (user) => {
+    setSelectedUser(user);
+  };
+
+  const handlePermissionToggle = (permissionValue) => {
     setSelectedPermissions(prev => {
-      if (prev.includes(permission)) {
-        return prev.filter(p => p !== permission);
+      if (prev.includes(permissionValue)) {
+        return prev.filter(p => p !== permissionValue);
       } else {
-        return [...prev, permission];
+        return [...prev, permissionValue];
       }
     });
   };
 
-  const handleAddUser = () => {
-    if (selectedUser && selectedPermissions.length > 0) {
-      onAddUser(selectedUser.id, selectedPermissions);
-      onClose();
+  const handleAddUser = async () => {
+    if (!selectedUser || selectedPermissions.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please select a user and at least one permission",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await onAddUser(selectedUser.id, selectedPermissions);
+      handleClose();
+    } catch (error) {
+      // Error handling is done in parent component
     }
   };
 
+  const handleClose = () => {
+    setSearchTerm("");
+    setSelectedUser(null);
+    setSelectedPermissions([]);
+    setFilteredUsers([]);
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <UserPlus className="h-5 w-5" />
             Add User Access
           </DialogTitle>
           <DialogDescription>
-            Search for users and assign permissions
+            Search and select a user, then choose their permissions
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {/* User Search */}
-          <div className="space-y-3">
-            <label className="text-sm font-medium">Search Users</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-              <Input 
-                placeholder="Search by name or email..." 
-                className="pl-9"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
+        <div className="flex-1 overflow-hidden flex flex-col gap-4">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+            <Input
+              placeholder="Search users by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
 
-            {/* User Results */}
-            {searchTerm && (
-              <div className="max-h-48 overflow-y-auto border rounded-lg">
-                {filteredUsers.length === 0 ? (
-                  <div className="p-4 text-center text-muted-foreground">
-                    No users found matching "{searchTerm}"
+          {/* Users List */}
+          <div className="flex-1 overflow-y-auto">
+            <Label className="text-sm font-medium mb-2 block">Select User</Label>
+            {loading ? (
+              <div className="text-center py-8 text-muted-foreground">Loading users...</div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                {searchTerm ? "No users found matching your search" : "No users available"}
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {filteredUsers.map((user) => (
+                  <div
+                    key={user.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedUser?.id === user.id
+                        ? 'bg-primary/10 border-primary'
+                        : 'bg-card hover:bg-muted/50'
+                    }`}
+                    onClick={() => handleUserSelect(user)}
+                  >
+                    <Avatar className="h-10 w-10">
+                      <AvatarFallback className="text-sm">
+                        {getUserInitials(user.name)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1">
+                      <div className="font-medium text-sm">{user.name}</div>
+                      <div className="text-xs text-muted-foreground">{user.email}</div>
+                      {user.role && (
+                        <Badge variant="outline" className="mt-1 text-xs">
+                          {user.role}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-1 p-2">
-                    {filteredUsers.map((user) => (
-                      <div
-                        key={user.id}
-                        className={`flex items-center gap-3 p-3 rounded-md cursor-pointer transition-smooth hover:bg-accent/50 ${
-                          selectedUser?.id === user.id ? 'bg-accent text-accent-foreground' : ''
-                        }`}
-                        onClick={() => setSelectedUser(user)}
-                      >
-                        <Avatar className="h-8 w-8">
-                          <AvatarFallback className="text-xs">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate">{user.name}</div>
-                          <div className="text-xs text-muted-foreground truncate">{user.email}</div>
-                        </div>
-                        {user.role && (
-                          <Badge variant="outline" className="text-xs">
-                            {user.role}
-                          </Badge>
-                        )}
-                        {selectedUser?.id === user.id && (
-                          <Check className="h-4 w-4 text-primary" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
             )}
           </div>
 
-          {/* Selected User */}
+          {/* Permissions */}
           {selectedUser && (
-            <div className="space-y-3">
-              <label className="text-sm font-medium">Selected User</label>
-              <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-lg border">
-                <Avatar className="h-10 w-10">
-                  <AvatarFallback>
-                    {selectedUser.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="font-medium">{selectedUser.name}</div>
-                  <div className="text-sm text-muted-foreground">{selectedUser.email}</div>
-                </div>
-                {selectedUser.role && (
-                  <Badge variant="secondary">{selectedUser.role}</Badge>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Permission Selection */}
-          {selectedUser && (
-            <div className="space-y-3">
-              <label className="text-sm font-medium">
-                Permissions ({selectedPermissions.length} selected)
-              </label>
-              <div className="grid grid-cols-1 gap-3 max-h-48 overflow-y-auto">
-                {permissionOptions.map((option) => (
-                  <div key={option.value} className="flex items-start space-x-3 p-3 rounded-lg border hover:bg-accent/50 transition-smooth">
+            <div>
+              <Label className="text-sm font-medium mb-3 block">
+                Select Permissions for {selectedUser.name}
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {PERMISSION_OPTIONS.map((permission) => (
+                  <div
+                    key={permission.value}
+                    className="flex items-start space-x-3 p-3 rounded-lg border bg-card"
+                  >
                     <Checkbox
-                      id={option.value}
-                      checked={selectedPermissions.includes(option.value)}
-                      onCheckedChange={() => handlePermissionToggle(option.value)}
-                      className="mt-1"
+                      id={permission.value}
+                      checked={selectedPermissions.includes(permission.value)}
+                      onCheckedChange={() => handlePermissionToggle(permission.value)}
                     />
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <label
-                          htmlFor={option.value}
-                          className="text-sm font-medium cursor-pointer"
-                        >
-                          {option.label}
-                        </label>
-                        <Badge variant="secondary" className={`text-xs ${option.color}`}>
-                          {option.value}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground">{option.description}</p>
+                    <div className="grid gap-1.5 leading-none">
+                      <Label
+                        htmlFor={permission.value}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {permission.label}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {permission.description}
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
           )}
-
-          {/* Action Buttons */}
-          <div className="flex justify-end gap-3 pt-4 border-t">
-            <Button variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleAddUser}
-              disabled={!selectedUser || selectedPermissions.length === 0}
-              className="bg-gradient-primary"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add User Access
-            </Button>
-          </div>
         </div>
+
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleAddUser}
+            disabled={!selectedUser || selectedPermissions.length === 0}
+            className="bg-gradient-primary hover:bg-gradient-primary/90"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Access
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -36,7 +36,7 @@ import {
   Check,
   X
 } from "lucide-react";
-import { formatFileSize, formatDate, getFileIcon,  } from "@/services/FileService";
+import { formatFileSize, formatDate, getFileIcon } from "@/services/FileService";
 import { useToast } from "@/hooks/use-toast";
 
 const getFileIconComponent = (filename, type) => {
@@ -61,6 +61,7 @@ const getFileIconComponent = (filename, type) => {
       return <File className="h-5 w-5 text-file-doc" />;
   }
 };
+
 
 
 export default function FileItem({ 
