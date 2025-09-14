@@ -1,19 +1,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Search, UserPlus, X } from "lucide-react";
-import {   permissionsApi } from "@/services/FileService";
+import { Search, UserPlus, X, Users } from "lucide-react";
+import { permissionsApi } from "@/services/FileService";
 import { useToast } from "@/hooks/use-toast";
+import FolderUsersDialog from "./FolderUsersDialog";
+import UserSearchDialog from "./UserSearchDialog";
 
 
 
@@ -27,32 +21,35 @@ const permissionOptions = [
 ];
 
 // Mock users - replace with actual user API
-const mockUsers= [
+const mockUsers = [
   { id: 1, name: "Alice Johnson", email: "alice.johnson@example.com" },
   { id: 2, name: "Bob Smith", email: "bob.smith@example.com" },
   { id: 3, name: "Carol Davis", email: "carol.davis@example.com" },
   { id: 4, name: "David Wilson", email: "david.wilson@example.com" },
 ];
 
-export default function UserPermissions({ selectedItem, onPermissionChange }) {
+
+
+export default function UserPermissions({ selectedItem, onPermissionChange, openUsersDialog, onOpenUsersDialogChange }) {
   const [permissions, setPermissions] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedUser, setSelectedUser] = useState("");
-  const [selectedPermission, setSelectedPermission] = useState("read");
   const [loading, setLoading] = useState(false);
+  const [showUsersDialog, setShowUsersDialog] = useState(false);
+  const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const { toast } = useToast();
 
-  const filteredUsers = mockUsers.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
-  // Load permissions when selected item changes
   useEffect(() => {
     if (selectedItem) {
       loadPermissions();
     }
   }, [selectedItem]);
+
+  // Sync dialog open state with external control (from FileManagement)
+  useEffect(() => {
+    if (typeof openUsersDialog === 'boolean') {
+      setShowUsersDialog(openUsersDialog);
+    }
+  }, [openUsersDialog]);
 
   const loadPermissions = async () => {
     if (!selectedItem) return;
@@ -60,47 +57,55 @@ export default function UserPermissions({ selectedItem, onPermissionChange }) {
     setLoading(true);
     try {
       const data = await permissionsApi.getFilePermissions(selectedItem.id);
-      setPermissions(data);
+      setPermissions(Array.isArray(data) ? data : []);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to load permissions",
+        description: "Failed to load permissions (showing mock data while API returns 401)",
         variant: "destructive",
       });
+      // Fallback mock data for testing only (API remains wired)
+      setPermissions([
+        {
+          id: 1,
+          user_id: 1,
+          user_name: "Demo User",
+          permission: "read",
+          granted_at: new Date().toISOString(),
+          granted_by: "System"
+        }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddPermission = async () => {
-    if (!selectedItem || !selectedUser || !selectedPermission) return;
+  const handleAddUserAccess = async (userId , permissions ) => {
+    if (!selectedItem) return;
 
     try {
-      await permissionsApi.assignPermission(
-        selectedItem.id, 
-        parseInt(selectedUser), 
-        selectedPermission
-      );
+      // Add multiple permissions for the user
+      for (const permission of permissions) {
+        await permissionsApi.assignPermission(selectedItem.id, userId, permission);
+      }
       
       toast({
         title: "Success",
-        description: "Permission added successfully",
+        description: `User access added with ${permissions.length} permission(s)`,
       });
       
-      setSelectedUser("");
-      setSelectedPermission("read");
       loadPermissions();
       onPermissionChange?.();
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to add permission",
+        description: "Failed to add user access",
         variant: "destructive",
       });
     }
   };
 
-  const handleRemovePermission = async (userId, permission) => {
+  const handleRemovePermission = async (userId, permission ) => {
     if (!selectedItem) return;
 
     try {
@@ -122,7 +127,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange }) {
     }
   };
 
-  const getPermissionColor = (permission) => {
+  const getPermissionColor = (permission ) => {
     switch (permission) {
       case 'read': return 'bg-secondary text-secondary-foreground';
       case 'create_folder': return 'bg-primary-light text-primary';
@@ -136,12 +141,25 @@ export default function UserPermissions({ selectedItem, onPermissionChange }) {
 
   if (!selectedItem) {
     return (
-      <Card>
+      <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <Search className="h-5 w-5" />
             User Permissions
-          </CardTitle>
+          </div>
+          {selectedItem?.type === 'folder' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => { setShowUsersDialog(true); onOpenUsersDialogChange?.(true); }}
+              className="text-primary hover:text-primary/80"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              View All Users
+            </Button>
+          )}
+        </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center text-muted-foreground py-8">
@@ -153,11 +171,24 @@ export default function UserPermissions({ selectedItem, onPermissionChange }) {
   }
 
   return (
-    <Card>
+    <Card className="shadow-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Search className="h-5 w-5" />
-          User Permissions
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            User Permissions
+          </div>
+          {selectedItem?.type === 'folder' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowUsersDialog(true)}
+              className="text-primary hover:text-primary/80"
+            >
+              <Users className="h-4 w-4 mr-2" />
+              View All Users
+            </Button>
+          )}
         </CardTitle>
         <p className="text-sm text-muted-foreground">
           Managing access for: <span className="font-medium">{selectedItem.name}</span>
@@ -166,83 +197,71 @@ export default function UserPermissions({ selectedItem, onPermissionChange }) {
       <CardContent className="space-y-6">
         {/* Add User Permission */}
         <div className="space-y-4 p-4 bg-gradient-subtle rounded-lg border">
-          <h4 className="font-medium text-sm">Add User Access</h4>
-          
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Select User</label>
-              <Select value={selectedUser} onValueChange={setSelectedUser}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue placeholder="Choose a user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredUsers.map((user) => (
-                    <SelectItem key={user.id} value={user.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className="text-xs">
-                            {user.name.split(' ').map(n => n[0]).join('')}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <div className="text-sm font-medium">{user.name}</div>
-                          <div className="text-xs text-muted-foreground">{user.email}</div>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-muted-foreground">Permission Level</label>
-              <Select value={selectedPermission} onValueChange={setSelectedPermission}>
-                <SelectTrigger className="mt-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {permissionOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      <div>
-                        <div className="font-medium">{option.label}</div>
-                        <div className="text-xs text-muted-foreground">{option.description}</div>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <Button 
-              onClick={handleAddPermission} 
-              className="w-full"
-              disabled={!selectedUser || !selectedPermission}
-              variant="upload"
-            >
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Permission
-            </Button>
+          <div className="flex items-center justify-between">
+            <h4 className="font-medium text-sm">Quick Actions</h4>
           </div>
+          
+          <Button 
+            onClick={() => setShowAddUserDialog(true)}
+            className="w-full bg-gradient-primary hover:bg-gradient-primary/90"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add User Access
+          </Button>
         </div>
 
         {/* Current Permissions */}
-     
-
-        {/* Search Users */}
-        <div>
-          <label className="text-xs font-medium text-muted-foreground">Search Users</label>
-          <div className="relative mt-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-            <Input 
-              placeholder="Search by name or email" 
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+        <div className="space-y-3">
+          <h4 className="font-medium text-sm">Current Permissions</h4>
+          {loading ? (
+            <div className="text-center py-4 text-muted-foreground">Loading permissions...</div>
+          ) : permissions.length === 0 ? (
+            <div className="text-center py-4 text-muted-foreground">No permissions assigned</div>
+          ) : (
+            <div className="space-y-2">
+              {permissions.map((permission) => (
+                <div key={permission.id} className="flex items-center justify-between p-3 bg-card rounded-lg border">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {permission.user_name.split(' ').map(n => n[0]).join('')}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="text-sm font-medium">{permission.user_name}</div>
+                      <Badge variant="secondary" className={getPermissionColor(permission.permission)}>
+                        {permissionOptions.find(p => p.value === permission.permission)?.label || permission.permission}
+                      </Badge>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleRemovePermission(permission.user_id, permission.permission)}
+                    className="text-destructive hover:text-destructive"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
       </CardContent>
+
+      {/* Dialogs */}
+      <FolderUsersDialog
+        isOpen={showUsersDialog}
+        onClose={() => setShowUsersDialog(false)}
+        selectedItem={selectedItem}
+      />
+
+      <UserSearchDialog
+        isOpen={showAddUserDialog}
+        onClose={() => setShowAddUserDialog(false)}
+        onAddUser={handleAddUserAccess}
+      />
     </Card>
   );
 }

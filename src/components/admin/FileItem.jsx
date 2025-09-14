@@ -9,6 +9,15 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 import { 
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { 
   Folder, 
   File, 
   FileText, 
@@ -22,11 +31,13 @@ import {
   Move,
   Trash2,
   Users,
-  Share
+  Share,
+  Eye,
+  Check,
+  X
 } from "lucide-react";
-// import { FileItem as FileItemType } from "@/lib/api";
-import { formatFileSize, formatDate, getFileIcon } from "@/services/FileService";
-
+import { formatFileSize, formatDate, getFileIcon, } from "@/services/FileService";
+import { useToast } from "@/hooks/use-toast";
 
 const getFileIconComponent = (filename, type) => {
   const iconType = getFileIcon(filename, type);
@@ -51,16 +62,23 @@ const getFileIconComponent = (filename, type) => {
   }
 };
 
+
+
 export default function FileItem({ 
   item, 
   onSelect, 
   onDelete, 
   onMove, 
   onDownload, 
+  onRename,
   onManagePermissions,
+  onPreview,
   depth = 0 
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState(item.name);
+  const { toast } = useToast();
   
   const handleItemClick = () => {
     if (item.type === 'folder') {
@@ -71,34 +89,90 @@ export default function FileItem({
     }
   };
 
+  const handleRename = () => {
+    if (newName.trim() && newName !== item.name) {
+      onRename?.(item.id, newName.trim());
+      toast({
+        title: "Success",
+        description: `${item.type === 'folder' ? 'Folder' : 'File'} renamed successfully`,
+      });
+    }
+    setIsRenaming(false);
+  };
+
+  const handleCancelRename = () => {
+    setNewName(item.name);
+    setIsRenaming(false);
+  };
+
+  const handleDownload = () => {
+    if (item.type === 'file') {
+      onDownload?.(item.id, item.name);
+      toast({
+        title: "Download Started",
+        description: `Downloading ${item.name}`,
+      });
+    }
+  };
+
   const marginLeft = depth * 24;
 
   return (
     <div className="animate-fade-in">
       <div 
-        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-card-hover transition-colors cursor-pointer group shadow-file"
+        className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-card-hover transition-smooth cursor-pointer group shadow-file bg-gradient-file"
         style={{ marginLeft: `${marginLeft}px` }}
-        onClick={handleItemClick}
+        onClick={!isRenaming ? handleItemClick : undefined}
       >
         <div className="flex items-center gap-3 flex-1">
           {getFileIconComponent(item.name, item.type)}
+          
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-foreground truncate">{item.name}</div>
-            <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-              {item.type === 'file' && item.size && (
-                <span>{formatFileSize(item.size)}</span>
-              )}
-              <span>{formatDate(item.created_at)}</span>
-              {item.owner && (
-                <span>by {item.owner.name}</span>
-              )}
-            </div>
+            {isRenaming ? (
+              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <Input
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleRename();
+                    if (e.key === 'Escape') handleCancelRename();
+                  }}
+                  className="h-8 text-sm flex-1"
+                  autoFocus
+                />
+                <Button size="sm" variant="ghost" onClick={handleRename}>
+                  <Check className="h-4 w-4 text-success" />
+                </Button>
+                <Button size="sm" variant="ghost" onClick={handleCancelRename}>
+                  <X className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
+            ) : (
+              <>
+                <div className="font-medium text-foreground truncate">{item.name}</div>
+                <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+                  {item.type === 'file' && item.size && (
+                    <span>{formatFileSize(item.size)}</span>
+                  )}
+                  <span>{formatDate(item.created_at)}</span>
+                  {item.owner && (
+                    <span>by {item.owner.name}</span>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           
           {/* User avatars for permissions */}
-          {item.type === 'folder' && (
-            <div className="flex -space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Avatar className="h-6 w-6 border-2 border-background">
+          {item.type === 'folder' && !isRenaming && (
+            <div className="flex -space-x-2 opacity-0 group-hover:opacity-100 transition-smooth">
+              <Avatar 
+                className="h-6 w-6 border-2 border-background cursor-pointer hover:scale-110 transition-smooth"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onManagePermissions?.(item);
+                }}
+              >
                 <AvatarFallback className="text-xs bg-primary-light text-primary">
                   <Users className="h-3 w-3" />
                 </AvatarFallback>
@@ -107,51 +181,76 @@ export default function FileItem({
           )}
         </div>
 
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            {item.type === 'file' && onDownload && (
-              <DropdownMenuItem onClick={() => onDownload(item.id)}>
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuItem>
-              <Edit className="h-4 w-4 mr-2" />
-              Rename
-            </DropdownMenuItem>
-            {onMove && (
-              <DropdownMenuItem onClick={() => onMove(item.id)}>
-                <Move className="h-4 w-4 mr-2" />
-                Move
-              </DropdownMenuItem>
-            )}
-            {onManagePermissions && (
-              <DropdownMenuItem onClick={() => onManagePermissions(item)}>
-                <Share className="h-4 w-4 mr-2" />
-                Manage Access
-              </DropdownMenuItem>
-            )}
-            <DropdownMenuSeparator />
-            {onDelete && (
-              <DropdownMenuItem 
-                onClick={() => onDelete(item.id)}
-                className="text-destructive focus:text-destructive"
+        {!isRenaming && (
+          <>
+            {/* Quick download button for files */}
+            {item.type === 'file' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload();
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-smooth mr-2"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
-              </DropdownMenuItem>
+                <Download className="h-4 w-4" />
+              </Button>
             )}
-          </DropdownMenuContent>
-        </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="opacity-0 group-hover:opacity-100 transition-smooth"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48" onClick={(e) => e.stopPropagation()}>
+                {item.type === 'file' && (
+                  <>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onPreview?.(item); }}>
+                      <Eye className="h-4 w-4 mr-2" />
+                      Preview
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleDownload(); }}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </DropdownMenuItem>
+                  </>
+                )}
+                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); setIsRenaming(true); }}>
+                  <Edit className="h-4 w-4 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+                {onMove && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onMove(item.id); }}>
+                    <Move className="h-4 w-4 mr-2" />
+                    Move
+                  </DropdownMenuItem>
+                )}
+                {onManagePermissions && (
+                  <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onManagePermissions(item); }}>
+                    <Share className="h-4 w-4 mr-2" />
+                    Manage Access
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                {onDelete && (
+                  <DropdownMenuItem 
+                    onClick={(e) => { e.stopPropagation(); onDelete(item.id); }}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
       </div>
 
       {/* Render sub-items if folder is expanded */}
@@ -165,7 +264,9 @@ export default function FileItem({
               onDelete={onDelete}
               onMove={onMove}
               onDownload={onDownload}
+              onRename={onRename}
               onManagePermissions={onManagePermissions}
+              onPreview={onPreview}
               depth={depth + 1}
             />
           ))}
