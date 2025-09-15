@@ -339,7 +339,42 @@ export const permissionsApi = {
 
     return response.json();
   },
+async listFilesNoUser(parent_id, options = {}) {
+  const cacheKey = `files_${parent_id || 'root'}`;
+  const cached = fileCache.get(cacheKey);
 
+  if (cached && !options.force) {
+    return cached;
+  }
+
+  const queryParams = new URLSearchParams();
+  if (parent_id) queryParams.append('parent_id', parent_id);
+
+  const url = `${BASE_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('Authentication failed or server error. Please check your login status.');
+    }
+    throw new Error(`Failed to fetch files: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const safeData = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+
+  fileCache.set(cacheKey, safeData);
+
+  return safeData;
+}
+,
   async removePermission(file_id, user_id, permission) {
     const response = await fetch(`${BASE_URL}/files/permissions/remove`, {
       method: 'POST',

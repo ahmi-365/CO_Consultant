@@ -240,7 +240,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
             onClick={() => navigate("/filemanager")}
             className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
               isActive("/filemanager")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  ? "bg-red-200 text-red-500 font-medium"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
           >
@@ -260,7 +260,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
               onClick={() => navigate("/shared")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/shared")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  ? "bg-red-200 text-red-500 font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
@@ -271,7 +271,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
               onClick={() => navigate("/starred")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/starred")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  ? "bg-red-200 text-red-500 font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
@@ -282,7 +282,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
               onClick={() => navigate("/trash")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/trash")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  ? "bg-red-200 text-red-500 font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
@@ -290,10 +290,10 @@ export default function EnhancedSidebar({ onUploadClick }) {
               <span>Trash</span>
             </button>
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => navigate("/customerprofile")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/profile")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                isActive("/customerprofile")
+                  ? "bg-red-200 text-red-500 font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
