@@ -662,7 +662,7 @@ export default function FileManagement() {
                       <div className="text-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
                         <p className="text-muted-foreground">
-                          {indexing ? "Indexing files for search..." : "Loading files..."}
+                          {indexing ? "Loading files..." : "Loading files..."}
                         </p>
                       </div>
                     ) : displayItems.length === 0 ? (

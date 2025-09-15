@@ -20,7 +20,7 @@ const HeroSection = () => {
         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
           Smart Construction Management.{" "}
           <span className="text-accent">Real-Time.</span>{" "}
-          <span className="text-secondary">Reliable.</span>{" "}
+          <span className="text-secondary">Reliable</span>{" "}
           <span className="text-accent">Results.</span>
         </h1>
         
