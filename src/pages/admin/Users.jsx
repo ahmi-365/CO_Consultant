@@ -6,8 +6,8 @@ import { userService } from "@/services/User-service";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { UserListComponent } from "@/components/admin/ListUsers";
-import { UserForm } from "@/components/admin/AddUser";
+import { UserListComponent } from "@/components/admin/Users/ListUsers";
+import { UserForm } from "@/components/admin/Users/AddUser";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -54,23 +54,52 @@ const Users = () => {
     return [];
   }, [data]);
 
-  // 🔹 Create User Mutation
-  const createUserMutation = useMutation({
-    mutationFn: async (newUser) => {
-      return await userService.create(newUser);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({ title: "Success", description: "User created successfully" });
-    },
-    onError: (error) => {
-      console.error("Create user error:", error);
-      const errorMessage = error?.response?.data?.message || error?.message || "Failed to create user";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
-    },
-  });
+  // 🔹 Create User Function - Direct API call without mutation for UserForm
+  const handleAddUser = async (userData) => {
+    try {
+      const result = await userService.create({
+        ...userData,
+        user_type: "user", // default
+      });
 
-  // 🔹 Update User Mutation
+      // Check if the API call was successful
+      if (result && result.success !== false) {
+        // Success - invalidate queries and show success toast
+        queryClient.invalidateQueries({ queryKey: ["users"] });
+        toast({ 
+          title: "Success", 
+          description: "User created successfully" 
+        });
+        return { success: true };
+      } else {
+        // API returned error
+        return {
+          success: false,
+          message: result?.message || "Failed to create user",
+          errors: result?.errors || {}
+        };
+      }
+    } catch (error) {
+      console.error("Create user error:", error);
+      
+      // Handle different error response formats
+      if (error?.response?.data) {
+        const errorData = error.response.data;
+        return {
+          success: false,
+          message: errorData.message || "Failed to create user",
+          errors: errorData.errors || {}
+        };
+      }
+      
+      return {
+        success: false,
+        message: error?.message || "Failed to create user"
+      };
+    }
+  };
+
+  // 🔹 Update User Mutation (keep as is for other parts of the app)
   const updateUserMutation = useMutation({
     mutationFn: async (data) => {
       return await userService.update(data.id, data);
@@ -85,13 +114,6 @@ const Users = () => {
       toast({ title: "Error", description: errorMessage, variant: "destructive" });
     },
   });
-
-  const handleAddUser = (userData) => {
-    createUserMutation.mutate({
-      ...userData,
-      user_type: "user", // default
-    });
-  };
 
   const handleUpdateUser = (userData) => {
     if (userData.id) {
@@ -172,8 +194,11 @@ const Users = () => {
           </p>
         </div>
 
-        {/* 🔹 Yahan sirf UserForm ka Add wala button */}
-        <UserForm onSubmit={handleAddUser} isLoading={createUserMutation.isPending} />
+        {/* 🔹 UserForm with proper async onSubmit handler */}
+        <UserForm 
+          onSubmit={handleAddUser} 
+          isLoading={false} // We handle loading state inside handleAddUser
+        />
       </div>
 
       <UserListComponent

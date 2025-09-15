@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { User, Mail, Plus, Loader2 } from "lucide-react"
+import { User, Mail, Plus, Loader2, AlertCircle } from "lucide-react"
 
 // Role service to fetch roles from API
 const roleService = {
@@ -55,6 +55,8 @@ export function UserForm({
   const [isOpen, setIsOpen] = useState(false)
   const [roles, setRoles] = useState([])
   const [rolesLoading, setRolesLoading] = useState(false)
+  const [submitError, setSubmitError] = useState(null)
+  const [fieldErrors, setFieldErrors] = useState({})
   const [formData, setFormData] = useState({
     id: undefined,
     name: "",
@@ -75,6 +77,14 @@ export function UserForm({
       setFormData({ ...initialData, password: "" })
     }
   }, [initialData, mode])
+
+  // Clear errors when form data changes
+  useEffect(() => {
+    if (submitError || Object.keys(fieldErrors).length > 0) {
+      setSubmitError(null)
+      setFieldErrors({})
+    }
+  }, [formData])
 
   const fetchRoles = async () => {
     setRolesLoading(true)
@@ -106,14 +116,56 @@ export function UserForm({
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    
+    // Clear previous errors
+    setSubmitError(null)
+    setFieldErrors({})
+    
     if (!formData.name.trim() || !formData.email.trim() || !formData.role.trim()) {
+      setSubmitError("Please fill in all required fields")
       return
     }
-    onSubmit(formData)
-    setIsOpen(false)
-    resetForm()
+
+    try {
+      // Call onSubmit and wait for the result
+      const result = await onSubmit(formData)
+      
+      // Check if the result indicates success
+      if (result && result.success === true) {
+        // Success - close dialog and reset form
+        setIsOpen(false)
+        resetForm()
+      } else if (result && result.success === false) {
+        // Handle the error response
+        if (result.errors) {
+          // Set field-specific errors
+          setFieldErrors(result.errors)
+        }
+        
+        // Use the exact error message from the API
+        setSubmitError(result.message || "Failed to save user. Please try again.")
+      } else {
+        // If onSubmit doesn't return a proper response object
+        setSubmitError("Failed to save user. Please try again.")
+      }
+    } catch (error) {
+      console.error("Submit error:", error)
+      
+      // Check if it's a structured error response
+      if (error.response && error.response.data) {
+        const errorData = error.response.data
+        if (errorData.errors) {
+          setFieldErrors(errorData.errors)
+        }
+        setSubmitError(errorData.message || "Failed to save user. Please try again.")
+      } else if (error.message) {
+        setSubmitError(error.message)
+      } else {
+        setSubmitError("An unexpected error occurred. Please try again.")
+      }
+    }
   }
 
   const resetForm = () => {
@@ -124,6 +176,8 @@ export function UserForm({
       password: "",
       role: "",
     })
+    setSubmitError(null)
+    setFieldErrors({})
   }
 
   const handleClose = () => {
@@ -154,6 +208,14 @@ export function UserForm({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Error Display */}
+          {submitError && (
+            <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+              <AlertCircle className="h-4 w-4" />
+              {submitError}
+            </div>
+          )}
+
           <div className="grid grid-cols-3 gap-6">
             {/* Name */}
             <div className="space-y-2">
@@ -166,7 +228,11 @@ export function UserForm({
                   setFormData((prev) => ({ ...prev, name: e.target.value }))
                 }
                 required
+                className={fieldErrors.name ? "border-red-500" : ""}
               />
+              {fieldErrors.name && (
+                <p className="text-xs text-red-500">{fieldErrors.name[0]}</p>
+              )}
             </div>
 
             {/* Email */}
@@ -178,7 +244,7 @@ export function UserForm({
                   id="email"
                   type="email"
                   placeholder="Enter email address"
-                  className="pl-10"
+                  className={`pl-10 ${fieldErrors.email ? "border-red-500" : ""}`}
                   value={formData.email}
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, email: e.target.value }))
@@ -186,6 +252,9 @@ export function UserForm({
                   required
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="text-xs text-red-500">{fieldErrors.email[0]}</p>
+              )}
             </div>
 
             {/* Role */}
@@ -198,7 +267,7 @@ export function UserForm({
                 }
                 disabled={rolesLoading}
               >
-                <SelectTrigger>
+                <SelectTrigger className={fieldErrors.role ? "border-red-500" : ""}>
                   <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
                 </SelectTrigger>
                 <SelectContent>
@@ -222,6 +291,9 @@ export function UserForm({
                   )}
                 </SelectContent>
               </Select>
+              {fieldErrors.role && (
+                <p className="text-xs text-red-500">{fieldErrors.role[0]}</p>
+              )}
               {!rolesLoading && roles.length === 0 && (
                 <p className="text-xs text-muted-foreground text-red-500">
                   Unable to load roles. Please try refreshing the page.
@@ -242,7 +314,11 @@ export function UserForm({
                   setFormData((prev) => ({ ...prev, password: e.target.value }))
                 }
                 required={mode === "add"}
+                className={fieldErrors.password ? "border-red-500" : ""}
               />
+              {fieldErrors.password && (
+                <p className="text-xs text-red-500">{fieldErrors.password[0]}</p>
+              )}
               {mode === "add" ? (
                 <p className="text-xs text-muted-foreground">
                   Set an initial password for the new user

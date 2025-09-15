@@ -28,7 +28,7 @@ import NotificationDropdown from "./NotificationDropdown";
 import { toast } from "sonner";
 import { apiService, FileItem, FolderItem } from "@/services/api";
 
-const getFileIcon = (type: string) => {
+const getFileIcon = (type ) => {
   const iconClass = "w-4 h-4 text-muted-foreground mr-2";
   switch (type) {
     case "document":
@@ -46,19 +46,16 @@ const getFileIcon = (type: string) => {
   }
 };
 
-interface CloudVaultLayoutProps {
-  children?: React.ReactNode;
-}
 
-export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
+export default function CloudVaultLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { folderId } = useParams();
 
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isClientProjectsOpen, setIsClientProjectsOpen] = useState(true);
-  const [files, setFiles] = useState<FileItem[]>([]);
-  const [folders, setFolders] = useState<FolderItem[]>([]);
+  const [files, setFiles] = useState([]);
+  const [folders, setFolders] = useState([]);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,14 +74,14 @@ export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
       case "/":
       default:
         return [
-          { name: "My Files", path: "/" },
+          { name: "My Files", path: "/filemanager" },
           { name: "Client Projects", path: "/folder/client-projects" },
           { name: "Project Alpha", path: "/folder/project-alpha" },
         ];
     }
   };
 
-  const isActive = (path: string) => currentPath === path;
+  const isActive = (path ) => currentPath === path;
 
   // Load data on component mount and when folderId changes
   useEffect(() => {
@@ -123,7 +120,7 @@ export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
     }
   };
 
-  const handleFileUploaded = async (file: File) => {
+  const handleFileUploaded = async (file) => {
     setLoading(true);
     try {
       const response = await apiService.uploadFile(file, folderId);
@@ -141,7 +138,7 @@ export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
     }
   };
 
-  const handleFolderCreated = async (folderName: string) => {
+  const handleFolderCreated = async (folderName ) => {
     setLoading(true);
     try {
       const response = await apiService.createFolder(folderName, folderId);
@@ -159,7 +156,7 @@ export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
     }
   };
 
-  const handleStarFile = async (fileId: string) => {
+  const handleStarFile = async (fileId ) => {
     try {
       const response = await apiService.starFile(fileId);
       if (response.success) {
@@ -174,7 +171,7 @@ export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
     }
   };
 
-  const handleMoveToTrash = async (fileId: string) => {
+  const handleMoveToTrash = async (fileId ) => {
     try {
       const response = await apiService.moveToTrash(fileId);
       if (response.success) {
@@ -189,7 +186,7 @@ export default function CloudVaultLayout({ children }: CloudVaultLayoutProps) {
     }
   };
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = async (query) => {
     if (!query.trim()) {
       loadFiles();
       return;
