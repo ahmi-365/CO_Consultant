@@ -1,4 +1,5 @@
-const BASE_URL = 'https://co-consultant.majesticsofts.com/api';
+import axios from "axios";
+const API_URL = import.meta.env.VITE_API_URL;
 
 const encryptData = (data) => {
   const jsonString = JSON.stringify(data);
@@ -108,7 +109,7 @@ export const fileApi = {
     if (params.search) queryParams.append('search', params.search);
     if (params.user_id) queryParams.append('user_id', params.user_id);
 
-    const url = `${BASE_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const url = `${API_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     const response = await fetch(url, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -135,7 +136,7 @@ export const fileApi = {
   },
 
   async createFolder(name, parent_id) {
-    const response = await fetch(`${BASE_URL}/onedrive/folders/create`, {
+    const response = await fetch(`${API_URL}/onedrive/folders/create`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -165,7 +166,7 @@ export const fileApi = {
       formData.append('parent_id', parent_id.toString());
     }
 
-    const response = await fetch(`${BASE_URL}/onedrive/upload`, {
+    const response = await fetch(`${API_URL}/onedrive/upload`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -188,7 +189,7 @@ export const fileApi = {
   },
 
   async deleteItem(id) {
-    const response = await fetch(`${BASE_URL}/onedrive/delete/${id}`, {
+    const response = await fetch(`${API_URL}/onedrive/delete/${id}`, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -204,7 +205,7 @@ export const fileApi = {
 
   async moveItem(id, new_parent_id) {
     const token = localStorage.getItem('token');
-    const url = `${BASE_URL}/onedrive/move/${id}`;
+    const url = `${API_URL}/onedrive/move/${id}`;
 
     if (!token) {
       throw new Error("No auth token found");
@@ -233,7 +234,7 @@ export const fileApi = {
   },
 
   async renameItem(id, newName) {
-    const response = await fetch(`${BASE_URL}/onedrive/rename/${id}`, {
+    const response = await fetch(`${API_URL}/onedrive/rename/${id}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -250,7 +251,7 @@ export const fileApi = {
   },
 
   async getDownloadUrl(id) {
-    const response = await fetch(`${BASE_URL}/onedrive/file/${id}/download-url`, {
+    const response = await fetch(`${API_URL}/onedrive/file/${id}/download-url`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
@@ -278,7 +279,7 @@ export const fileApi = {
   },
 
   async syncFiles() {
-    const response = await fetch(`${BASE_URL}/onedrive/sync`, {
+    const response = await fetch(`${API_URL}/onedrive/sync`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
@@ -299,7 +300,7 @@ export const getCachedFiles = (parent_id) => {
 
 export const permissionsApi = {
   async getFilePermissions(file_id) {
-    const response = await fetch(`${BASE_URL}/files/permissions/list/${file_id}`, {
+    const response = await fetch(`${API_URL}/files/permissions/list/${file_id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json',
@@ -315,7 +316,7 @@ export const permissionsApi = {
   },
 
   async assignPermission(file_id, user_id, permission) {
-    const url = `${BASE_URL}/files/permissions/assign`;
+    const url = `${API_URL}/files/permissions/assign`;
     const token = localStorage.getItem('token');
     const payload = {
       file_id: parseInt(file_id),
@@ -350,7 +351,7 @@ async listFilesNoUser(parent_id, options = {}) {
   const queryParams = new URLSearchParams();
   if (parent_id) queryParams.append('parent_id', parent_id);
 
-  const url = `${BASE_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const url = `${API_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
 
   const response = await fetch(url, {
     headers: {
@@ -376,7 +377,7 @@ async listFilesNoUser(parent_id, options = {}) {
 }
 ,
   async removePermission(file_id, user_id, permission) {
-    const response = await fetch(`${BASE_URL}/files/permissions/remove`, {
+    const response = await fetch(`${API_URL}/files/permissions/remove`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -398,7 +399,7 @@ async listFilesNoUser(parent_id, options = {}) {
   },
 
   async getUserPermissions(user_id) {
-    const response = await fetch(`${BASE_URL}/files/permissions/user/${user_id}`, {
+    const response = await fetch(`${API_URL}/files/permissions/user/${user_id}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
         'Content-Type': 'application/json',
@@ -461,3 +462,22 @@ export const formatDate = (dateString) => {
     day: 'numeric',
   });
 };
+
+export async function fetchRecentFiles() {
+  try {
+    const response = await axios.get(`${API_URL}/onedrive/recent-files`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    // Safely drill down to the array
+    const files =
+      response?.data?.data?.original?.data ?? [];
+console.log("Fetched recent files:", files);
+    return files;
+  } catch (error) {
+    console.error("Failed to fetch recent files:", error);
+    throw error;
+  }
+}

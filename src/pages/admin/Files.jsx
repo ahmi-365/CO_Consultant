@@ -116,7 +116,6 @@ const loadFiles = async (opts = {}) => {
       force: opts.force || !!selectedUser // Always force when user is selected
     };
 
-    console.log('Making API call with params:', params, 'options:', options);
     const data = await fileApi.listFiles(currentParentId, params, options);
     const safeData = Array.isArray(data) ? data : [];
     setFiles(safeData);
@@ -136,7 +135,6 @@ const loadFiles = async (opts = {}) => {
     setIndexing(true);
     try {
       await searchService.indexAllFiles();
-      console.log("Global search index initialized");
     } catch (error) {
       console.warn("Failed to initialize search index:", error);
     } finally {

@@ -24,6 +24,7 @@ import ProfilePage from "./pages/CustomerPanel/ProfilePage";
 import { CustomerLayout } from "./pages/CustomerPanel/CustomerLayout";
 import { AuthGuard, RoleBasedRedirect } from "./pages/Auths/ProtectedRoute";
 import CloudVaultLayout from "./components/CloudVaultLayout";
+import CPFileManagement from "./pages/CustomerPanel/CPFiles";
 
 
 const queryClient = new QueryClient();
@@ -138,7 +139,7 @@ const App = () => (
               </AuthGuard>
             }
           >
-            <Route index element={<CloudVaultLayout/>} />
+            <Route index element={<CPFileManagement/>} />
           </Route>
           
           <Route
