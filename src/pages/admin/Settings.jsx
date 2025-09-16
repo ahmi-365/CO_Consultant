@@ -25,12 +25,12 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const securitySettingsList = [
-  { id: "two-factor", label: "Two-Factor Authentication", description: "Require 2FA for all admin accounts" },
-  { id: "password-policy", label: "Strong Password Policy", description: "Enforce complex password requirements" },
-  { id: "session-timeout", label: "Auto Session Timeout", description: "Automatically log out inactive users" },
-  { id: "login-notifications", label: "Login Notifications", description: "Send email alerts for new logins" },
-];
+// const securitySettingsList = [
+//   { id: "two-factor", label: "Two-Factor Authentication", description: "Require 2FA for all admin accounts" },
+//   { id: "password-policy", label: "Strong Password Policy", description: "Enforce complex password requirements" },
+//   // { id: "session-timeout", label: "Auto Session Timeout", description: "Automatically log out inactive users" },
+//   // { id: "login-notifications", label: "Login Notifications", description: "Send email alerts for new logins" },
+// ];
 
 const notificationSettingsList = [
   { id: "user-signup", label: "New User Signups", description: "Notify when new users join" },
@@ -38,6 +38,8 @@ const notificationSettingsList = [
   { id: "system-updates", label: "System Updates", description: "Notifications about system maintenance" },
   { id: "security-events", label: "Security Events", description: "Alerts for suspicious activities" },
 ];
+
+
 
 export default function Settings() {
   const [orgName, setOrgName] = useState("Cloud Storage Inc.");
@@ -47,12 +49,12 @@ export default function Settings() {
   const [defaultRole, setDefaultRole] = useState("viewer");
   const [allowRegistration, setAllowRegistration] = useState(false);
   const [notificationEmail, setNotificationEmail] = useState("notifications@cloudstorage.com");
-  const [securitySettings, setSecuritySettings] = useState({
-    "two-factor": true,
-    "password-policy": true,
-    "session-timeout": false,
-    "login-notifications": true,
-  });
+  // const [securitySettings, setSecuritySettings] = useState({
+  //   "two-factor": true,
+  //   "password-policy": true,
+  //   // "session-timeout": false,
+  //   // "login-notifications": true,
+  // });
   const [notifications, setNotifications] = useState({
     "user-signup": true,
     "storage-alerts": true,
@@ -187,7 +189,7 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="h-5 w-5" />
@@ -236,12 +238,12 @@ export default function Settings() {
                 Save User Settings
               </Button>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         {/* Security + Notifications + Maintenance */}
         <div className="space-y-6">
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Shield className="h-5 w-5" />
@@ -287,9 +289,9 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
@@ -338,7 +340,7 @@ export default function Settings() {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           <Card>
             <CardHeader>
@@ -369,12 +371,12 @@ export default function Settings() {
                 <p>
                   <strong>Last Backup:</strong> December 8, 2024 at 3:00 AM
                 </p>
-                <p>
+                {/* <p>
                   <strong>System Version:</strong> v2.1.4
                 </p>
                 <p>
                   <strong>Database Size:</strong> 1.2 GB
-                </p>
+                </p> */}
               </div>
             </CardContent>
           </Card>

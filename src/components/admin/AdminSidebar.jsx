@@ -9,7 +9,7 @@ const navigation = [
   { name: "Roles", href: "/roles", icon: Shield },
   // { name: "Storage", href: "/storage", icon: Database },
   { name: "Reports", href: "/reports", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  // { name: "Settings", href: "/settings", icon: Settings },
   { name: "Profile", href: "/profile", icon: User },
 ];
 
