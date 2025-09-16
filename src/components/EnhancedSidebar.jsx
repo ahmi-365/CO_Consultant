@@ -6,6 +6,7 @@ import {
   Trash2,
   Upload,
   User,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -14,6 +15,12 @@ export default function EnhancedSidebar({ onUploadClick }) {
   const location = useLocation();
   const currentPath = location.pathname;
   const isActive = (path) => currentPath === path;
+
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/login");
+  };
 
   return (
     <div className="w-60 h-screen fixed left-0 top-0 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -96,17 +103,24 @@ export default function EnhancedSidebar({ onUploadClick }) {
         </nav>
       </div>
 
-      {/* Bottom Upload Button */}
-      <div className="p-4 border-t border-sidebar-border">
-        <Button
+      {/* Bottom Buttons */}
+      <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
+        {/* <Button
           className="w-full bg-panel hover:bg-panel/90 text-panel-foreground"
           onClick={onUploadClick}
         >
           <Upload className="w-4 h-4 mr-2" />
           New Upload
+        </Button> */}
+
+        <Button
+          className="w-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4" />
+          Logout
         </Button>
       </div>
     </div>
   );
 }
-

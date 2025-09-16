@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Upload, X, File, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
-import { apiService } from "@/services/api";
+import { fileApi } from "../services/FileService";
 
 export default function FileUploadModal({ isOpen, onClose, onFileUploaded, currentFolder }) {
   const [uploadingFiles, setUploadingFiles] = useState([]);
@@ -17,14 +17,6 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
     const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
-  };
-
-  const getFileType = (fileName) => {
-    const extension = fileName.split(".").pop()?.toLowerCase();
-    if (["jpg", "jpeg", "png", "gif", "webp"].includes(extension || "")) return "image";
-    if (["mp4", "avi", "mov", "wmv"].includes(extension || "")) return "video";
-    if (["zip", "rar", "7z"].includes(extension || "")) return "zip";
-    return "document";
   };
 
   const handleUpload = async (file) => {
@@ -52,24 +44,20 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
         );
       }, 200);
 
-      const response = await apiService.uploadFile(file);
+      // Upload file using your fileApi
+      const uploadedFile = await fileApi.uploadFile(file, currentFolder?.id);
 
       clearInterval(progressInterval);
 
-      if (response.success) {
-        setUploadingFiles((prev) =>
-          prev.map((f) => (f.id === uploadId ? { ...f, progress: 100, status: "completed" } : f))
-        );
-        setTimeout(() => {
-          onFileUploaded(file);
-          toast.success(`${file.name} uploaded successfully!`);
-        }, 500);
-      } else {
-        setUploadingFiles((prev) =>
-          prev.map((f) => (f.id === uploadId ? { ...f, status: "error" } : f))
-        );
-        toast.error(`Failed to upload ${file.name}`);
-      }
+      setUploadingFiles((prev) =>
+        prev.map((f) => (f.id === uploadId ? { ...f, progress: 100, status: "completed" } : f))
+      );
+
+      setTimeout(() => {
+        onFileUploaded(uploadedFile); // notify parent component
+        toast.success(`${file.name} uploaded successfully!`);
+        onClose(); // close modal after success
+      }, 500);
     } catch (error) {
       console.error("Upload error:", error);
       setUploadingFiles((prev) =>
@@ -126,7 +114,7 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
             <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-2">Drop files here or click to browse</p>
             <p className="text-sm text-muted-foreground">
-              Support for a single or bulk upload. Strictly prohibit from uploading company data or other banned files
+              Support for a single or bulk upload. Strictly prohibit uploading company data or other banned files
             </p>
             <input
               ref={fileInputRef}
