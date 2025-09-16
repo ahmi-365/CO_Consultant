@@ -20,6 +20,7 @@ import UserPermissions from "@/components/Customer/UserPermissions";
 import { fileApi } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 export default function FileDialogs({
   isCreateFolderOpen,
@@ -47,6 +48,7 @@ export default function FileDialogs({
   handleCreateFolder,
   loadFiles,
   currentPath,
+  setIsMoving
 }) {
   const { toast } = useToast();
 

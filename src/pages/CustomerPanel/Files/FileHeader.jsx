@@ -58,43 +58,46 @@ export default function FileHeader({
 
       {/* Quick Actions */}
       <div className="mb-8">
-        <h2 className="text-lg font-medium text-foreground mb-4">
-          Quick Actions
-        </h2>
-        <div className="flex gap-4">
-          {hasPermission(user, "files.upload") && (
-            <Button
-              onClick={() => setIsUploadOpen(true)}
-              disabled={isUploading}
-              className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-2 px-6 py-3 h-auto"
-            >
-              {isUploading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}
-              Upload
-            </Button>
-          )}
+        
+     <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+  <h2 className="text-lg font-medium text-foreground">Quick Actions:</h2>
 
-          {(hasPermission(user, "files.create") || hasPermission(user, "files.upload")) && (
-            <Button
-              onClick={() => setIsCreateFolderOpen(true)}
-              disabled={isCreating}
-              variant="outline"
-              className="flex items-center gap-2 px-6 py-3 h-auto border-2"
-            >
-              {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : <FolderPlus className="h-5 w-5" />}
-              New Folder
-            </Button>
-          )}
+  <div className="flex flex-wrap gap-2">
+    {hasPermission(user, "files.upload") && (
+      <Button
+        onClick={() => setIsUploadOpen(true)}
+        disabled={isUploading}
+        className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-1 px-3 py-1.5 h-8 text-sm"
+      >
+        {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+        Upload
+      </Button>
+    )}
 
-          <Button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            variant="outline"
-            className="flex items-center gap-2 px-6 py-3 h-auto border-2"
-          >
-            {isRefreshing ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
-            Refresh
-          </Button>
-        </div>
+    {(hasPermission(user, "files.create") || hasPermission(user, "files.upload")) && (
+      <Button
+        onClick={() => setIsCreateFolderOpen(true)}
+        disabled={isCreating}
+        variant="outline"
+        className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
+      >
+        {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
+        New Folder
+      </Button>
+    )}
+
+    <Button
+      onClick={handleRefresh}
+      disabled={isRefreshing}
+      variant="outline"
+      className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
+    >
+      {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+      Refresh
+    </Button>
+  </div>
+</div>
+
       </div>
 
       {/* Recent Files */}
@@ -106,19 +109,17 @@ export default function FileHeader({
               <div
                 key={file.id}
                 className="flex flex-col items-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
-                onClick={() => window.open(file.file?.web_url, "_blank")}
+onClick={() => window.open(file.web_url, "_blank")}
               >
                 <div className="w-28 h-28 rounded-lg bg-muted flex items-center justify-center mb-2">
                   <div className="text-4xl">{getFileIcon(file.file?.name)}</div>
                 </div>
 
                 <h3 className="text-sm font-semibold text-center line-clamp-1 w-28">
-                  {file.file?.name}
-                </h3>
+{file.name}                </h3>
 
                 <p className="text-xs text-muted-foreground">
-                  {file.file?.type?.toUpperCase() || "FILE"}
-                </p>
+{file.type?.toUpperCase() || "FILE"}                </p>
 
                 <p className="text-xs text-blue-500 mt-1">
                   Action: {file.action}

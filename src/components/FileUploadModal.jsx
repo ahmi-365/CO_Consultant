@@ -155,8 +155,11 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Progress value={file.progress} className="flex-1 h-2 [&>div]:bg-panel" />
-                        <span className="text-xs text-muted-foreground min-w-0">{Math.round(file.progress)}%</span>
+<Progress 
+  value={file.progress} 
+  className="flex-1 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 [&>div]:bg-green-500"
+/>
+                        <span className="text-xs  min-w-0">{Math.round(file.progress)}%</span>
                       </div>
                     </div>
 
@@ -164,7 +167,7 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="bg-panel"
+                        className="bg-gray-200 hover:bg-gray-300 text-gray-600"
                         onClick={() => setUploadingFiles((prev) => prev.filter((f) => f.id !== file.id))}
                       >
                         <X className="h-4 w-4" />

@@ -38,6 +38,7 @@ export default function FileContent({
   setItemToMove,
   setIsMoveDialogOpen,
   loadFiles,
+  onFileSelect
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -287,7 +288,7 @@ const displayItems = isGlobalSearch
     >
       <FileItem
         item={item}
-        onSelect={isGlobalSearch ? handleSearchResultSelect : handleFileSelect}
+  onSelect={isGlobalSearch ? handleSearchResultSelect : (onFileSelect || handleFileSelect)}
         onDelete={handleDelete}
         onMove={() => {
           setItemToMove(item.id);
@@ -298,6 +299,7 @@ const displayItems = isGlobalSearch
         onManagePermissions={handleManagePermissions}
         isDownloading={isDownloading[item.id]}
         isRenaming={isRenaming[item.id]}
+        
       />
     </DragDropZone>
   </div>
