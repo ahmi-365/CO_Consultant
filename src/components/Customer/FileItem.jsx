@@ -76,7 +76,10 @@ export default function FileItem({
   isDownloading = false,
   isRenaming = false,
   isMoving = false,
-  depth = 0 
+  depth = 0,
+    isSelectionMode = false,
+  isSelected = false,
+  onSelectionChange,
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRenamingLocal, setIsRenamingLocal] = useState(false);
@@ -96,6 +99,13 @@ export default function FileItem({
       onSelect?.(item);
     }
   };
+ const handleCheckboxChange = (e) => {
+  e.stopPropagation();
+  e.preventDefault(); // Prevent any default behavior
+  const isChecked = e.target.checked;
+  console.log('Checkbox changed:', item.id, isChecked); // Debug log
+  onSelectionChange?.(item.id, isChecked);
+};
 
   const handleRename = () => {
     if (newName.trim() && newName !== item.name) {
@@ -173,8 +183,19 @@ export default function FileItem({
         }`}
         onClick={!isRenamingLocal ? handleItemClick : undefined}
       >
+        
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
+          {isSelectionMode && (
+  <div onClick={(e) => e.stopPropagation()}> 
+    <input
+      type="checkbox"
+      checked={isSelected || false}
+      onChange={handleCheckboxChange}
+      className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+    />
+  </div>
+)}
             {getFileIconComponent(item.name, item.type)}
             
             <div className="flex-1 min-w-0">

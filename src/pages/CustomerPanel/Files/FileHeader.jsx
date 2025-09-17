@@ -12,6 +12,11 @@ export default function FileHeader({
   hasPermission,
   setIsCreateFolderOpen,
   handleRefresh,
+   isSelectionMode, 
+  toggleSelectionMode, 
+  selectedFiles, 
+  files, 
+  handleSelectAll 
 }) {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
@@ -95,6 +100,19 @@ export default function FileHeader({
       {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
       Refresh
     </Button>
+     <Button 
+          onClick={toggleSelectionMode}
+          variant={isSelectionMode ? "default" : "outline"}
+          size="sm"
+        >
+          {isSelectionMode ? "Cancel Selection" : "Select Files"}
+        </Button>
+
+        {isSelectionMode && files.length > 0 && (
+          <Button onClick={() => handleSelectAll(files.map(f => f.id))} size="sm">
+            Select All
+          </Button>
+        )}
   </div>
 </div>
 

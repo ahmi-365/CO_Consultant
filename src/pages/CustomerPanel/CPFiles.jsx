@@ -8,6 +8,8 @@ import { fileApi, fetchRecentFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
 import { hasPermission } from "@/utils/permissions";
+import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
+import { trashService } from "../../services/trashservice";
 
 export default function CPFileManagement() {
   // State management
@@ -18,7 +20,7 @@ export default function CPFileManagement() {
   const [searchResults, setSearchResults] = useState([]);
   const [isGlobalSearch, setIsGlobalSearch] = useState(false);
   const [recentFiles, setRecentFiles] = useState([]);
-  
+
   // Loading states
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
@@ -28,13 +30,13 @@ export default function CPFileManagement() {
   const [isUploading, setIsUploading] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
-  
+
   // Dialog states
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [showPermissionsDialog, setShowPermissionsDialog] = useState(false);
-  
+
   // Form states
   const [newFolderName, setNewFolderName] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -44,14 +46,22 @@ export default function CPFileManagement() {
   const [itemForPermissions, setItemForPermissions] = useState(null);
   const [selectedUser, setSelectedUser] = useState("");
   const [preview, setPreview] = useState(null);
-  
-  // Action states
+  const [selectedFiles, setSelectedFiles] = useState(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [isDeleting, setIsDeleting] = useState({});
   const [isDownloading, setIsDownloading] = useState({});
   const [isRenaming, setIsRenaming] = useState({});
 
   const { toast } = useToast();
+  const toggleSelectionMode = () => {
+    setIsSelectionMode(!isSelectionMode);
+    setSelectedFiles(new Set());
+  };
 
+  // Select all files
+  const handleSelectAll = (allFileIds) => {
+    setSelectedFiles(new Set(allFileIds));
+  };
   // Load files when path or user changes
   useEffect(() => {
     loadFiles();
@@ -249,7 +259,6 @@ export default function CPFileManagement() {
       setIsRefreshing(false);
     }
   };
-
   // Handle breadcrumb navigation
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
@@ -258,15 +267,65 @@ export default function CPFileManagement() {
       setCurrentPath(currentPath.slice(0, index + 1));
     }
   };
+const handleBulkMoveToTrash = async (fileIds) => {
+  try {
+    const response = await trashService.bulkMoveToTrash(fileIds);
+    console.log("TRASH RESPONSE:", response);
 
-  // Handle file selection for navigation
-  const handleFileSelect = (item) => {
+    // backend ka ulta structure handle kar rahe hain
+    const message = response.success === true 
+      ? response.message || "Files moved successfully"
+      : response.error || "Something went wrong";
+
+    const variant = response.success === true ? "default" : "default"; 
+    // yahan default variant use karenge kyunki backend ka success=false hai, par message success ka hai
+
+    loadFiles({ force: true });
+    setSelectedFiles(new Set());
+    setIsSelectionMode(false);
+
+    toast({
+      title: "Success",
+      description: message,
+      variant: variant,
+    });
+
+  } catch (err) {
+    console.error(err);
+    toast({
+      title: "Error",
+      description: err.message || "Network error",
+      variant: "destructive",
+    });
+  }
+};
+
+
+  const handleFolderNavigation = (item) => {
+    console.log("Navigating to folder:", item);
     if (item.type === "folder") {
       setCurrentPath([...currentPath, { id: item.id, name: item.name }]);
     }
     setSelectedItem(item);
   };
+  const handleFileSelection = (fileId, isSelected) => {
+    console.log("File selection changed:", fileId, isSelected);
 
+    setSelectedFiles((prev) => {
+      const newSelected = new Set(prev);
+      if (isSelected) {
+        newSelected.add(fileId);
+      } else {
+        newSelected.delete(fileId);
+      }
+      console.log("New selected files:", Array.from(newSelected));
+      return newSelected;
+    });
+  };
+
+  useEffect(() => {
+    console.log("Selected files changed:", Array.from(selectedFiles));
+  }, [selectedFiles]);
   const user = JSON.parse(localStorage.getItem("user"));
 
   return (
@@ -290,6 +349,11 @@ export default function CPFileManagement() {
           hasPermission={hasPermission}
           setIsCreateFolderOpen={setIsCreateFolderOpen}
           handleRefresh={handleRefresh}
+          isSelectionMode={isSelectionMode}
+          toggleSelectionMode={toggleSelectionMode}
+          selectedFiles={selectedFiles}
+          files={files}
+          handleSelectAll={handleSelectAll}
         />
 
         {/* Navigation Breadcrumb */}
@@ -328,9 +392,24 @@ export default function CPFileManagement() {
           setItemToMove={setItemToMove}
           setIsMoveDialogOpen={setIsMoveDialogOpen}
           loadFiles={loadFiles}
-  onFileSelect={handleFileSelect}
+          onFileSelect={
+            isSelectionMode ? handleFileSelection : handleFolderNavigation
+          } // Use conditional handler
+          isSelectionMode={isSelectionMode}
+          selectedFiles={selectedFiles}
         />
-
+          {selectedFiles.size > 0 && isSelectionMode && (
+            <BulkActionToolbar
+              selectedCount={selectedFiles.size}
+              onMoveToTrash={() =>
+                handleBulkMoveToTrash(Array.from(selectedFiles))
+              }
+              onCancel={() => {
+                setSelectedFiles(new Set());
+                setIsSelectionMode(false);
+              }}
+            />
+          )}
         {/* All Dialogs */}
         <FileDialogs
           isCreateFolderOpen={isCreateFolderOpen}

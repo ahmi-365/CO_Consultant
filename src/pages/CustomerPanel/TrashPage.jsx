@@ -34,6 +34,8 @@ const getFileIcon = (type) => {
 export default function TrashPage() {
   const [trashedFiles, setTrashedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
+const [selectedFiles, setSelectedFiles] = useState(new Set());
+const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   useEffect(() => {
     loadTrashedFiles();
@@ -70,7 +72,19 @@ export default function TrashPage() {
       toast.error("Error restoring file");
     }
   };
-
+const handleBulkRestore = async () => {
+  try {
+    const response = await trashService.bulkRestoreFiles(Array.from(selectedFiles));
+    if (response.success) {
+      loadTrashedFiles();
+      setSelectedFiles(new Set());
+      setIsSelectionMode(false);
+      toast.success(`${selectedFiles.size} files restored`);
+    }
+  } catch (error) {
+    toast.error("Failed to restore files");
+  }
+};
   const handlePermanentDelete = async (fileId) => {
     if (
       !window.confirm(
@@ -115,7 +129,21 @@ export default function TrashPage() {
       toast.error("Error emptying trash");
     }
   };
-
+const handleBulkDelete = async () => {
+  if (!window.confirm("Permanently delete selected files?")) return;
+  
+  try {
+    for (const fileId of selectedFiles) {
+      await trashService.permanentDelete(fileId);
+    }
+    loadTrashedFiles();
+    setSelectedFiles(new Set());
+    setIsSelectionMode(false);
+    toast.success(`${selectedFiles.size} files deleted permanently`);
+  } catch (error) {
+    toast.error("Failed to delete files");
+  }
+};
   if (loading) {
     return (
       <div className="space-y-6">

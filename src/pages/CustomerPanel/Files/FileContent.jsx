@@ -38,22 +38,25 @@ export default function FileContent({
   setItemToMove,
   setIsMoveDialogOpen,
   loadFiles,
-  onFileSelect
+  onFileSelect,
+  isSelectionMode = false,  
+  selectedFiles = new Set() 
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-const displayItems = isGlobalSearch
+  const displayItems = isGlobalSearch
     ? searchResults.filter(
-        (item) => !selectedUser || item.created_by === selectedUser // Check if this should be item.user_id
+        (item) => !selectedUser || item.created_by === selectedUser
       )
     : files.filter((file) => {
         const matchesSearch = file.name
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
-        const matchesUser = !selectedUser || file.created_by === selectedUser; // Check if this should be file.user_id
+        const matchesUser = !selectedUser || file.created_by === selectedUser;
         return matchesSearch && matchesUser;
       });
+
   // Handle selection from search results
   const handleSearchResultSelect = (result) => {
     if (result.path) {
@@ -68,7 +71,32 @@ const displayItems = isGlobalSearch
 
   const handleFileSelect = (item) => {
     setSelectedItem(item);
-    // Folder navigation logic can be handled by parent component
+    
+    // Handle folder navigation - if it's a folder, navigate into it
+    if (item.type === "folder" && !isSelectionMode) {
+      // Call parent component's navigation handler
+      if (onFileSelect && typeof onFileSelect === 'function') {
+        // Check if onFileSelect expects navigation logic or selection logic
+        // For navigation, we need to update currentPath in parent
+        onFileSelect(item);
+      }
+    }
+  };
+
+  // Enhanced selection handler with immediate feedback
+  const handleFileSelectionChange = (itemId, isSelected) => {
+    console.log('FileContent - Selection change:', itemId, isSelected);
+    
+    // Call the parent's selection handler
+    if (onFileSelect) {
+      onFileSelect(itemId, isSelected);
+    }
+    
+    // Force a re-render to ensure UI updates immediately
+    // This helps with the timing issue
+    setTimeout(() => {
+      // Small delay to ensure state has propagated
+    }, 0);
   };
 
   const handlePreview = async (item) => {
@@ -196,7 +224,6 @@ const displayItems = isGlobalSearch
         variant: "destructive",
       });
     }
-    
   };
 
   return (
@@ -273,38 +300,40 @@ const displayItems = isGlobalSearch
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                 {(displayItems || []).map((item) => (
-  <div key={item.id || item.name} className="relative">
-    {isGlobalSearch && item.path && (
-      <div className="text-xs text-muted-foreground mb-1 pl-2">
-        <span>📁 {item.path}</span>
-      </div>
-    )}
-    <DragDropZone
-      onFileDrop={handleFileDrop}
-      folderId={item.id}
-      isFolder={item.type === "folder"}
-      className="rounded-lg h-full"
-    >
-      <FileItem
-        item={item}
-  onSelect={isGlobalSearch ? handleSearchResultSelect : (onFileSelect || handleFileSelect)}
-        onDelete={handleDelete}
-        onMove={() => {
-          setItemToMove(item.id);
-          setIsMoveDialogOpen(true);
-        }}
-        onDownload={() => handleDownload(item)}
-        onRename={handleRename}
-        onManagePermissions={handleManagePermissions}
-        isDownloading={isDownloading[item.id]}
-        isRenaming={isRenaming[item.id]}
-        
-      />
-    </DragDropZone>
-  </div>
-))}
-
+                  {(displayItems || []).map((item) => (
+                    <div key={item.id || item.name} className="relative">
+                      {isGlobalSearch && item.path && (
+                        <div className="text-xs text-muted-foreground mb-1 pl-2">
+                          <span>📁 {item.path}</span>
+                        </div>
+                      )}
+                      <DragDropZone
+                        onFileDrop={handleFileDrop}
+                        folderId={item.id}
+                        isFolder={item.type === "folder"}
+                        className="rounded-lg h-full"
+                      >
+                        <FileItem
+                          key={`${item.id}-${isSelectionMode}-${selectedFiles.has(item.id)}`} // Force re-render
+                          item={item}
+                          onSelect={isGlobalSearch ? handleSearchResultSelect : (!isSelectionMode ? (onFileSelect || handleFileSelect) : undefined)}
+                          onDelete={handleDelete}
+                          onMove={() => {
+                            setItemToMove(item.id);
+                            setIsMoveDialogOpen(true);
+                          }}
+                          onDownload={() => handleDownload(item)}
+                          onRename={handleRename}
+                          onManagePermissions={handleManagePermissions}
+                          isDownloading={isDownloading[item.id]}
+                          isRenaming={isRenaming[item.id]}
+                          isSelectionMode={isSelectionMode}
+                          isSelected={selectedFiles && selectedFiles.has(item.id)}
+                          onSelectionChange={isSelectionMode ? handleFileSelectionChange : undefined} // Only use selection change in selection mode
+                        />
+                      </DragDropZone>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
