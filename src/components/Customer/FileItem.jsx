@@ -84,13 +84,7 @@ export default function FileItem({
   isSelected = false,
   onSelectionChange,
 }) {
-  console.log('FileItem Debug:', {
-    fileName: item.name,
-    fileType: item.type,
-    hasStarChange: !!onStarChange,
-    isStarred: item.is_starred,
-    isSelectionMode
-  });
+
   
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRenamingLocal, setIsRenamingLocal] = useState(false);
@@ -347,17 +341,17 @@ export default function FileItem({
     onClick={handleStarToggle}
     className="h-8 w-8 p-0"
     disabled={isAnyOperationInProgress}
-    title={isStarred ? "Unstar file" : "Star file"}
+    title={item.is_starred ? "Unstar file" : "Star file"}
   >
     {isStarring ? (
       <Loader2 className="h-4 w-4 animate-spin" />
     ) : (
-      <Star 
+      <Star
         className={`h-4 w-4 transition-colors ${
-          isStarred 
-            ? 'fill-yellow-400 text-yellow-400' 
+          item.is_starred
+            ? 'fill-yellow-400 text-yellow-400'
             : 'text-muted-foreground hover:text-yellow-400'
-        }`} 
+        }`}
       />
     )}
   </Button>

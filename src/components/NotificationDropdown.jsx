@@ -53,7 +53,6 @@ export default function NotificationDropdown() {
     setLoading(true);
     try {
       const response = await notificationService.getUnreadNotifications();
-      console.log('Notification response:', response); // Debug log
       
       if ((response.success || response.status === 'ok') && response.data?.notifications && Array.isArray(response.data.notifications)) {
         // Map API response to internal structure
@@ -66,7 +65,6 @@ export default function NotificationDropdown() {
           icon: getActionIcon(n.data?.action),
         }));
         setNotifications(mapped);
-        console.log('Mapped notifications:', mapped); // Debug log
       } else {
         console.error('Invalid response format:', response);
         toast.error("Invalid response format from server");

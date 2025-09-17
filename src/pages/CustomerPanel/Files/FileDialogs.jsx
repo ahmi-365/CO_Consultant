@@ -93,61 +93,66 @@ export default function FileDialogs({
     }
   };
 
-  const handleConfirmMove = async () => {
-    if (!itemToMove || !moveDestination) {
-      console.warn("⚠️ No itemToMove or moveDestination provided", {
-        itemToMove,
-        moveDestination,
-      });
-      toast({
-        title: "Error",
-        description: "Please select an item and destination",
-        variant: "destructive",
-      });
-      return;
+const handleConfirmMove = async () => {
+  if (!itemToMove || !moveDestination) {
+    console.warn("⚠️ No itemToMove or moveDestination provided", {
+      itemToMove,
+      moveDestination,
+    });
+    toast({
+      title: "Error",
+      description: "Please select an item and destination",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  try {
+    setIsMoving(true); // ⬅️ Start loading
+
+    const dest = moveDestination === "root" ? null : moveDestination;
+
+    console.log("📦 Moving item", { itemToMove, dest });
+
+    const result = await fileApi.moveItem(itemToMove, dest);
+    console.log("✅ Move result:", result);
+
+    toast({
+      title: "Success",
+      description: "Item moved successfully",
+    });
+
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+    setMoveDestination("");
+
+    // wait for files to reload before indexing
+    await loadFiles({ force: true });
+
+    console.log("🔍 Refreshing search index...");
+    await searchService.clearIndex();
+    await searchService.indexAllFiles(true);
+    console.log("🔍 Index refresh done");
+  } catch (error) {
+    console.error("🚨 Move failed:", error);
+
+    if (
+      error.name === "TypeError" &&
+      error.message.includes("Failed to fetch")
+    ) {
+      console.error("🌐 Possible CORS/network issue during move request");
     }
 
-    try {
-      const dest = moveDestination === "root" ? null : moveDestination;
+    toast({
+      title: "Error",
+      description: "Failed to move item",
+      variant: "destructive",
+    });
+  } finally {
+    setIsMoving(false); // ⬅️ Stop loading (whether success or error)
+  }
+};
 
-      console.log("📦 Moving item", { itemToMove, dest });
-
-      const result = await fileApi.moveItem(itemToMove, dest);
-      console.log("✅ Move result:", result);
-
-      toast({
-        title: "Success",
-        description: "Item moved successfully",
-      });
-
-      setIsMoveDialogOpen(false);
-      setItemToMove(null);
-      setMoveDestination("");
-
-      // wait for files to reload before indexing
-      await loadFiles({ force: true });
-
-      console.log("🔍 Refreshing search index...");
-      await searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-      console.log("🔍 Index refresh done");
-    } catch (error) {
-      console.error("🚨 Move failed:", error);
-
-      if (
-        error.name === "TypeError" &&
-        error.message.includes("Failed to fetch")
-      ) {
-        console.error("🌐 Possible CORS/network issue during move request");
-      }
-
-      toast({
-        title: "Error",
-        description: "Failed to move item",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <>

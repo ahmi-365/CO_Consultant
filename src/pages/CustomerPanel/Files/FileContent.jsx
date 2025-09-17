@@ -205,7 +205,6 @@ export default function FileContent({
     setIsUploading(false);
   };
 // In your FileContent, add this console.log
-console.log('Files:', files.map(f => ({name: f.name, type: f.type, hasStarProp: f.is_starred})));
   const handleUploadFile = async (file, targetFolderId) => {
     try {
       const parentId = targetFolderId || (currentPath.length > 0 ? currentPath[currentPath.length - 1]?.id : null);

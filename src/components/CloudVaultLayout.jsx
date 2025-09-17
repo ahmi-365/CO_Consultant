@@ -123,8 +123,6 @@ const loadFiles = async () => {
       const fileItems = response.filter(item => item.type === 'file');
       const folderItems = response.filter(item => item.type === 'folder');
 
-      console.log('Files:', fileItems);
-      console.log('Folders:', folderItems);
 
       setFiles(fileItems);
       setFolders(folderItems);
