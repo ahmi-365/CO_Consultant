@@ -1,112 +1,133 @@
 const BASE_URL = import.meta.env.VITE_API_URL;
-const token = localStorage.getItem('token'); 
-
 export const trashService = {
-  // Get all trashed files
   getTrashedFiles: async () => {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("No token found");
+
     try {
-      const res = await fetch(`${BASE_URL}/onedrive/trashed`);
-      if (!res.ok) throw new Error('Failed to fetch trashed files');
+      const res = await fetch(`${BASE_URL}/onedrive/trashed`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      if (!res.ok) throw new Error("Failed to fetch trashed files");
       return await res.json();
     } catch (error) {
-      console.error('Failed to get trashed files:', error);
+      console.error("Failed to get trashed files:", error);
       throw error;
     }
   },
 
-  // Move single file to trash
   moveToTrash: async (fileId) => {
+    const token = localStorage.getItem("token");
+    if (!fileId) throw new Error("File ID is required");
+
     try {
-      if (!fileId) throw new Error('File ID is required');
       const res = await fetch(`${BASE_URL}/onedrive/trash/${fileId}`, {
-        method: 'POST'
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
-      if (!res.ok) throw new Error('Failed to move file to trash');
+      if (!res.ok) throw new Error("Failed to move file to trash");
       return await res.json();
     } catch (error) {
-      console.error('Failed to move file to trash:', error);
+      console.error("Failed to move file to trash:", error);
       return { success: false, error: error.message };
     }
   },
-bulkMoveToTrash: async (fileIds) => {
-  try {
-    const token = localStorage.getItem("token");
 
+  bulkMoveToTrash: async (fileIds) => {
+    const token = localStorage.getItem("token");
     if (!Array.isArray(fileIds) || fileIds.length === 0)
       throw new Error("File IDs array is required");
 
-    const res = await fetch(`${BASE_URL}/onedrive/bulk-trash`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ file_ids: fileIds }) // correct key
-    });
-
-    const data = await res.json();
-
-    // backend sometimes returns nested original object
-    const message =
-      (data.original && data.original.message) || data.message || "Operation completed";
-
-    // check status
-    if (data.status && data.status.toLowerCase() === "ok") {
-      return { success: true, message };
-    } else {
-      return { success: false, error: message };
+    try {
+      const res = await fetch(`${BASE_URL}/onedrive/bulk-trash`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ file_ids: fileIds }),
+      });
+      const data = await res.json();
+      const message =
+        (data.original && data.original.message) || data.message || "Operation completed";
+      if (data.status && data.status.toLowerCase() === "ok") {
+        return { success: true, message };
+      } else {
+        return { success: false, error: message };
+      }
+    } catch (error) {
+      return { success: false, error: error.message || "Network error" };
     }
-  } catch (error) {
-    return { success: false, error: error.message || "Network error" };
-  }
-},
+  },
 
-
-  // Restore single file from trash
   restoreFile: async (fileId) => {
+    const token = localStorage.getItem("token");
+    if (!fileId) throw new Error("File ID is required");
+
     try {
-      if (!fileId) throw new Error('File ID is required');
       const res = await fetch(`${BASE_URL}/onedrive/restore/${fileId}`, {
-        method: 'POST'
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
-      if (!res.ok) throw new Error('Failed to restore file');
+      if (!res.ok) throw new Error("Failed to restore file");
       return await res.json();
     } catch (error) {
-      console.error('Failed to restore file:', error);
+      console.error("Failed to restore file:", error);
       return { success: false, error: error.message };
     }
   },
 
-  // Bulk restore files from trash
   bulkRestoreFiles: async (fileIds) => {
+    const token = localStorage.getItem("token");
+    if (!Array.isArray(fileIds) || fileIds.length === 0)
+      throw new Error("File IDs array is required");
+
     try {
-      if (!Array.isArray(fileIds) || fileIds.length === 0) throw new Error('File IDs array is required');
       const res = await fetch(`${BASE_URL}/onedrive/bulk-restore`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fileIds })
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ file_ids: fileIds }),
       });
-      if (!res.ok) throw new Error('Failed to bulk restore files');
+      if (!res.ok) throw new Error("Failed to bulk restore files");
       return await res.json();
     } catch (error) {
-      console.error('Failed to bulk restore files:', error);
+      console.error("Failed to bulk restore files:", error);
       return { success: false, error: error.message };
     }
   },
 
-  // Permanently delete single file
   permanentDelete: async (fileId) => {
+    const token = localStorage.getItem("token");
+    if (!fileId) throw new Error("File ID is required");
+
     try {
-      if (!fileId) throw new Error('File ID is required');
       const res = await fetch(`${BASE_URL}/onedrive/delete/${fileId}`, {
-        method: 'DELETE'
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
       });
-      if (!res.ok) throw new Error('Failed to permanently delete file');
+      if (!res.ok) throw new Error("Failed to permanently delete file");
       return await res.json();
     } catch (error) {
-      console.error('Failed to permanently delete file:', error);
+      console.error("Failed to permanently delete file:", error);
       return { success: false, error: error.message };
     }
-  }
+  },
 };

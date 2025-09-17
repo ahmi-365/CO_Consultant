@@ -471,11 +471,18 @@ export async function fetchRecentFiles() {
       },
     });
 
-    // Safely drill down to the array
-    const files =
-      response?.data?.data?.original?.data ?? [];
-console.log("Fetched recent files:", files);
-    return files;
+    console.log("Full API response:", response.data);
+    
+    // Based on your network tab, the structure is response.data = {status: "ok", recent_views: [...]}
+    const apiData = response.data;
+    
+    if (apiData.status === "ok" && Array.isArray(apiData.recent_views)) {
+      console.log("Fetched recent files:", apiData.recent_views);
+      return apiData.recent_views; // Return the array directly
+    } else {
+      console.log("No recent views found or invalid response structure");
+      return [];
+    }
   } catch (error) {
     console.error("Failed to fetch recent files:", error);
     throw error;

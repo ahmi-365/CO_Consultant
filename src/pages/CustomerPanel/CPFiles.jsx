@@ -176,22 +176,37 @@ export default function CPFileManagement() {
     }
   };
 
-  // Load recent files
-  const loadRecentFiles = async () => {
-    try {
-      const files = await fetchRecentFiles();
-      const sorted = files
-        .map((f) => f.file)
-        .filter((f) => f?.type === "file" && f?.created_at)
-        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-        .slice(0, 5);
-      setRecentFiles(sorted);
-    } catch (error) {
-      console.error("Error loading recent files:", error);
-      setRecentFiles([]);
+// Load recent files - FIXED VERSION
+const loadRecentFiles = async () => {
+  try {
+    const response = await fetchRecentFiles();
+    console.log("Raw recent files response:", response);
+    
+    // Handle the backend response structure: {status: "ok", recent_views: [...]}
+    let recentFilesData = [];
+    
+    if (response && response.status === "ok" && Array.isArray(response.recent_views)) {
+      recentFilesData = response.recent_views;
+    } else if (Array.isArray(response)) {
+      // Fallback if the response is directly an array
+      recentFilesData = response;
     }
-  };
-
+    
+    console.log("Processed recent files data:", recentFilesData);
+    
+    // Sort by viewed_at (most recent first) and limit to 5
+    const sorted = recentFilesData
+      .filter((f) => f && f.viewed_at) // Filter out invalid entries
+      .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
+      .slice(0, 5);
+    
+    console.log("Final sorted recent files:", sorted);
+    setRecentFiles(sorted);
+  } catch (error) {
+    console.error("Error loading recent files:", error);
+    setRecentFiles([]);
+  }
+};
   // Load available folders for move dialog
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);

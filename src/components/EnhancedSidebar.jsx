@@ -28,10 +28,10 @@ export default function EnhancedSidebar({ onUploadClick }) {
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm">
-            CV
+            CO
           </div>
           <span className="font-semibold text-sidebar-foreground">
-            CloudVault
+            Co-Consultants
           </span>
         </div>
       </div>
@@ -43,7 +43,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
             onClick={() => navigate("/filemanager")}
             className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
               isActive("/filemanager")
-                ? "bg-red-200 text-red-500 font-medium"
+                ? "bg-panel text-white font-medium"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
           >
@@ -52,23 +52,23 @@ export default function EnhancedSidebar({ onUploadClick }) {
           </button>
 
           <div className="mt-8 space-y-1">
-            <button
+            {/* <button
               onClick={() => navigate("/shared")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/shared")
-                  ? "bg-red-200 text-red-500 font-medium"
+                  ? "bg-panel text-white font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <Users className="w-4 h-4" />
               <span>Shared with me</span>
-            </button>
+            </button> */}
 
             <button
               onClick={() => navigate("/starred")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/starred")
-                  ? "bg-red-200 text-red-500 font-medium"
+                  ? "bg-panel text-white font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
@@ -80,7 +80,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
               onClick={() => navigate("/trash")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/trash")
-                  ? "bg-red-200 text-red-500 font-medium"
+                  ? "bg-panel text-white font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
@@ -92,7 +92,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
               onClick={() => navigate("/customerprofile")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/customerprofile")
-                  ? "bg-red-200 text-red-500 font-medium"
+                  ? "bg-panel text-white font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >

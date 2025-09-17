@@ -12,7 +12,7 @@ export default function FileHeader({
   hasPermission,
   setIsCreateFolderOpen,
   handleRefresh,
-   isSelectionMode, 
+  isSelectionMode, 
   toggleSelectionMode, 
   selectedFiles, 
   files, 
@@ -20,7 +20,13 @@ export default function FileHeader({
 }) {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
 
-  const getFileIcon = (fileName) => {
+  const getFileIcon = (fileName, fileType) => {
+    // If it's a folder, return folder icon
+    if (fileType === "folder") {
+      return "📁";
+    }
+    
+    // For files, get extension from name
     const ext = fileName.split(".").pop()?.toLowerCase();
     const iconMap = {
       pdf: "📄",
@@ -46,6 +52,34 @@ export default function FileHeader({
     console.log("Uploaded:", file);
     // Optionally refresh recent files here
   };
+
+  const handleFileClick = (file) => {
+    // Handle file/folder click based on type
+    if (file.type === "folder") {
+      // Navigate to folder or handle folder opening
+      console.log("Opening folder:", file.name);
+      // You might want to call a parent function to handle navigation
+    } else {
+      // For files, you might want to open them
+      console.log("Opening file:", file.name);
+      // If you have a web_url or download_url, you can use it here
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  // Debug logging
+  console.log("Recent files data:", recentFiles);
+  console.log("Recent files type:", typeof recentFiles);
+  console.log("Recent files length:", recentFiles?.length);
 
   return (
     <div className="mb-8">
@@ -121,26 +155,28 @@ export default function FileHeader({
       {/* Recent Files */}
       <div className="mb-8">
         <h2 className="text-lg font-medium text-foreground mb-4">Recent Files</h2>
-        {recentFiles.length > 0 ? (
+        {recentFiles && recentFiles.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
             {recentFiles.map((file) => (
               <div
-                key={file.id}
+                key={file.file_id}
                 className="flex flex-col items-center cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
-onClick={() => window.open(file.web_url, "_blank")}
+                onClick={() => handleFileClick(file)}
               >
                 <div className="w-28 h-28 rounded-lg bg-muted flex items-center justify-center mb-2">
-                  <div className="text-4xl">{getFileIcon(file.file?.name)}</div>
+                  <div className="text-4xl">{getFileIcon(file.name, file.type)}</div>
                 </div>
 
-                <h3 className="text-sm font-semibold text-center line-clamp-1 w-28">
-{file.name}                </h3>
+                <h3 className="text-sm font-semibold text-center line-clamp-1 w-28" title={file.name}>
+                  {file.name}
+                </h3>
 
                 <p className="text-xs text-muted-foreground">
-{file.type?.toUpperCase() || "FILE"}                </p>
+                  {file.type?.toUpperCase() || "FILE"}
+                </p>
 
                 <p className="text-xs text-blue-500 mt-1">
-                  Action: {file.action}
+                  Viewed: {formatDate(file.viewed_at)}
                 </p>
               </div>
             ))}

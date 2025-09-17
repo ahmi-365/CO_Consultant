@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiService, FileItem } from "@/services/api";
+import { trashService } from "@/services/trashService";
 
 const getFileIcon = (type) => {
   const iconClass = "w-4 h-4 text-muted-foreground mr-2";
@@ -34,8 +34,8 @@ const getFileIcon = (type) => {
 export default function TrashPage() {
   const [trashedFiles, setTrashedFiles] = useState([]);
   const [loading, setLoading] = useState(true);
-const [selectedFiles, setSelectedFiles] = useState(new Set());
-const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState(new Set());
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   useEffect(() => {
     loadTrashedFiles();
@@ -44,9 +44,9 @@ const [isSelectionMode, setIsSelectionMode] = useState(false);
   const loadTrashedFiles = async () => {
     setLoading(true);
     try {
-      const response = await apiService.getTrashedFiles();
-      if (response.success) {
-        setTrashedFiles(response.data);
+      const response = await trashService.getTrashedFiles();
+      if (response.status === "ok" && response.data?.original?.files) {
+        setTrashedFiles(response.data.original.files);
       } else {
         toast.error("Failed to load trashed files");
       }
@@ -60,98 +60,47 @@ const [isSelectionMode, setIsSelectionMode] = useState(false);
 
   const handleRestoreFile = async (fileId) => {
     try {
-      const response = await apiService.restoreFile(fileId);
-      if (response.success) {
-        loadTrashedFiles(); // Reload to update list
-        toast.success("File restored successfully");
+      const response = await trashService.restoreFile(fileId);
+
+      // check top-level status
+      if (response.status === "success") {
+        loadTrashedFiles();
+        toast.success(
+          response.original?.message || "File restored successfully"
+        );
       } else {
-        toast.error("Failed to restore file");
+        toast.error(response.original?.message || "Failed to restore file");
       }
     } catch (error) {
       console.error("Error restoring file:", error);
       toast.error("Error restoring file");
     }
   };
-const handleBulkRestore = async () => {
-  try {
-    const response = await trashService.bulkRestoreFiles(Array.from(selectedFiles));
-    if (response.success) {
-      loadTrashedFiles();
-      setSelectedFiles(new Set());
-      setIsSelectionMode(false);
-      toast.success(`${selectedFiles.size} files restored`);
-    }
-  } catch (error) {
-    toast.error("Failed to restore files");
-  }
-};
+
   const handlePermanentDelete = async (fileId) => {
     if (
-      !window.confirm(
-        "Are you sure you want to permanently delete this file? This action cannot be undone."
-      )
-    ) {
+      !window.confirm("Are you sure you want to permanently delete this file?")
+    )
       return;
-    }
-
     try {
-      const response = await apiService.deleteFile(fileId);
+      const response = await trashService.permanentDelete(fileId);
       if (response.success) {
-        loadTrashedFiles(); // Reload files
+        loadTrashedFiles();
         toast.success("File permanently deleted");
       } else {
-        toast.error("Failed to delete file permanently");
+        toast.error("Failed to delete file");
       }
-    } catch (error) {
-      console.error("Error deleting file permanently:", error);
-      toast.error("Error deleting file permanently");
+    } catch {
+      toast.error("Error deleting file");
     }
   };
 
-  const handleEmptyTrash = async () => {
-    if (
-      !window.confirm(
-        "Are you sure you want to empty the trash? This will permanently delete all files and cannot be undone."
-      )
-    ) {
-      return;
-    }
-
-    try {
-      // Delete all trashed files
-      for (const file of trashedFiles) {
-        await apiService.deleteFile(file.id);
-      }
-      setTrashedFiles([]);
-      toast.success("Trash emptied successfully");
-    } catch (error) {
-      console.error("Error emptying trash:", error);
-      toast.error("Error emptying trash");
-    }
-  };
-const handleBulkDelete = async () => {
-  if (!window.confirm("Permanently delete selected files?")) return;
-  
-  try {
-    for (const fileId of selectedFiles) {
-      await trashService.permanentDelete(fileId);
-    }
-    loadTrashedFiles();
-    setSelectedFiles(new Set());
-    setIsSelectionMode(false);
-    toast.success(`${selectedFiles.size} files deleted permanently`);
-  } catch (error) {
-    toast.error("Failed to delete files");
-  }
-};
   if (loading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Trash2 className="w-6 h-6 text-panel" />
-            <h1 className="text-2xl font-semibold text-foreground">Trash</h1>
-          </div>
+        <div className="flex items-center gap-2">
+          <Trash2 className="w-6 h-6 text-panel" />
+          <h1 className="text-2xl font-semibold text-foreground">Trash</h1>
         </div>
         <div className="text-center py-8 text-muted-foreground">
           Loading trashed files...
@@ -168,9 +117,18 @@ const handleBulkDelete = async () => {
           <h1 className="text-2xl font-semibold text-foreground">Trash</h1>
         </div>
         {trashedFiles.length > 0 && (
-          <Button onClick={handleEmptyTrash} variant="destructive" size="sm">
-            <Trash2 className="w-4 h-4 mr-2" />
-            Empty Trash
+          <Button
+            onClick={() => {
+              if (window.confirm("Empty the trash? This cannot be undone.")) {
+                trashedFiles.forEach((f) => trashService.permanentDelete(f.id));
+                setTrashedFiles([]);
+                toast.success("Trash emptied successfully");
+              }
+            }}
+            variant="destructive"
+            size="sm"
+          >
+            <Trash2 className="w-4 h-4 mr-2" /> Empty Trash
           </Button>
         )}
       </div>
@@ -208,10 +166,8 @@ const handleBulkDelete = async () => {
                     {getFileIcon(file.type)}
                     <span className="text-foreground">{file.name}</span>
                   </div>
-                  <div className="text-muted-foreground">{file.owner}</div>
-                  <div className="text-muted-foreground">
-                    {file.lastModified}
-                  </div>
+                  <div className="text-muted-foreground">{file.user_id}</div>
+                  <div className="text-muted-foreground">{file.deleted_at}</div>
                   <div className="text-muted-foreground">{file.size}</div>
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button
