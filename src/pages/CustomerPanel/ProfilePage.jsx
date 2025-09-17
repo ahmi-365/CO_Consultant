@@ -509,7 +509,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card> */}
+              </Card> 
             </TabsContent>
 
             <TabsContent value="security" className="space-y-6">
