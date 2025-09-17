@@ -117,27 +117,25 @@ export default function FileManagement() {
         force: opts.force || !!selectedUser // Always force when user is selected
       };
 
-      console.log('Making API call with params:', params, 'options:', options);
-      const data = await fileApi.listFiles(currentParentId, params, options);
-      const safeData = Array.isArray(data) ? data : [];
-      setFiles(safeData);
-    } catch (error) {
-      console.error("Failed to load files:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load files. Please check your authentication.",
-        variant: "destructive",
-      });
-      setFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    const data = await fileApi.listFiles(currentParentId, params, options);
+    const safeData = Array.isArray(data) ? data : [];
+    setFiles(safeData);
+  } catch (error) {
+    console.error("Failed to load files:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load files. Please check your authentication.",
+      variant: "destructive",
+    });
+    setFiles([]);
+  } finally {
+    setLoading(false);
+  }
+};
   const initializeSearch = async () => {
     setIndexing(true);
     try {
       await searchService.indexAllFiles();
-      console.log("Global search index initialized");
     } catch (error) {
       console.warn("Failed to initialize search index:", error);
     } finally {

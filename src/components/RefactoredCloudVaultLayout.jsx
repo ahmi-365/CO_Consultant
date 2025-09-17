@@ -80,13 +80,12 @@ export default function RefactoredCloudVaultLayout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
+   <div className="min-h-screen bg-background">
+      {/* Sidebar (fixed) */}
       <EnhancedSidebar onUploadClick={() => setIsUploadModalOpen(true)} />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
+      {/* Main Content (shifted right with ml-60) */}
+      <div className="ml-60 flex flex-col min-h-screen">
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Breadcrumb */}

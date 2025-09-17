@@ -176,35 +176,38 @@ export default function UserSearchDialog({ isOpen, onClose, onAddUser }) {
           </div>
 
           {/* Permissions */}
-      {selectedUser && (
-  <div>
-    <Label className="text-sm font-medium mb-3 block">
-      Select Permissions for {selectedUser.name}
-    </Label>
-
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-64 overflow-y-auto p-2 border rounded-md bg-card">
-      {PERMISSION_OPTIONS.map((permission) => (
-        <div
-          key={permission.value}
-          className="flex items-center space-x-2 p-2 rounded-md border bg-background"
-        >
-          <Checkbox
-            id={permission.value}
-            checked={selectedPermissions.includes(permission.value)}
-            onCheckedChange={() => handlePermissionToggle(permission.value)}
-          />
-          <Label
-            htmlFor={permission.value}
-            className="text-xs font-medium cursor-pointer leading-none"
-          >
-            {permission.label}
-          </Label>
-        </div>
-      ))}
-    </div>
-  </div>
-)}
-
+          {selectedUser && (
+            <div>
+              <Label className="text-sm font-medium mb-3 block">
+                Select Permissions for {selectedUser.name}
+              </Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {PERMISSION_OPTIONS.map((permission) => (
+                  <div
+                    key={permission.value}
+                    className="flex items-start space-x-3 p-3 rounded-lg border bg-card"
+                  >
+                    <Checkbox
+                      id={permission.value}
+                      checked={selectedPermissions.includes(permission.value)}
+                      onCheckedChange={() => handlePermissionToggle(permission.value)}
+                    />
+                    <div className="grid gap-1.5 leading-none">
+                      <Label
+                        htmlFor={permission.value}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        {permission.label}
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        {permission.description}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <DialogFooter className="gap-2">

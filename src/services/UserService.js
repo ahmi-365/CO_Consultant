@@ -117,53 +117,68 @@ export const USER_ROLES = {
   USER: 'user'
 };
 
-// Permission definitions
+// Permission definitions - Updated to match your backend enums
 export const PERMISSIONS = {
-  READ: 'read',
-  CREATE_FOLDER: 'create_folder',
-  EDIT: 'edit',
+  OWNER: 'owner',
+  VIEW: 'view',
   UPLOAD: 'upload',
+  EDIT: 'edit',
   DELETE: 'delete',
-  MANAGE: 'manage'
+  CREATE_FOLDER: 'create_folder'
 };
 
-// Permission options for UI
+// Permission options for UI - Updated to match backend enums
 export const PERMISSION_OPTIONS = [
   { 
-    value: PERMISSIONS.READ, 
-    label: 'View Only', 
-    description: 'Can view and download files' 
+    value: PERMISSIONS.OWNER, 
+    label: 'Owner', 
+    description: 'Full control over the file/folder',
+    icon: '👑',
+    priority: 1
   },
   { 
-    value: PERMISSIONS.CREATE_FOLDER, 
-    label: 'Create Folders', 
-    description: 'Can create new folders' 
+    value: PERMISSIONS.VIEW, 
+    label: 'View', 
+    description: 'Can view and download files',
+    icon: '👁️',
+    priority: 2
   },
   { 
     value: PERMISSIONS.EDIT, 
     label: 'Edit', 
-    description: 'Can modify files and folders' 
+    description: 'Can modify file content and properties',
+    icon: '✏️',
+    priority: 3
   },
   { 
     value: PERMISSIONS.UPLOAD, 
     label: 'Upload', 
-    description: 'Can upload new files' 
+    description: 'Can upload new files to folders',
+    icon: '📤',
+    priority: 4
+  },
+  { 
+    value: PERMISSIONS.CREATE_FOLDER, 
+    label: 'Create Folder', 
+    description: 'Can create new folders and subfolders',
+    icon: '📁',
+    priority: 5
   },
   { 
     value: PERMISSIONS.DELETE, 
     label: 'Delete', 
-    description: 'Can remove files and folders' 
-  },
-  { 
-    value: PERMISSIONS.MANAGE, 
-    label: 'Full Control', 
-    description: 'Can manage all permissions' 
+    description: 'Can remove files and folders permanently',
+    icon: '🗑️',
+    priority: 6
   }
 ];
 
 // Helper functions
 export const getUserInitials = (name) => {
+  if (!name || typeof name !== 'string') return 'U';
+  
   return name.split(' ')
+    .filter(part => part.length > 0)
     .map(part => part[0])
     .join('')
     .toUpperCase()
@@ -185,19 +200,66 @@ export const getRoleColor = (role) => {
 
 export const getPermissionColor = (permission) => {
   switch (permission) {
-    case PERMISSIONS.READ: 
-      return 'bg-secondary text-secondary-foreground';
-    case PERMISSIONS.CREATE_FOLDER: 
-      return 'bg-primary-light text-primary';
+    case PERMISSIONS.OWNER: 
+      return 'bg-red-100 text-red-800 border-red-200';
+    case PERMISSIONS.VIEW: 
+      return 'bg-blue-100 text-blue-800 border-blue-200';
     case PERMISSIONS.EDIT: 
-      return 'bg-warning-light text-warning';
+      return 'bg-yellow-100 text-yellow-800 border-yellow-200';
     case PERMISSIONS.UPLOAD: 
-      return 'bg-success-light text-success';
+      return 'bg-green-100 text-green-800 border-green-200';
+    case PERMISSIONS.CREATE_FOLDER: 
+      return 'bg-purple-100 text-purple-800 border-purple-200';
     case PERMISSIONS.DELETE: 
-      return 'bg-destructive-light text-destructive';
-    case PERMISSIONS.MANAGE: 
-      return 'bg-accent-light text-accent';
+      return 'bg-red-100 text-red-800 border-red-200';
     default: 
-      return 'bg-muted text-muted-foreground';
+      return 'bg-gray-100 text-gray-800 border-gray-200';
   }
+};
+
+// Get permission details by value
+export const getPermissionDetails = (permissionValue) => {
+  return PERMISSION_OPTIONS.find(p => p.value === permissionValue) || {
+    value: permissionValue,
+    label: permissionValue.charAt(0).toUpperCase() + permissionValue.slice(1),
+    description: 'Unknown permission',
+    icon: '❓',
+    priority: 99
+  };
+};
+
+// Check if user has specific permission
+export const hasPermission = (userPermissions = [], requiredPermission) => {
+  if (!Array.isArray(userPermissions)) return false;
+  
+  // Owner has all permissions
+  if (userPermissions.includes(PERMISSIONS.OWNER)) return true;
+  
+  // Check for specific permission
+  return userPermissions.includes(requiredPermission);
+};
+
+// Get highest priority permission for display
+export const getHighestPermission = (userPermissions = []) => {
+  if (!Array.isArray(userPermissions) || userPermissions.length === 0) return null;
+  
+  const permissionPriorities = userPermissions
+    .map(perm => getPermissionDetails(perm))
+    .sort((a, b) => a.priority - b.priority);
+  
+  return permissionPriorities[0] || null;
+};
+
+// Format permissions for display
+export const formatPermissionsDisplay = (userPermissions = [], maxDisplay = 3) => {
+  if (!Array.isArray(userPermissions)) return { visible: [], hidden: 0 };
+  
+  const sorted = userPermissions
+    .map(perm => getPermissionDetails(perm))
+    .sort((a, b) => a.priority - b.priority);
+  
+  return {
+    visible: sorted.slice(0, maxDisplay),
+    hidden: Math.max(0, sorted.length - maxDisplay)
+  };
 };
