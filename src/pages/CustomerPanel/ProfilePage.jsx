@@ -133,110 +133,109 @@ export default function ProfilePage() {
     }
   };
 
-const handleProfileUpdate = async () => {
-  if (!profileData.name.trim()) {
-    toast.error("Name is required");
-    return;
-  }
-
-  if (!profileData.email.trim()) {
-    toast.error("Email is required");
-    return;
-  }
-
-  setLoading(true);
-  try {
-    let updateData;
-
-    // --- Normalize phone_number: blank => null ---
-    const normalizedPhone =
-      profileData.phone_number && profileData.phone_number.trim() !== ""
-        ? profileData.phone_number
-        : null;
-
-    // If there's a selected photo file, use FormData
-    if (selectedPhotoFile) {
-      const formData = new FormData();
-      formData.append("name", profileData.name);
-      formData.append("last_name", profileData.last_name || "");
-      formData.append("email", profileData.email);
-      formData.append("phone_number", normalizedPhone ?? "");
-      formData.append("profile_photo", selectedPhotoFile);
-
-      const token = localStorage.getItem("token");
-      const response = await fetch(`${BASE_URL}/profile/update`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-        body: formData,
-      });
-
-      const data = await response.json();
-      updateData = response.ok
-        ? { success: true, data }
-        : {
-            success: false,
-            error: data.message || "Failed to update profile",
-          };
-    }
-    
-    // If photo was removed
-    else if (!photoPreview && !selectedPhotoFile && profileData.profile_photo) {
-      updateData = await profileService.updateProfile({
-        name: profileData.name,
-        last_name: profileData.last_name,
-        email: profileData.email,
-        phone_number: normalizedPhone,
-        remove_photo: true,
-      });
-    }
-    // Regular update without photo changes
-    else {
-      updateData = await profileService.updateProfile({
-        name: profileData.name,
-        last_name: profileData.last_name,
-        email: profileData.email,
-        phone_number: normalizedPhone,
-      });
+  const handleProfileUpdate = async () => {
+    if (!profileData.name.trim()) {
+      toast.error("Name is required");
+      return;
     }
 
-    if (updateData.success && updateData.data.status === "success") {
-      const updatedUser = updateData.data.user;
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      setProfileData({
-        name: updatedUser.name || "",
-        last_name: updatedUser.last_name || "",
-        email: updatedUser.email || "",
-        phone_number: updatedUser.phone_number || "",
-        profile_photo: updatedUser.profile_photo || "",
-      });
-
-      setUserInfo({
-        roles: updatedUser.roles || [],
-        permissions: updatedUser.permissions || [],
-      });
-
-      setSelectedPhotoFile(null);
-      setPhotoPreview("");
-
-      toast.success(
-        updateData.data.message || "Profile updated successfully!"
-      );
-    } else {
-      toast.error(updateData.error || "Failed to update profile");
+    if (!profileData.email.trim()) {
+      toast.error("Email is required");
+      return;
     }
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    toast.error("An unexpected error occurred");
-  } finally {
-    setLoading(false);
-  }
-};
 
+    setLoading(true);
+    try {
+      let updateData;
 
+      // Normalize phone_number: blank => null
+      const normalizedPhone =
+        profileData.phone_number && profileData.phone_number.trim() !== ""
+          ? profileData.phone_number
+          : null;
+
+      // If there's a selected photo file, use FormData for direct API call
+      if (selectedPhotoFile) {
+        const formData = new FormData();
+        formData.append("name", profileData.name);
+        formData.append("last_name", profileData.last_name || "");
+        formData.append("email", profileData.email);
+        formData.append("phone_number", normalizedPhone ?? "");
+        formData.append("profile_photo", selectedPhotoFile);
+
+        const token = localStorage.getItem("token");
+        const response = await fetch(`${BASE_URL}/profile/update`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+          body: formData,
+        });
+
+        const data = await response.json();
+        updateData = response.ok
+          ? { success: true, data }
+          : {
+              success: false,
+              error: data.message || "Failed to update profile",
+            };
+      }
+      // If photo was removed
+      else if (!photoPreview && !selectedPhotoFile && profileData.profile_photo) {
+        updateData = await profileService.updateProfile({
+          name: profileData.name,
+          last_name: profileData.last_name,
+          email: profileData.email,
+          phone_number: normalizedPhone,
+          remove_photo: true,
+        });
+      }
+      // Regular update without photo changes
+      else {
+        updateData = await profileService.updateProfile({
+          name: profileData.name,
+          last_name: profileData.last_name,
+          email: profileData.email,
+          phone_number: normalizedPhone,
+        });
+      }
+
+      if (updateData.success && updateData.data.status === "success") {
+        const updatedUser = updateData.data.user;
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+
+        setProfileData({
+          name: updatedUser.name || "",
+          last_name: updatedUser.last_name || "",
+          email: updatedUser.email || "",
+          phone_number: updatedUser.phone_number || "",
+          profile_photo: updatedUser.profile_photo || "",
+        });
+
+        setUserInfo({
+          roles: updatedUser.roles || [],
+          permissions: updatedUser.permissions || [],
+        });
+
+        setSelectedPhotoFile(null);
+        setPhotoPreview("");
+
+        toast.success(
+          updateData.data.message || "Profile updated successfully!"
+        );
+      } else {
+        toast.error(updateData.error || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error("An unexpected error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Updated password update function to use separate API
   const handlePasswordUpdate = async () => {
     if (!passwordForm.currentPassword) {
       toast.error("Current password is required");
@@ -260,9 +259,11 @@ const handleProfileUpdate = async () => {
 
     setPasswordLoading(true);
     try {
-      const result = await profileService.updateProfile({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword,
+      // Use the separate password update API
+      const result = await profileService.updatePassword({
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword,
+        new_password_confirmation: passwordForm.confirmPassword,
       });
 
       if (result.success) {
@@ -271,7 +272,7 @@ const handleProfileUpdate = async () => {
           newPassword: "",
           confirmPassword: "",
         });
-        toast.success("Password updated successfully!");
+        toast.success(result.data.message || "Password updated successfully!");
       } else {
         toast.error(result.error || "Failed to update password");
       }

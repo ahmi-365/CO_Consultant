@@ -130,4 +130,27 @@ export const trashService = {
       return { success: false, error: error.message };
     }
   },
+
+  bulkPermanentDelete: async (fileIds) => {
+    const token = localStorage.getItem("token");
+    if (!Array.isArray(fileIds) || fileIds.length === 0)
+      throw new Error("File IDs array is required");
+
+    try {
+      const res = await fetch(`${BASE_URL}/onedrive/bulk-delete`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({ file_ids: fileIds }),
+      });
+      if (!res.ok) throw new Error("Failed to bulk delete files");
+      return await res.json();
+    } catch (error) {
+      console.error("Failed to bulk delete files:", error);
+      return { success: false, error: error.message };
+    }
+  },
 };

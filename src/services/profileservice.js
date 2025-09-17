@@ -52,4 +52,31 @@ export const profileService = {
       return { success: false, error: error.message || "Network error" };
     }
   },
+
+  // ✅ Update user password
+  updatePassword: async (passwordData) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${BASE_URL}/password/update`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(passwordData),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        return { success: true, data };
+      } else {
+        return { success: false, error: data.message || "Failed to update password" };
+      }
+    } catch (error) {
+      console.error("Error updating password:", error);
+      return { success: false, error: error.message || "Network error" };
+    }
+  },
 };
