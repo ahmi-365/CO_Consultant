@@ -35,9 +35,11 @@ import {
   Eye,
   Check,
   X,
-  Loader2
+  Loader2,
+  Star
 } from "lucide-react";
 import { formatFileSize, formatDate, getFileIcon } from "@/services/FileService";
+import { starService } from "@/services/StarredService"; // Fixed: Consistent naming
 import { useToast } from "@/hooks/use-toast";
 
 const getFileIconComponent = (filename, type) => {
@@ -72,23 +74,34 @@ export default function FileItem({
   onRename,
   onManagePermissions,
   onPreview,
+  onStarChange, 
   isDeleting = false,
   isDownloading = false,
   isRenaming = false,
   isMoving = false,
   depth = 0,
-    isSelectionMode = false,
+  isSelectionMode = false,
   isSelected = false,
   onSelectionChange,
 }) {
+  console.log('FileItem Debug:', {
+    fileName: item.name,
+    fileType: item.type,
+    hasStarChange: !!onStarChange,
+    isStarred: item.is_starred,
+    isSelectionMode
+  });
+  
   const [isExpanded, setIsExpanded] = useState(false);
   const [isRenamingLocal, setIsRenamingLocal] = useState(false);
   const [newName, setNewName] = useState(item.name);
+  const [isStarring, setIsStarring] = useState(false);
+  const [isStarred, setIsStarred] = useState(item.is_starred || false);
   const { toast } = useToast();
   
   const handleItemClick = () => {
     // Prevent clicking when any operation is in progress
-    if (isDeleting || isDownloading || isRenaming || isMoving) {
+    if (isDeleting || isDownloading || isRenaming || isMoving || isStarring) {
       return;
     }
     
@@ -99,13 +112,67 @@ export default function FileItem({
       onSelect?.(item);
     }
   };
- const handleCheckboxChange = (e) => {
-  e.stopPropagation();
-  e.preventDefault(); // Prevent any default behavior
-  const isChecked = e.target.checked;
-  console.log('Checkbox changed:', item.id, isChecked); // Debug log
-  onSelectionChange?.(item.id, isChecked);
-};
+
+  const handleCheckboxChange = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    const isChecked = e.target.checked;
+    console.log('Checkbox changed:', item.id, isChecked);
+    onSelectionChange?.(item.id, isChecked);
+  };
+
+  const handleStarToggle = async (e) => {
+    e.stopPropagation(); 
+
+    if (isStarring || item.type === 'folder') {
+      return; 
+    }
+
+    console.log("handleStarToggle called for item:", item.id, "Current starred state:", isStarred); 
+
+    setIsStarring(true); 
+    const previousState = isStarred;
+
+    try {
+      // Optimistically update UI
+      setIsStarred(!isStarred);
+      console.log("Calling starService.toggleStar with itemId:", item.id); 
+      
+      const result = await starService.toggleStar(item.id);
+      console.log("API response from toggleStar:", result); 
+
+      if (result && result.success !== false) { 
+        const newStarredState = result.is_starred !== undefined ? result.is_starred : !previousState;
+        setIsStarred(newStarredState); 
+
+        // Call parent's star change handler
+        onStarChange?.(item.id, newStarredState); 
+
+        toast({
+          title: "Success",
+          description: newStarredState ? "File starred" : "File unstarred",
+        });
+      } else {
+        console.error("API reported an error or failed success:", result); 
+        setIsStarred(previousState); 
+        toast({
+          title: "Error",
+          description: result?.error || "Failed to toggle star (API error)",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Network or unexpected error during star toggle:", error); 
+      setIsStarred(previousState); 
+      toast({
+        title: "Error",
+        description: "Failed to toggle star (network error)",
+        variant: "destructive",
+      });
+    } finally {
+      setIsStarring(false); 
+    }
+  };
 
   const handleRename = () => {
     if (newName.trim() && newName !== item.name) {
@@ -138,29 +205,29 @@ export default function FileItem({
 
   const handleManageAccess = (e) => {
     e.stopPropagation();
-    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
+    if (!isAnyOperationInProgress) {
       onManagePermissions?.(item);
     }
   };
 
   const handlePreviewClick = (e) => {
     e.stopPropagation();
-    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
+    if (!isAnyOperationInProgress) {
       onPreview?.(item);
     }
   };
 
   const handleMoveClick = (e) => {
     e.stopPropagation();
-    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
+    if (!isAnyOperationInProgress) {
       onMove?.(item.id);
     }
   };
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
-    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
-      if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
+    if (!isAnyOperationInProgress) {
+      if (window.confirm(`Are you sure you want to move "${item.name}" to trash?`)) {
         onDelete?.(item.id);
       }
     }
@@ -168,12 +235,12 @@ export default function FileItem({
 
   const handleRenameClick = (e) => {
     e.stopPropagation();
-    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
+    if (!isAnyOperationInProgress) {
       setIsRenamingLocal(true);
     }
   };
 
-  const isAnyOperationInProgress = isDeleting || isDownloading || isRenaming || isMoving;
+  const isAnyOperationInProgress = isDeleting || isDownloading || isRenaming || isMoving || isStarring;
 
   return (
     <div className="animate-fade-in">
@@ -186,16 +253,16 @@ export default function FileItem({
         
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-          {isSelectionMode && (
-  <div onClick={(e) => e.stopPropagation()}> 
-    <input
-      type="checkbox"
-      checked={isSelected || false}
-      onChange={handleCheckboxChange}
-      className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
-    />
-  </div>
-)}
+            {isSelectionMode && (
+              <div onClick={(e) => e.stopPropagation()}> 
+                <input
+                  type="checkbox"
+                  checked={isSelected || false}
+                  onChange={handleCheckboxChange}
+                  className="w-4 h-4 rounded border-border accent-primary cursor-pointer"
+                />
+              </div>
+            )}
             {getFileIconComponent(item.name, item.type)}
             
             <div className="flex-1 min-w-0">
@@ -246,7 +313,6 @@ export default function FileItem({
                       <span className="text-xs">Deleting...</span>
                     </div>
                   )}
-                 
                   {isRenaming && (
                     <div className="flex items-center gap-1 text-orange-600">
                       <Loader2 className="h-3 w-3 animate-spin" />
@@ -259,6 +325,12 @@ export default function FileItem({
                       <span className="text-xs">Moving...</span>
                     </div>
                   )}
+                  {isStarring && (
+                    <div className="flex items-center gap-1 text-yellow-600">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span className="text-xs">Updating...</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -267,8 +339,30 @@ export default function FileItem({
           {/* Actions section */}
           {!isRenamingLocal && (
             <div className="flex items-center gap-1">
-              {/* User permissions icon for folders */}
-             
+              {/* Star button - Always show for debugging, then add file condition */}
+          {item.type === 'file' && (
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={handleStarToggle}
+    className="h-8 w-8 p-0"
+    disabled={isAnyOperationInProgress}
+    title={isStarred ? "Unstar file" : "Star file"}
+  >
+    {isStarring ? (
+      <Loader2 className="h-4 w-4 animate-spin" />
+    ) : (
+      <Star 
+        className={`h-4 w-4 transition-colors ${
+          isStarred 
+            ? 'fill-yellow-400 text-yellow-400' 
+            : 'text-muted-foreground hover:text-yellow-400'
+        }`} 
+      />
+    )}
+  </Button>
+)}
+
 
               {/* Quick download for files */}
               {item.type === 'file' && (
@@ -302,21 +396,36 @@ export default function FileItem({
 
                 <DropdownMenuContent align="end" className="w-48">
                   {item.type === 'file' && (
-                    <DropdownMenuItem 
-                      onClick={handleDownload}
-                      className="cursor-pointer"
-                      disabled={isAnyOperationInProgress}
-                    >
-                      {isDownloading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Download className="h-4 w-4 mr-2" />
-                      )}
-                      {isDownloading ? 'Downloading...' : 'Download'}
-                    </DropdownMenuItem>
-                  )}
+                    <>
+                      <DropdownMenuItem 
+                        onClick={handleStarToggle}
+                        className="cursor-pointer"
+                        disabled={isAnyOperationInProgress}
+                      >
+                        {isStarring ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Star className={`h-4 w-4 mr-2 ${isStarred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                        )}
+                        {isStarring ? 'Updating...' : (isStarred ? 'Unstar' : 'Star')}
+                      </DropdownMenuItem>
 
-                
+                      <DropdownMenuItem 
+                        onClick={handleDownload}
+                        className="cursor-pointer"
+                        disabled={isAnyOperationInProgress}
+                      >
+                        {isDownloading ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                          <Download className="h-4 w-4 mr-2" />
+                        )}
+                        {isDownloading ? 'Downloading...' : 'Download'}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuSeparator />
+                    </>
+                  )}
 
                   <DropdownMenuItem 
                     onClick={handleRenameClick} 
@@ -356,7 +465,7 @@ export default function FileItem({
                     ) : (
                       <Trash2 className="h-4 w-4 mr-2" />
                     )}
-                    {isDeleting ? 'Deleting...' : 'Delete'}
+                    {isDeleting ? 'Deleting...' : 'Trash'}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -373,6 +482,12 @@ export default function FileItem({
                   <span>{formatFileSize(item.size)}</span>
                 )}
                 <span>{formatDate(item.created_at)}</span>
+                {/* Star indicator in file info */}
+             {item.type === 'file' && isStarred && (
+  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+)}
+
+
               </div>
               {item.owner && (
                 <span className="truncate max-w-[80px]" title={item.owner.name}>
@@ -398,7 +513,11 @@ export default function FileItem({
               onRename={onRename}
               onManagePermissions={onManagePermissions}
               onPreview={onPreview}
+              onStarChange={onStarChange}
               depth={depth + 1}
+              isSelectionMode={isSelectionMode}
+              isSelected={isSelected}
+              onSelectionChange={onSelectionChange}
             />
           ))}
         </div>

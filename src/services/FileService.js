@@ -189,8 +189,8 @@ export const fileApi = {
   },
 
   async deleteItem(id) {
-    const response = await fetch(`${API_URL}/onedrive/delete/${id}`, {
-      method: 'DELETE',
+    const response = await fetch(`${API_URL}/onedrive/trash/${id}`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },

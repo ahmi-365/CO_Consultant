@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { hasPermission } from "@/utils/permissions";
 import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
 import { trashService } from "../../services/trashservice";
+import { starService } from "@/services/StarredService";
 
 export default function CPFileManagement() {
   // State management
@@ -337,7 +338,36 @@ const handleBulkMoveToTrash = async (fileIds) => {
       return newSelected;
     });
   };
+const handleStarChange = (fileId, isStarred) => {
+  // Update files state
+  setFiles(prevFiles => 
+    prevFiles.map(file => 
+      file.id === fileId 
+        ? { ...file, is_starred: isStarred }
+        : file
+    )
+  );
 
+  // Update search results if in global search
+  if (isGlobalSearch) {
+    setSearchResults(prevResults => 
+      prevResults.map(file => 
+        file.id === fileId 
+          ? { ...file, is_starred: isStarred }
+          : file
+      )
+    );
+  }
+
+  // Update recent files
+  setRecentFiles(prevRecent => 
+    prevRecent.map(file => 
+      file.id === fileId 
+        ? { ...file, is_starred: isStarred }
+        : file
+    )
+  );
+};
   useEffect(() => {
     console.log("Selected files changed:", Array.from(selectedFiles));
   }, [selectedFiles]);
@@ -412,6 +442,7 @@ const handleBulkMoveToTrash = async (fileIds) => {
           } // Use conditional handler
           isSelectionMode={isSelectionMode}
           selectedFiles={selectedFiles}
+onStarChange={handleStarChange}
         />
           {selectedFiles.size > 0 && isSelectionMode && (
             <BulkActionToolbar
