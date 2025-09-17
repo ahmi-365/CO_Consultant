@@ -1,24 +1,24 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { User, Mail, Plus, Loader2, AlertCircle } from "lucide-react"
+} from "@/components/ui/select";
+import { User, Mail, Plus, Loader2, AlertCircle } from "lucide-react";
 
 // Role service to fetch roles from API
 const roleService = {
@@ -46,144 +46,122 @@ const roleService = {
   },
 };
 
-export function UserForm({
-  onSubmit,
-  isLoading = false,
-  initialData,
-  mode = "add",
-}) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [roles, setRoles] = useState([])
-  const [rolesLoading, setRolesLoading] = useState(false)
-  const [submitError, setSubmitError] = useState(null)
-  const [fieldErrors, setFieldErrors] = useState({})
+export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add" }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [roles, setRoles] = useState([]);
+  const [rolesLoading, setRolesLoading] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+  const [fieldErrors, setFieldErrors] = useState({});
   const [formData, setFormData] = useState({
-    id: undefined,
+    id: "",
     name: "",
     email: "",
     password: "",
     role: "",
-  })
+  });
 
-  // Fetch roles when component mounts or dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      if (mode === "edit" && initialData) {
+        setFormData({ ...initialData, password: "" });
+      } else if (mode === "add") {
+        resetForm();
+      }
+    }
+  }, [isOpen, mode, initialData]);
+
   useEffect(() => {
     if (isOpen && roles.length === 0) {
-      fetchRoles()
+      fetchRoles();
     }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (initialData && mode === "edit") {
-      setFormData({ ...initialData, password: "" })
-    }
-  }, [initialData, mode])
-
-  // Clear errors when form data changes
-  useEffect(() => {
-    if (submitError || Object.keys(fieldErrors).length > 0) {
-      setSubmitError(null)
-      setFieldErrors({})
-    }
-  }, [formData])
+  }, [isOpen]);
 
   const fetchRoles = async () => {
-    setRolesLoading(true)
+    setRolesLoading(true);
     try {
-      const res = await roleService.getAll()
+      const res = await roleService.getAll();
       if (res.success) {
-        // Handle different response formats
-        let rolesData = []
+        let rolesData = [];
         if (Array.isArray(res.data)) {
-          rolesData = res.data
+          rolesData = res.data;
         } else if (res.data?.data && Array.isArray(res.data.data)) {
-          rolesData = res.data.data
+          rolesData = res.data.data;
         } else if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-          rolesData = res.data.data
+          rolesData = res.data.data;
         }
-        
-        setRoles(rolesData)
-        console.log("Roles loaded for user form:", rolesData)
+
+        setRoles(rolesData);
       } else {
-        console.error("Failed to fetch roles:", res.message)
-        // Show error but don't prevent form from opening
-        alert(`⚠️ Failed to load roles: ${res.message}`)
+        console.error("Failed to fetch roles:", res.message);
+        alert(`⚠️ Failed to load roles: ${res.message}`);
       }
     } catch (error) {
-      console.error("Failed to fetch roles:", error)
-      alert("⚠️ Failed to load roles")
+      console.error("Failed to fetch roles:", error);
+      alert("⚠️ Failed to load roles");
     } finally {
-      setRolesLoading(false)
+      setRolesLoading(false);
     }
-  }
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    
-    // Clear previous errors
-    setSubmitError(null)
-    setFieldErrors({})
-    
+    e.preventDefault();
+
+    setSubmitError(null);
+    setFieldErrors({});
+
     if (!formData.name.trim() || !formData.email.trim() || !formData.role.trim()) {
-      setSubmitError("Please fill in all required fields")
-      return
+      setSubmitError("Please fill in all required fields");
+      return;
     }
 
     try {
-      // Call onSubmit and wait for the result
-      const result = await onSubmit(formData)
-      
-      // Check if the result indicates success
+      const result = await onSubmit(formData);
+
       if (result && result.success === true) {
-        // Success - close dialog and reset form
-        setIsOpen(false)
-        resetForm()
+        setIsOpen(false);
+        resetForm();
       } else if (result && result.success === false) {
-        // Handle the error response
         if (result.errors) {
-          // Set field-specific errors
-          setFieldErrors(result.errors)
+          setFieldErrors(result.errors);
         }
-        
-        // Use the exact error message from the API
-        setSubmitError(result.message || "Failed to save user. Please try again.")
+        setSubmitError(result.message || "Failed to save user. Please try again.");
       } else {
-        // If onSubmit doesn't return a proper response object
-        setSubmitError("Failed to save user. Please try again.")
+        setSubmitError("Failed to save user. Please try again.");
       }
     } catch (error) {
-      console.error("Submit error:", error)
-      
-      // Check if it's a structured error response
-      if (error.response && error.response.data) {
-        const errorData = error.response.data
+      console.error("Submit error:", error);
+      if (error.response?.data) {
+        const errorData = error.response.data;
         if (errorData.errors) {
-          setFieldErrors(errorData.errors)
+          setFieldErrors(errorData.errors);
         }
-        setSubmitError(errorData.message || "Failed to save user. Please try again.")
+        setSubmitError(errorData.message || "Failed to save user. Please try again.");
       } else if (error.message) {
-        setSubmitError(error.message)
+        setSubmitError(error.message);
       } else {
-        setSubmitError("An unexpected error occurred. Please try again.")
+        setSubmitError("An unexpected error occurred. Please try again.");
       }
     }
-  }
+  };
 
   const resetForm = () => {
     setFormData({
-      id: undefined,
+      id: "",
       name: "",
       email: "",
       password: "",
       role: "",
-    })
-    setSubmitError(null)
-    setFieldErrors({})
-  }
+    });
+    setSubmitError(null);
+    setFieldErrors({});
+  };
 
   const handleClose = () => {
-    setIsOpen(false)
-    resetForm()
-  }
+    setIsOpen(false);
+    resetForm();
+  };
+
+  const dialogKey = `${mode}-${initialData?.id || "new"}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -199,7 +177,7 @@ export function UserForm({
         )}
       </DialogTrigger>
 
-      <DialogContent className="max-w-2xl">
+      <DialogContent key={dialogKey} className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
@@ -207,7 +185,7 @@ export function UserForm({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
           {/* Error Display */}
           {submitError && (
             <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
@@ -229,6 +207,7 @@ export function UserForm({
                 }
                 required
                 className={fieldErrors.name ? "border-red-500" : ""}
+                autoComplete="new-name"
               />
               {fieldErrors.name && (
                 <p className="text-xs text-red-500">{fieldErrors.name[0]}</p>
@@ -250,6 +229,7 @@ export function UserForm({
                     setFormData((prev) => ({ ...prev, email: e.target.value }))
                   }
                   required
+                  autoComplete="new-email"
                 />
               </div>
               {fieldErrors.email && (
@@ -315,6 +295,7 @@ export function UserForm({
                 }
                 required={mode === "add"}
                 className={fieldErrors.password ? "border-red-500" : ""}
+                autoComplete="new-password"
               />
               {fieldErrors.password && (
                 <p className="text-xs text-red-500">{fieldErrors.password[0]}</p>
@@ -336,9 +317,9 @@ export function UserForm({
             <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
               Cancel
             </Button>
-            <Button 
-              type="submit" 
-              disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)} 
+            <Button
+              type="submit"
+              disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)}
               className="flex-1"
             >
               {isLoading
@@ -353,5 +334,5 @@ export function UserForm({
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }

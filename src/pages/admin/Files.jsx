@@ -39,6 +39,7 @@ import { fileApi, getCachedFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
 import SearchUser from "../../components/admin/Files/SearchUser";
+
 export default function FileManagement() {
   const [files, setFiles] = useState([]);
   const [currentPath, setCurrentPath] = useState([]);
@@ -73,9 +74,9 @@ export default function FileManagement() {
 
   const { toast } = useToast();
 
-useEffect(() => {
-  loadFiles(); 
-}, [currentPath, selectedUser]);
+  useEffect(() => {
+    loadFiles();
+  }, [currentPath, selectedUser]);
   useEffect(() => {
     initializeSearch();
   }, []);
@@ -99,39 +100,39 @@ useEffect(() => {
     }
   }, [isMoveDialogOpen]);
 
-const loadFiles = async (opts = {}) => {
-  setLoading(true);
-  try {
-    const currentParentId =
-      currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+  const loadFiles = async (opts = {}) => {
+    setLoading(true);
+    try {
+      const currentParentId =
+        currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
 
-    // Prepare parameters for API call
-    const params = {};
-    if (selectedUser) {
-      params.user_id = selectedUser; // Changed from created_by to user_id
+      // Prepare parameters for API call
+      const params = {};
+      if (selectedUser) {
+        params.user_id = selectedUser; // Changed from created_by to user_id
+      }
+
+      // Pass options to the API service
+      const options = {
+        force: opts.force || !!selectedUser // Always force when user is selected
+      };
+
+      console.log('Making API call with params:', params, 'options:', options);
+      const data = await fileApi.listFiles(currentParentId, params, options);
+      const safeData = Array.isArray(data) ? data : [];
+      setFiles(safeData);
+    } catch (error) {
+      console.error("Failed to load files:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load files. Please check your authentication.",
+        variant: "destructive",
+      });
+      setFiles([]);
+    } finally {
+      setLoading(false);
     }
-
-    // Pass options to the API service
-    const options = {
-      force: opts.force || !!selectedUser // Always force when user is selected
-    };
-
-    console.log('Making API call with params:', params, 'options:', options);
-    const data = await fileApi.listFiles(currentParentId, params, options);
-    const safeData = Array.isArray(data) ? data : [];
-    setFiles(safeData);
-  } catch (error) {
-    console.error("Failed to load files:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load files. Please check your authentication.",
-      variant: "destructive",
-    });
-    setFiles([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   const initializeSearch = async () => {
     setIndexing(true);
     try {
@@ -144,41 +145,41 @@ const loadFiles = async (opts = {}) => {
     }
   };
 
-const handleSearch = async () => {
-  if (!searchTerm.trim()) {
-    setIsGlobalSearch(false);
-    setSearchResults([]);
-    return;
-  }
-
-  setIsSearching(true);
-  try {
-    if (indexing) {
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      return handleSearch();
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setIsGlobalSearch(false);
+      setSearchResults([]);
+      return;
     }
 
-    let results = searchService.search(searchTerm);
-    
-    // Apply user filter to search results if user is selected
-    if (selectedUser) {
-      results = results.filter(item => item.created_by === selectedUser); // This might need to be item.user_id depending on your data structure
+    setIsSearching(true);
+    try {
+      if (indexing) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return handleSearch();
+      }
+
+      let results = searchService.search(searchTerm);
+
+      // Apply user filter to search results if user is selected
+      if (selectedUser) {
+        results = results.filter(item => item.created_by === selectedUser); // This might need to be item.user_id depending on your data structure
+      }
+
+      setSearchResults(results);
+      setIsGlobalSearch(true);
+    } catch (error) {
+      console.warn("Search failed:", error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search files. Using local folder search.",
+        variant: "destructive",
+      });
+      setIsGlobalSearch(false);
+    } finally {
+      setIsSearching(false);
     }
-    
-    setSearchResults(results);
-    setIsGlobalSearch(true);
-  } catch (error) {
-    console.warn("Search failed:", error);
-    toast({
-      title: "Search Error",
-      description: "Failed to search files. Using local folder search.",
-      variant: "destructive",
-    });
-    setIsGlobalSearch(false);
-  } finally {
-    setIsSearching(false);
-  }
-};
+  };
 
   const handleSearchResultSelect = (result) => {
     // Navigate to parent folder if needed
@@ -310,67 +311,66 @@ const handleSearch = async () => {
     setSelectedItem(item);
   };
 
-const handleDownload = async (id, filename) => {
-  setIsDownloading((prev) => ({ ...prev, [id]: true }));
-  try {
-    // Get the download URL from your API
-    const response = await fileApi.getDownloadUrl(id);
-    
-    console.log('API Response:', response);
-    
-    // Handle different response formats
-    let downloadUrl;
-    if (typeof response === 'string') {
-      // Direct URL string
-      downloadUrl = response;
-    } else if (response && response.download_url) {
-      // Response object with download_url property
-      downloadUrl = response.download_url;
-    } else if (response && response.url) {
-      // Response object with url property
-      downloadUrl = response.url;
-    } else {
-      throw new Error('Invalid response format: no download URL found');
-    }
-    
-    if (!downloadUrl) {
-      throw new Error('Download URL is empty or undefined');
-    }
-    
-    console.log('Download URL retrieved:', downloadUrl);
-    
-    // Create a temporary link element and trigger download
-    const link = document.createElement('a');
-    link.href = downloadUrl;
-    link.download = filename || 'file';
-    
-    // Append to body, click, and remove
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    toast({
-      title: "Download Started",
-      description: `Downloading ${filename}`,
-    });
-    
-  } catch (error) {
-    console.error('Failed to download file:', error);
-    console.error('Error details:', {
-      message: error.message,
-      stack: error.stack,
-      response: error.response
-    });
-    toast({
-      title: "Error",
-      description: `Failed to download file: ${error.message}`,
-      variant: "destructive",
-    });
-  } finally {
-    setIsDownloading((prev) => ({ ...prev, [id]: false }));
-  }
-};
+  const handleDownload = async (id, filename) => {
+    setIsDownloading((prev) => ({ ...prev, [id]: true }));
+    try {
+      // Get the download URL from your API
+      const response = await fileApi.getDownloadUrl(id);
 
+      console.log('API Response:', response);
+
+      // Handle different response formats
+      let downloadUrl;
+      if (typeof response === 'string') {
+        // Direct URL string
+        downloadUrl = response;
+      } else if (response && response.download_url) {
+        // Response object with download_url property
+        downloadUrl = response.download_url;
+      } else if (response && response.url) {
+        // Response object with url property
+        downloadUrl = response.url;
+      } else {
+        throw new Error('Invalid response format: no download URL found');
+      }
+
+      if (!downloadUrl) {
+        throw new Error('Download URL is empty or undefined');
+      }
+
+      console.log('Download URL retrieved:', downloadUrl);
+
+      // Create a temporary link element and trigger download
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = filename || 'file';
+
+      // Append to body, click, and remove
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "Download Started",
+        description: `Downloading ${filename}`,
+      });
+
+    } catch (error) {
+      console.error('Failed to download file:', error);
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        response: error.response
+      });
+      toast({
+        title: "Error",
+        description: `Failed to download file: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading((prev) => ({ ...prev, [id]: false }));
+    }
+  };
 
   const handleDelete = async (id) => {
     setIsDeleting((prev) => ({ ...prev, [id]: true }));
@@ -487,8 +487,8 @@ const handleDownload = async (id, filename) => {
     } finally {
       setIsRenaming((prev) => ({ ...prev, [id]: false }));
     }
-  };
-
+    };
+    
   const handleManagePermissions = (item) => {
     setItemForPermissions(item);
     setShowPermissionsDialog(true);
@@ -543,22 +543,22 @@ const handleDownload = async (id, filename) => {
     }
   };
 
-const displayItems = isGlobalSearch
-  ? searchResults.filter(
-      (item) => !selectedUser || item.created_by === selectedUser // Check if this should be item.user_id
-    )
-  : files.filter((file) => {
-      const matchesSearch = file.name
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-      const matchesUser = !selectedUser || file.created_by === selectedUser; // Check if this should be file.user_id
-      return matchesSearch && matchesUser;
-    });
+  const displayItems = isGlobalSearch
+    ? searchResults.filter(
+        (item) => !selectedUser || item.created_by === selectedUser
+      )
+    : files.filter((file) => {
+        const matchesSearch = file.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+        const matchesUser = !selectedUser || file.created_by === selectedUser;
+        return matchesSearch && matchesUser;
+      });
 
   return (
     <DragDropZone onFileDrop={handleFileDrop}>
       <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
-        <div className="p-8 max-w-7xl mx-auto">
+        <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
           {/* Upload Progress Overlay */}
           {isUploading && (
             <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
@@ -568,10 +568,10 @@ const displayItems = isGlobalSearch
           )}
 
           {/* Header */}
-          <div className="flex items-center justify-between mb-6 border-b pb-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b pb-4">
             {/* Left side: title and subtitle */}
             <div>
-              <h1 className="text-3xl font-semibold text-gray-800">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
                 File Management
               </h1>
               <p className="text-sm text-gray-500 mt-1">
@@ -580,7 +580,7 @@ const displayItems = isGlobalSearch
             </div>
 
             {/* Right side: buttons */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-3 mt-4 sm:mt-0">
               {/* Sync Button */}
               <button
                 onClick={handleSync}
@@ -626,7 +626,7 @@ const displayItems = isGlobalSearch
           {/* Breadcrumb Navigation */}
           <div className="mb-6 animate-fade-in">
             <nav className="flex items-center justify-between bg-card p-4 rounded-lg shadow-file border">
-              <div className="flex items-center space-x-2 text-sm">
+              <div className="flex items-center space-x-2 text-sm overflow-x-auto whitespace-nowrap">
                 <button
                   onClick={() => handleBreadcrumbClick(-1)}
                   disabled={loading}
@@ -669,12 +669,12 @@ const displayItems = isGlobalSearch
             </nav>
           </div>
 
-          <div className="grid grid-cols-1 gap-8">
+          <div className="grid grid-cols-1">
             {/* Main File Area */}
             <div className="animate-fade-in">
               <Card className="shadow-card border-0 bg-gradient-file">
                 <CardHeader className="bg-card/95 backdrop-blur-sm rounded-t-lg border-b">
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <HardDrive className="h-5 w-5 text-primary" />
                       {isGlobalSearch
@@ -685,15 +685,17 @@ const displayItems = isGlobalSearch
                       )}
                     </CardTitle>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
                       {/* User Filter */}
-                      <SearchUser
-                        selectedUser={selectedUser}
-                        onUserSelect={setSelectedUser}
-                      />
+                      <div className="w-full sm:w-auto">
+                        <SearchUser
+                          selectedUser={selectedUser}
+                          onUserSelect={setSelectedUser}
+                        />
+                      </div>
 
                       {/* Search Input */}
-                      <div className="relative">
+                      <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
                           placeholder={
@@ -703,13 +705,13 @@ const displayItems = isGlobalSearch
                               ? "Searching..."
                               : "Search all files and folders..."
                           }
-                          className="pl-9 w-64 border-border bg-background"
+                          className="pl-9 w-full border-border bg-background"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
                           disabled={indexing}
                         />
                         {isSearching && (
-                          <Loader2 className="absolute right-8 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
                         )}
                         {isGlobalSearch && !isSearching && (
                           <Button
@@ -720,7 +722,7 @@ const displayItems = isGlobalSearch
                               setIsGlobalSearch(false);
                               setSearchResults([]);
                             }}
-                            className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                           >
                             <X className="h-3 w-3" />
                           </Button>
@@ -751,8 +753,8 @@ const displayItems = isGlobalSearch
                         </p>
                       </div>
                     ) : (
-                      // Grid layout for 3 columns
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      // Grid layout for 3 columns on medium screens and up
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {displayItems.map((item) => (
                           <div key={item.id} className="relative">
                             {isGlobalSearch && "path" in item && (

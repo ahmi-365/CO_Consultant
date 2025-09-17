@@ -96,15 +96,15 @@ export default function ProfilePage() {
         {/* Content */}
         <div className="container mx-auto px-6 py-8">
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 Profile
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex items-center gap-2">
+              {/* <TabsTrigger value="settings" className="flex items-center gap-2">
                 <Settings className="h-4 w-4" />
                 Settings
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="security" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 Security
@@ -186,7 +186,7 @@ export default function ProfilePage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Storage Usage</CardTitle>
                   <CardDescription>
@@ -225,10 +225,10 @@ export default function ProfilePage() {
                     </div>
                   </div>
                 </CardContent>
-              </Card>
+              </Card> */}
             </TabsContent>
 
-            <TabsContent value="settings" className="space-y-6">
+            {/* <TabsContent value="settings" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Preferences</CardTitle>
@@ -314,7 +314,7 @@ export default function ProfilePage() {
                   </Button>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
 
             <TabsContent value="security" className="space-y-6">
               <Card>
