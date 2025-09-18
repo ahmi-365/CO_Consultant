@@ -7,7 +7,7 @@ import FileDialogs from "./Files/FileDialogs";
 import { fileApi, fetchRecentFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
-import { hasPermission } from "@/utils/permissions";
+import { hasPermission } from "@/Utils/permissions";
 import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
 import { trashService } from "../../services/trashservice";
 import { starService } from "@/services/StarredService";
