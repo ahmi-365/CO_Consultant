@@ -7,9 +7,10 @@ import FileDialogs from "./Files/FileDialogs";
 import { fileApi, fetchRecentFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
-import { hasPermission } from "@/utils/permissions";
+import { hasPermission } from "@/Utils/permissions";
 import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
 import { trashService } from "../../services/trashservice";
+import { starService } from "@/services/StarredService";
 
 export default function CPFileManagement() {
   // State management
@@ -180,27 +181,18 @@ export default function CPFileManagement() {
 const loadRecentFiles = async () => {
   try {
     const response = await fetchRecentFiles();
-    console.log("Raw recent files response:", response);
-    
-    // Handle the backend response structure: {status: "ok", recent_views: [...]}
     let recentFilesData = [];
     
     if (response && response.status === "ok" && Array.isArray(response.recent_views)) {
       recentFilesData = response.recent_views;
     } else if (Array.isArray(response)) {
-      // Fallback if the response is directly an array
       recentFilesData = response;
     }
-    
-    console.log("Processed recent files data:", recentFilesData);
-    
-    // Sort by viewed_at (most recent first) and limit to 5
-    const sorted = recentFilesData
-      .filter((f) => f && f.viewed_at) // Filter out invalid entries
+      const sorted = recentFilesData
+      .filter((f) => f && f.viewed_at) 
       .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
       .slice(0, 5);
     
-    console.log("Final sorted recent files:", sorted);
     setRecentFiles(sorted);
   } catch (error) {
     console.error("Error loading recent files:", error);
@@ -337,9 +329,37 @@ const handleBulkMoveToTrash = async (fileIds) => {
       return newSelected;
     });
   };
+const handleStarChange = (fileId, isStarred) => {
+  // Update files state
+  setFiles(prevFiles => 
+    prevFiles.map(file => 
+      file.id === fileId 
+        ? { ...file, is_starred: isStarred }
+        : file
+    )
+  );
 
+  // Update search results if in global search
+  if (isGlobalSearch) {
+    setSearchResults(prevResults => 
+      prevResults.map(file => 
+        file.id === fileId 
+          ? { ...file, is_starred: isStarred }
+          : file
+      )
+    );
+  }
+
+  // Update recent files
+  setRecentFiles(prevRecent => 
+    prevRecent.map(file => 
+      file.id === fileId 
+        ? { ...file, is_starred: isStarred }
+        : file
+    )
+  );
+};
   useEffect(() => {
-    console.log("Selected files changed:", Array.from(selectedFiles));
   }, [selectedFiles]);
   const user = JSON.parse(localStorage.getItem("user"));
 
@@ -412,6 +432,7 @@ const handleBulkMoveToTrash = async (fileIds) => {
           } // Use conditional handler
           isSelectionMode={isSelectionMode}
           selectedFiles={selectedFiles}
+onStarChange={handleStarChange}
         />
           {selectedFiles.size > 0 && isSelectionMode && (
             <BulkActionToolbar

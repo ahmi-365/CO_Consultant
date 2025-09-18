@@ -75,12 +75,6 @@ export default function FileHeader({
       minute: '2-digit'
     });
   };
-
-  // Debug logging
-  console.log("Recent files data:", recentFiles);
-  console.log("Recent files type:", typeof recentFiles);
-  console.log("Recent files length:", recentFiles?.length);
-
   return (
     <div className="mb-8">
       {/* Header Section */}

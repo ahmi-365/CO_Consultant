@@ -93,61 +93,91 @@ export default function FileDialogs({
     }
   };
 
-  const handleConfirmMove = async () => {
-    if (!itemToMove || !moveDestination) {
-      console.warn("⚠️ No itemToMove or moveDestination provided", {
-        itemToMove,
-        moveDestination,
-      });
-      toast({
-        title: "Error",
-        description: "Please select an item and destination",
-        variant: "destructive",
-      });
-      return;
+const handleConfirmMove = async () => {
+  try {
+    setIsMoving(true);
+    if (!itemToMove && itemToMove !== 0) {
+      throw new Error("No item selected to move");
     }
 
-    try {
-      const dest = moveDestination === "root" ? null : moveDestination;
+    if (!moveDestination && moveDestination !== "root") {
+      throw new Error("No destination selected");
+    }
+    const fileId = itemToMove;
+    if (fileId === undefined || fileId === null) {
+      throw new Error("Invalid file ID");
+    }
 
-      console.log("📦 Moving item", { itemToMove, dest });
+const API_URL = import.meta.env.VITE_API_URL; 
+const url = `${API_URL}/onedrive/move-file`;
+    let targetParentId;
+    if (moveDestination === "root") {
+      targetParentId = null;
+    } else {
+      targetParentId = String(moveDestination);
+    }
 
-      const result = await fileApi.moveItem(itemToMove, dest);
-      console.log("✅ Move result:", result);
+    const requestBody = {
+      file_id: String(fileId), // Convert to string in case API expects string
+      new_parent_id: targetParentId,
+    };
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify(requestBody),
+    });
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("📦 Full Error Response:", errorData);
+      let errorMessage = "Failed to move item";
 
-      toast({
-        title: "Success",
-        description: "Item moved successfully",
-      });
-
-      setIsMoveDialogOpen(false);
-      setItemToMove(null);
-      setMoveDestination("");
-
-      // wait for files to reload before indexing
-      await loadFiles({ force: true });
-
-      console.log("🔍 Refreshing search index...");
-      await searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-      console.log("🔍 Index refresh done");
-    } catch (error) {
-      console.error("🚨 Move failed:", error);
-
-      if (
-        error.name === "TypeError" &&
-        error.message.includes("Failed to fetch")
-      ) {
-        console.error("🌐 Possible CORS/network issue during move request");
+      if (errorData.error) {
+        if (typeof errorData.error === 'string') {
+          errorMessage = errorData.error;
+        } else if (errorData.error.message) {
+          errorMessage = errorData.error.message;
+        }
+      } else if (errorData.message) {
+        errorMessage = errorData.message;
       }
-
-      toast({
-        title: "Error",
-        description: "Failed to move item",
-        variant: "destructive",
-      });
+      throw new Error(`HTTP ${res.status}: ${errorMessage}`);
     }
-  };
+
+    const result = await res.json();
+
+    toast({
+      title: "Success",
+      description: "Item moved successfully",
+    });
+
+    // Reset dialog state
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+    setMoveDestination("");
+
+    // Refresh the file list
+    await loadFiles({ force: true });
+
+    // Refresh search index
+    await searchService.clearIndex();
+    await searchService.indexAllFiles(true);
+  } catch (error) {
+    console.error("🚨 Move failed:", error);
+
+    let errorMessage = "Failed to move item";
+    toast({
+      title: "Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  } finally {
+    setIsMoving(false);
+  }
+};  
+
 
   return (
     <>

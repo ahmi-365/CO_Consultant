@@ -189,8 +189,8 @@ export const fileApi = {
   },
 
   async deleteItem(id) {
-    const response = await fetch(`${API_URL}/onedrive/delete/${id}`, {
-      method: 'DELETE',
+    const response = await fetch(`${API_URL}/onedrive/trash/${id}`, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`,
       },
@@ -203,7 +203,7 @@ export const fileApi = {
     fileCache.clear();
   },
 
-  async moveItem(id, new_parent_id) {
+ async moveItem(id, new_parent_id) {
     const token = localStorage.getItem('token');
     const url = `${API_URL}/onedrive/move/${id}`;
 
@@ -213,7 +213,6 @@ export const fileApi = {
 
     const response = await fetch(url, {
       method: 'POST',
-      mode: 'cors',
       headers: {
         'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
@@ -229,7 +228,8 @@ export const fileApi = {
     }
 
     const result = await response.json().catch(() => null);
-    fileCache.clear();
+
+    fileCache.clear(); // optional: agar cache system use kar rahe ho
     return result?.data || result;
   },
 
