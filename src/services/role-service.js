@@ -17,7 +17,6 @@ export const roleService = {
         return { success: false, message: result.message || "Failed to fetch roles" };
       }
 
-      console.log("Fetched roles:", result);
       return { success: true, data: result };
     } catch (err) {
       console.error("❌ Get roles error:", err);

@@ -367,12 +367,12 @@ export default function Profile() {
                 <Badge className="mt-2">Administrator</Badge>
               </div>
 
-              <Separator />
+              {/* <Separator /> */}
 
-              <div className="space-y-2">
+              {/* <div className="space-y-2">
                 <div className="flex justify-between text-sm"><span>Member since</span><span>Jan 2024</span></div>
                 <div className="flex justify-between text-sm"><span>Last login</span><span>2 hours ago</span></div>
-              </div>
+              </div> */}
             </CardContent>
           </Card>
 

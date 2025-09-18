@@ -16,7 +16,6 @@ export const userService = {
       if (!res.ok) {
         return { success: false, message: result.message || "Failed to fetch users" };
       }
-console.log("Fetched users:", result);
       return { success: true, data: result };
     } catch (err) {
       console.error("❌ Get users error:", err);

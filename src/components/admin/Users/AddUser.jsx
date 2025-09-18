@@ -167,7 +167,7 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         {mode === "edit" ? (
-          <Button variant="ghost" size="sm">
+          <Button variant="ghost" size="sm" >
             Edit
           </Button>
         ) : (

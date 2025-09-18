@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MoreHorizontal, User as UserIcon, Search, Mail, Calendar } from "lucide-react";
+import { MoreHorizontal, User as UserIcon, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +36,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { UserForm } from "./AddUser";
-import { UserDetailsModal } from "./Userdetails";
+import { UserDetailsModal } from "./Userdetails"; // ✅ import modal
 
 export const UserListComponent = ({
   users,
@@ -100,12 +100,13 @@ export const UserListComponent = ({
     deleteUserMutation.mutate(userId);
   };
 
+  // ✅ yeh function modal open karega
   const handleViewDetails = (user) => {
     setSelectedUser(user);
     setIsDetailsOpen(true);
   };
 
-  // Helper functions
+  // Helper functions (same as pehle)
   const getUserRole = (user) => {
     if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
       return user.roles[0].name;
@@ -196,77 +197,68 @@ export const UserListComponent = ({
   return (
     <>
       <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-col space-y-4">
-            <CardTitle className="text-lg md:text-xl">
-              All Users ({filteredUsers.length})
-            </CardTitle>
-            
-            {/* Search and Filter in same row - responsive */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              {/* Search bar - takes more space */}
-              <div className="relative flex-1 sm:flex-[2]">
+        <CardHeader>
+          <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+            <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+            <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
+              <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
                   placeholder="Search users..."
-                  className="pl-9 w-full h-10"
+                  className="pl-9 w-full sm:w-64"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              
-              {/* Role filter - takes less space */}
-              <div className="flex-1 sm:flex-[1] sm:min-w-[160px]">
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                  <SelectTrigger className="w-full h-10">
-                    <SelectValue placeholder="All Roles" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Roles</SelectItem>
-                    {getUniqueRoles().map((role) => (
-                      <SelectItem key={role} value={role} className="capitalize">
-                        {role}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {getUniqueRoles().map((role) => (
+                    <SelectItem key={role} value={role} className="capitalize">
+                      {role}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
         </CardHeader>
-        
-        <CardContent className="p-0 sm:p-6">
-          {/* Desktop Table View - Hidden on mobile */}
-          <div className="hidden md:block">
-            <div className="space-y-4">
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b px-6">
-                <div className="col-span-3">User</div>
-                <div className="col-span-3">Email</div>
-                <div className="col-span-2">Role & Type</div>
-                <div className="col-span-2">Created</div>
-                <div className="col-span-1">Actions</div>
+        <CardContent>
+          <div className="space-y-4">
+            {/* ✅ Table Header - Desktop only */}
+            <div className="hidden sm:grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+              <div className="col-span-3">User</div>
+              <div className="col-span-3">Email</div>
+              <div className="col-span-2">Role & Type</div>
+              <div className="col-span-2">Created</div>
+              <div className="col-span-1">Actions</div>
+            </div>
+
+            {/* ✅ Table Content */}
+            {filteredUsers.length === 0 ? (
+              <div className="text-center py-12">
+                <UserIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                <h3 className="text-sm font-medium text-foreground mb-1">
+                  No users found
+                </h3>
               </div>
+            ) : (
+              filteredUsers.map((user) => {
+                const hasOneDrive = hasOneDriveIntegration(user);
 
-              {/* Table Content */}
-              {filteredUsers.length === 0 ? (
-                <div className="text-center py-12">
-                  <UserIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <h3 className="text-sm font-medium text-foreground mb-1">
-                    No users found
-                  </h3>
-                </div>
-              ) : (
-                filteredUsers.map((user) => {
-                  const hasOneDrive = hasOneDriveIntegration(user);
-
-                  return (
-                    <div
-                      key={user.id}
-                      className="grid grid-cols-12 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-gray-50/50 rounded-lg px-6 transition-colors"
-                    >
-                      {/* User Info */}
-                      <div className="col-span-3 flex items-center gap-3">
+                return (
+                  <div
+                    key={user.id}
+                    className="sm:grid sm:grid-cols-12 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-gray-50/50 rounded-lg px-2 transition-colors"
+                  >
+                    {/* ✅ Mobile View (Card layout) */}
+                    <div className="block sm:hidden space-y-2 p-3 border rounded-lg shadow-sm bg-white">
+                      {/* Top Row */}
+                      <div className="flex items-center gap-3">
                         <Avatar className="h-10 w-10">
                           <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
                             {user.name &&
@@ -277,10 +269,8 @@ export const UserListComponent = ({
                                 .toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="min-w-0">
-                          <div className="font-medium text-sm truncate">
-                            {user.name}
-                          </div>
+                        <div>
+                          <div className="font-medium text-sm">{user.name}</div>
                           <div className="text-xs text-muted-foreground">
                             ID: {user.id}
                           </div>
@@ -288,68 +278,66 @@ export const UserListComponent = ({
                       </div>
 
                       {/* Email */}
-                      <div className="col-span-3">
-                        <div className="text-sm text-muted-foreground truncate">
-                          {user.email}
-                        </div>
-                        {hasOneDrive && (
-                          <div className="flex items-center mt-1">
-                            <Badge variant="outline" className="text-xs">
-                              OneDrive
-                            </Badge>
-                          </div>
-                        )}
+                      <div className="text-sm text-muted-foreground break-words">
+                        {user.email}
                       </div>
-
-                      {/* Role & Type */}
-                      <div className="col-span-2 space-y-1">
-                        <Badge variant="outline" className="text-xs capitalize">
-                          {getUserRole(user)}
+                      {hasOneDrive && (
+                        <Badge variant="outline" className="text-xs">
+                          OneDrive
                         </Badge>
-                      </div>
+                      )}
 
-                      {/* Created Date */}
-                      <div className="col-span-2">
-                        <div className="text-sm text-muted-foreground">
-                          {formatDate(user.created_at)}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {getRelativeTime(user.created_at)}
-                        </div>
+                      {/* Role */}
+                      <Badge variant="outline" className="text-xs capitalize">
+                        {getUserRole(user)}
+                      </Badge>
+
+                      {/* Date */}
+                      <div className="text-xs text-muted-foreground">
+                        {formatDate(user.created_at)} ({getRelativeTime(user.created_at)})
                       </div>
 
                       {/* Actions */}
-                      <div className="col-span-1">
+                      <div className="pt-2">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="w-full">
+                              Actions
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent className="w-40">
                             <DropdownMenuItem onClick={() => handleViewDetails(user)}>
                               View Details
                             </DropdownMenuItem>
-
-                            <UserForm
-                              mode="edit"
-                              initialData={{
-                                id: user.id,
-                                name: user.name,
-                                email: user.email,
-                                password: "",
-                                role: user.roles?.[0]?.name || "user",
-                              }}
-                              onSubmit={(updatedUser) =>
-                                handleUpdateUser(updatedUser.id, {
-                                  name: updatedUser.name,
-                                  email: updatedUser.email,
-                                  password: updatedUser.password || undefined,
-                                  role: updatedUser.role,
-                                })
-                              }
-                            />
-
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <UserForm
+                                mode="edit"
+                                initialData={{
+                                  id: user.id,
+                                  name: user.name,
+                                  email: user.email,
+                                  password: "",
+                                  role: user.roles?.[0]?.name || "user",
+                                }}
+                                onSubmit={(updatedUser) =>
+                                  handleUpdateUser(updatedUser.id, {
+                                    name: updatedUser.name,
+                                    email: updatedUser.email,
+                                    password: updatedUser.password || undefined,
+                                    role: updatedUser.role,
+                                  })
+                                }
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full justify-start"
+                                  >
+                                    Edit User
+                                  </Button>
+                                }
+                              />
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -387,61 +375,63 @@ export const UserListComponent = ({
                         </DropdownMenu>
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
 
-          {/* Mobile Card View - Visible only on mobile */}
-          <div className="md:hidden">
-            {filteredUsers.length === 0 ? (
-              <div className="text-center py-12 px-4">
-                <UserIcon className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                <h3 className="text-sm font-medium text-foreground mb-1">
-                  No users found
-                </h3>
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {filteredUsers.map((user) => {
-                  const hasOneDrive = hasOneDriveIntegration(user);
-
-                  return (
-                    <div key={user.id} className="p-4 hover:bg-gray-50/50 transition-colors">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <Avatar className="h-12 w-12 flex-shrink-0">
-                            <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-sm">
-                              {user.name &&
-                                user.name
-                                  .split(" ")
-                                  .map((n) => n[0])
-                                  .join("")
-                                  .toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <h3 className="font-medium text-base truncate mb-1">
-                              {user.name}
-                            </h3>
-                            <div className="flex items-center gap-2 mb-2">
-                              <Badge variant="outline" className="text-xs capitalize">
-                                {getUserRole(user)}
-                              </Badge>
-                              {hasOneDrive && (
-                                <Badge variant="outline" className="text-xs">
-                                  OneDrive
-                                </Badge>
-                              )}
-                            </div>
+                    {/* ✅ Desktop View (Grid layout) */}
+                    <div className="hidden sm:contents">
+                      {/* User */}
+                      <div className="col-span-3 flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
+                            {user.name &&
+                              user.name
+                                .split(" ")
+                                .map((n) => n[0])
+                                .join("")
+                                .toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="min-w-0">
+                          <div className="font-medium text-sm truncate">{user.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            ID: {user.id}
                           </div>
                         </div>
-                        
-                        {/* Actions Button */}
+                      </div>
+
+                      {/* Email */}
+                      <div className="col-span-3">
+                        <div className="text-sm text-muted-foreground truncate">
+                          {user.email}
+                        </div>
+                        {hasOneDrive && (
+                          <Badge variant="outline" className="text-xs">
+                            OneDrive
+                          </Badge>
+                        )}
+                      </div>
+
+                      {/* Role */}
+                      <div className="col-span-2">
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {getUserRole(user)}
+                        </Badge>
+                      </div>
+
+                      {/* Date */}
+                      <div className="col-span-2">
+                        <div className="text-sm text-muted-foreground">
+                          {formatDate(user.created_at)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {getRelativeTime(user.created_at)}
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="col-span-1">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="flex-shrink-0">
+                            <Button variant="ghost" size="sm">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -449,26 +439,35 @@ export const UserListComponent = ({
                             <DropdownMenuItem onClick={() => handleViewDetails(user)}>
                               View Details
                             </DropdownMenuItem>
-
-                            <UserForm
-                              mode="edit"
-                              initialData={{
-                                id: user.id,
-                                name: user.name,
-                                email: user.email,
-                                password: "",
-                                role: user.roles?.[0]?.name || "user",
-                              }}
-                              onSubmit={(updatedUser) =>
-                                handleUpdateUser(updatedUser.id, {
-                                  name: updatedUser.name,
-                                  email: updatedUser.email,
-                                  password: updatedUser.password || undefined,
-                                  role: updatedUser.role,
-                                })
-                              }
-                            />
-
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <UserForm
+                                mode="edit"
+                                initialData={{
+                                  id: user.id,
+                                  name: user.name,
+                                  email: user.email,
+                                  password: "",
+                                  role: user.roles?.[0]?.name || "user",
+                                }}
+                                onSubmit={(updatedUser) =>
+                                  handleUpdateUser(updatedUser.id, {
+                                    name: updatedUser.name,
+                                    email: updatedUser.email,
+                                    password: updatedUser.password || undefined,
+                                    role: updatedUser.role,
+                                  })
+                                }
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full justify-start"
+                                  >
+                                    Edit User
+                                  </Button>
+                                }
+                              />
+                            </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
@@ -479,7 +478,7 @@ export const UserListComponent = ({
                                   Delete User
                                 </DropdownMenuItem>
                               </AlertDialogTrigger>
-                              <AlertDialogContent className="mx-4 max-w-sm">
+                              <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete User</AlertDialogTitle>
                                   <AlertDialogDescription>
@@ -488,12 +487,10 @@ export const UserListComponent = ({
                                     be undone.
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
-                                <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                  <AlertDialogCancel className="w-full sm:w-auto">
-                                    Cancel
-                                  </AlertDialogCancel>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                                   <AlertDialogAction
-                                    className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                     onClick={() => handleDeleteUser(user.id)}
                                     disabled={deleteUserMutation.isPending}
                                   >
@@ -507,33 +504,17 @@ export const UserListComponent = ({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
-
-                      {/* User Details */}
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-4 w-4 flex-shrink-0" />
-                          <span className="truncate">{user.email}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Calendar className="h-4 w-4 flex-shrink-0" />
-                          <span>
-                            {formatDate(user.created_at)} • {getRelativeTime(user.created_at)}
-                          </span>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          ID: {user.id}
-                        </div>
-                      </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                );
+              })
             )}
           </div>
         </CardContent>
+
       </Card>
 
-      {/* User Details Modal */}
+      {/* ✅ User Details Modal */}
       <UserDetailsModal
         user={selectedUser}
         isOpen={isDetailsOpen}

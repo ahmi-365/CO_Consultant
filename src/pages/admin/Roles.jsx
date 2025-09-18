@@ -38,7 +38,6 @@ const roleService = {
         return { success: false, message: result.message || "Failed to fetch roles" };
       }
 
-      console.log("Fetched roles:", result);
       return { success: true, data: result };
     } catch (err) {
       console.error("❌ Get roles error:", err);
@@ -625,7 +624,6 @@ export default function Roles() {
         }
         
         setRoles(rolesData);
-        console.log("Roles loaded:", rolesData);
       } else {
         console.error("Failed to fetch roles:", res.message);
         setRoles([]);
