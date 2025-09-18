@@ -32,7 +32,7 @@ import {
   Camera,
 } from "lucide-react";
 import { toast } from "sonner";
-import { profileService } from "@/services/profileservice";
+import { profileService } from "@/services/profileService";
 
 const BASE_URL = import.meta.env.VITE_API_URL;
 

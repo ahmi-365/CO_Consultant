@@ -39,7 +39,7 @@ import {
   Star
 } from "lucide-react";
 import { formatFileSize, formatDate, getFileIcon } from "@/services/FileService";
-import { starService } from "@/services/Starredservice"; // Fixed: Consistent naming
+import { starService } from "@/services/StarredService"; // Fixed: Consistent naming
 import { useToast } from "@/hooks/use-toast";
 
 const getFileIconComponent = (filename, type) => {
