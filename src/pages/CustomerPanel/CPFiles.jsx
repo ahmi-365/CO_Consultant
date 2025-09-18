@@ -7,7 +7,7 @@ import FileDialogs from "./Files/FileDialogs";
 import { fileApi, fetchRecentFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
-// import { hasPermission } from "@/utils/permissions";
+import { hasPermission } from "../../utils/permissions";
 import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
 import { trashService } from "../../services/trashservice";
 import { starService } from "@/services/StarredService";
@@ -54,7 +54,7 @@ export default function CPFileManagement() {
   const [isRenaming, setIsRenaming] = useState({});
 
   const { toast } = useToast();
-  
+
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
     setSelectedFiles(new Set());
@@ -64,7 +64,7 @@ export default function CPFileManagement() {
   const handleSelectAll = (allFileIds) => {
     setSelectedFiles(new Set(allFileIds));
   };
-  
+
   // Load files when path or user changes
   useEffect(() => {
     loadFiles();
@@ -163,8 +163,12 @@ export default function CPFileManagement() {
         force: opts.force || !!selectedUser,
       };
 
-      const response = await fileApi.listFiles(currentParentId, params, options);
-      
+      const response = await fileApi.listFiles(
+        currentParentId,
+        params,
+        options
+      );
+
       // Handle different API response formats
       let safeData = [];
       if (Array.isArray(response)) {
@@ -173,11 +177,15 @@ export default function CPFileManagement() {
       } else if (response && Array.isArray(response.data)) {
         // Response with data property
         safeData = response.data;
-      } else if (response && response.status === "ok" && Array.isArray(response.data)) {
+      } else if (
+        response &&
+        response.status === "ok" &&
+        Array.isArray(response.data)
+      ) {
         // Response with status and data
         safeData = response.data;
       }
-      
+
       console.log("Loaded files:", safeData);
       setFiles(safeData);
     } catch (error) {
@@ -198,25 +206,29 @@ export default function CPFileManagement() {
     try {
       const response = await fetchRecentFiles();
       let recentFilesData = [];
-      
-      if (response && response.status === "ok" && Array.isArray(response.recent_views)) {
+
+      if (
+        response &&
+        response.status === "ok" &&
+        Array.isArray(response.recent_views)
+      ) {
         recentFilesData = response.recent_views;
       } else if (Array.isArray(response)) {
         recentFilesData = response;
       }
-      
+
       const sorted = recentFilesData
-        .filter((f) => f && f.viewed_at) 
+        .filter((f) => f && f.viewed_at)
         .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
         .slice(0, 5);
-      
+
       setRecentFiles(sorted);
     } catch (error) {
       console.error("Error loading recent files:", error);
       setRecentFiles([]);
     }
   };
-  
+
   // Load available folders for move dialog
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
@@ -321,7 +333,7 @@ export default function CPFileManagement() {
       setIsRefreshing(false);
     }
   };
-  
+
   // Handle breadcrumb navigation
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
@@ -337,11 +349,12 @@ export default function CPFileManagement() {
       console.log("TRASH RESPONSE:", response);
 
       // backend ka ulta structure handle kar rahe hain
-      const message = response.success === true 
-        ? response.message || "Files moved successfully"
-        : response.error || "Something went wrong";
+      const message =
+        response.success === true
+          ? response.message || "Files moved successfully"
+          : response.error || "Something went wrong";
 
-      const variant = response.success === true ? "default" : "default"; 
+      const variant = response.success === true ? "default" : "default";
       // yahan default variant use karenge kyunki backend ka success=false hai, par message success ka hai
 
       loadFiles({ force: true });
@@ -353,7 +366,6 @@ export default function CPFileManagement() {
         description: message,
         variant: variant,
       });
-
     } catch (err) {
       console.error(err);
       toast({
@@ -371,7 +383,7 @@ export default function CPFileManagement() {
     }
     setSelectedItem(item);
   };
-  
+
   const handleFileSelection = (fileId, isSelected) => {
     console.log("File selection changed:", fileId, isSelected);
 
@@ -389,38 +401,31 @@ export default function CPFileManagement() {
 
   const handleStarChange = (fileId, isStarred) => {
     // Update files state
-    setFiles(prevFiles => 
-      prevFiles.map(file => 
-        file.id === fileId 
-          ? { ...file, is_starred: isStarred }
-          : file
+    setFiles((prevFiles) =>
+      prevFiles.map((file) =>
+        file.id === fileId ? { ...file, is_starred: isStarred } : file
       )
     );
 
     // Update search results if in global search
     if (isGlobalSearch) {
-      setSearchResults(prevResults => 
-        prevResults.map(file => 
-          file.id === fileId 
-            ? { ...file, is_starred: isStarred }
-            : file
+      setSearchResults((prevResults) =>
+        prevResults.map((file) =>
+          file.id === fileId ? { ...file, is_starred: isStarred } : file
         )
       );
     }
 
     // Update recent files
-    setRecentFiles(prevRecent => 
-      prevRecent.map(file => 
-        file.id === fileId 
-          ? { ...file, is_starred: isStarred }
-          : file
+    setRecentFiles((prevRecent) =>
+      prevRecent.map((file) =>
+        file.id === fileId ? { ...file, is_starred: isStarred } : file
       )
     );
   };
-  
-  useEffect(() => {
-  }, [selectedFiles]);
-  
+
+  useEffect(() => {}, [selectedFiles]);
+
   const user = JSON.parse(localStorage.getItem("user"));
 
   return (
@@ -442,7 +447,7 @@ export default function CPFileManagement() {
           isCreating={isCreating}
           isRefreshing={isRefreshing}
           user={user}
-          // hasPermission={hasPermission}
+          hasPermission={hasPermission}
           setIsCreateFolderOpen={setIsCreateFolderOpen}
           handleRefresh={handleRefresh}
           isSelectionMode={isSelectionMode}
@@ -499,7 +504,7 @@ export default function CPFileManagement() {
           selectedFiles={selectedFiles}
           onStarChange={handleStarChange}
         />
-        
+
         {/* Mobile optimized bulk action toolbar */}
         {selectedFiles.size > 0 && isSelectionMode && (
           <BulkActionToolbar
@@ -513,7 +518,7 @@ export default function CPFileManagement() {
             }}
           />
         )}
-        
+
         {/* All Dialogs */}
         <FileDialogs
           isCreateFolderOpen={isCreateFolderOpen}
