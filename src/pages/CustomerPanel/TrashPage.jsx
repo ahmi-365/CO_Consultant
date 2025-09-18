@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { trashService } from "@/services/trashService";
+import { trashService } from "../../services/trashservice";
 
 const getFileIcon = (type) => {
   const iconClass = "w-5 h-5 mr-3 transition-colors duration-200";

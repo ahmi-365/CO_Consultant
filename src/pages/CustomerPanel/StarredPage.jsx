@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Star, Share2, FileText, Archive, Image, Video, File, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { starService } from "@/services/Starredservice"; // Your API service
+import { starService } from "../../services/Starredservice"; // Your API service
 
 const getFileIcon = (type) => {
   const iconClass = "w-5 h-5 mr-3 transition-colors duration-200";

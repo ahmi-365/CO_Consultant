@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { apiService, FileItem } from "@/services/api";
+import { apiService, FileItem } from "../../services/api";
 
 const getFileIcon = (type) => {
   const iconClass = "w-4 h-4 text-muted-foreground mr-2";

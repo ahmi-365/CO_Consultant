@@ -5,12 +5,12 @@ import FileNavigation from "./Files/FileNavigation";
 import FileContent from "./Files/FileContent";
 import FileDialogs from "./Files/FileDialogs";
 import { fileApi, fetchRecentFiles } from "@/services/FileService";
-import { searchService } from "@/services/SearchService";
-import { useToast } from "@/hooks/use-toast";
+import { searchService } from "../../services/SearchService";
+import { useToast } from "../../hooks/use-toast";
 import { hasPermission } from "../../utils/permissions";
 import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
 import { trashService } from "../../services/trashservice";
-import { starService } from "@/services/StarredService";
+// import { starService } from "@/services/StarredService";
 
 export default function CPFileManagement() {
   // State management
