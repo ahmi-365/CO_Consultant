@@ -204,21 +204,12 @@ export const fileApi = {
   },
 
  async moveItem(id, new_parent_id) {
-  const token = localStorage.getItem('token');
-  const url = `${API_URL}/onedrive/move/${id}`;
+    const token = localStorage.getItem('token');
+    const url = `${API_URL}/onedrive/move/${id}`;
 
-  console.log("🔁 moveItem called with:", { id, new_parent_id, url });
-
-  if (!token) {
-    console.error("❌ No auth token found in localStorage");
-    throw new Error("No auth token found");
-  }
-
-  try {
-    console.log("📡 Sending request to:", url);
-    console.log("📦 Request body:", {
-      new_parent_id: new_parent_id ? parseInt(new_parent_id) : null,
-    });
+    if (!token) {
+      throw new Error("No auth token found");
+    }
 
     const response = await fetch(url, {
       method: 'POST',
@@ -231,27 +222,16 @@ export const fileApi = {
       }),
     });
 
-    console.log("📥 Raw response:", response);
-
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("⚠️ Move request failed:", errorData);
       throw new Error(errorData.message || `Move failed with status ${response.status}`);
     }
 
     const result = await response.json().catch(() => null);
-    console.log("✅ Move successful. Result:", result);
 
-    fileCache.clear();
-    console.log("🧹 fileCache cleared");
-
+    fileCache.clear(); // optional: agar cache system use kar rahe ho
     return result?.data || result;
-
-  } catch (err) {
-    console.error("❌ Network or Fetch error during moveItem:", err);
-    throw err;
-  }
-},
+  },
 
   async renameItem(id, newName) {
     const response = await fetch(`${API_URL}/onedrive/rename/${id}`, {
