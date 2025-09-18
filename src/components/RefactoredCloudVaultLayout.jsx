@@ -1,22 +1,19 @@
 import { useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Search, Bell, ChevronRight, Folder, Upload } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Search, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import EnhancedSidebar from "./EnhancedSidebar";
-import EnhancedFileList from "./EnhancedFileList";
 import FileUploadModal from "./FileUploadModal";
 import NewFolderModal from "./NewFolderModal";
 import NotificationDropdown from "./NotificationDropdown";
-import { apiService } from "@/services/api";
-import { toast } from "sonner";
 
 export default function RefactoredCloudVaultLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { folderId } = useParams();
 
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -33,7 +30,6 @@ export default function RefactoredCloudVaultLayout({ children }) {
         return [{ name: "Trash", path: "/trash" }];
       case "/profile":
         return [{ name: "Profile", path: "/profile" }];
-      case "/":
       default:
         if (currentPath.startsWith("/folder/")) {
           return [
@@ -45,69 +41,49 @@ export default function RefactoredCloudVaultLayout({ children }) {
     }
   };
 
-  const handleFileUploaded = async (file) => {
-    try {
-      const response = await apiService.uploadFile(file, folderId);
-      if (response.success) {
-        toast.success("File uploaded successfully");
-        window.dispatchEvent(new CustomEvent("fileUploaded"));
-      } else {
-        toast.error("Failed to upload file");
-      }
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      toast.error("Error uploading file");
-    }
-  };
-
-  const handleFolderCreated = async (folderName) => {
-    try {
-      const response = await apiService.createFolder(folderName, folderId);
-      if (response.success) {
-        toast.success("Folder created successfully");
-        window.dispatchEvent(new CustomEvent("folderCreated"));
-      } else {
-        toast.error("Failed to create folder");
-      }
-    } catch (error) {
-      console.error("Error creating folder:", error);
-      toast.error("Error creating folder");
-    }
-  };
-
   const handleProfileClick = () => {
     navigate("/profile");
   };
 
   return (
-   <div className="min-h-screen bg-background">
-      {/* Sidebar (fixed) */}
-      <EnhancedSidebar onUploadClick={() => setIsUploadModalOpen(true)} />
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar with collapsible width */}
+      <div
+        className={`transition-all duration-300 ${
+          isCollapsed ? "w-16" : "w-60"
+        }`}
+      >
+        <EnhancedSidebar
+          onUploadClick={() => setIsUploadModalOpen(true)}
+          isCollapsed={isCollapsed}
+          setIsCollapsed={setIsCollapsed}
+        />
+      </div>
 
-      {/* Main Content (shifted right with ml-60) */}
-      <div className="ml-60 flex flex-col min-h-screen">
+      {/* Content adjusts automatically */}
+      <div className="flex-1 flex flex-col min-h-screen transition-all duration-300">
+        {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {/* Breadcrumb */}
-            <nav className="flex items-center gap-2 text-sm text-muted-foreground">
-              {getBreadcrumbPath().map((crumb, index) => (
-                <div key={crumb.path} className="flex items-center gap-2">
-                  {index > 0 && <ChevronRight className="w-4 h-4" />}
-                  <button
-                    onClick={() => navigate(crumb.path)}
-                    className={`hover:text-foreground transition-colors ${
-                      index === getBreadcrumbPath().length - 1
-                        ? "text-foreground font-medium"
-                        : ""
-                    }`}
-                  >
-                    {crumb.name}
-                  </button>
-                </div>
-              ))}
-            </nav>
-          </div>
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-sm text-muted-foreground">
+            {getBreadcrumbPath().map((crumb, index) => (
+              <div key={crumb.path} className="flex items-center gap-2">
+                {index > 0 && <ChevronRight className="w-4 h-4" />}
+                <button
+                  onClick={() => navigate(crumb.path)}
+                  className={`hover:text-foreground transition-colors ${
+                    index === getBreadcrumbPath().length - 1
+                      ? "text-foreground font-medium"
+                      : ""
+                  }`}
+                >
+                  {crumb.name}
+                </button>
+              </div>
+            ))}
+          </nav>
 
+          {/* Right Controls */}
           <div className="flex items-center gap-4">
             {/* Search */}
             <div className="relative">
@@ -132,64 +108,18 @@ export default function RefactoredCloudVaultLayout({ children }) {
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 p-6">
-          {children || (
-            <div className="space-y-6">
-              {/* Page Header */}
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-foreground">
-                  {getBreadcrumbPath()[getBreadcrumbPath().length - 1]?.name}
-                </h1>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsNewFolderModalOpen(true)}
-                  >
-                    <Folder className="w-4 h-4 mr-2" />
-                    New Folder
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-panel hover:bg-panel/90 text-panel-foreground"
-                    onClick={() => setIsUploadModalOpen(true)}
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload
-                  </Button>
-                </div>
-              </div>
-
-              {/* File List */}
-              <EnhancedFileList
-                searchQuery={searchQuery}
-                onFolderCreated={() =>
-                  window.dispatchEvent(new CustomEvent("folderCreated"))
-                }
-              />
-            </div>
-          )}
-        </main>
+        {/* Main Page Content */}
+        <main className="flex-1 p-6">{children}</main>
       </div>
 
       {/* Modals */}
       <FileUploadModal
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
-        onFileUploaded={handleFileUploaded}
-        currentFolder={getBreadcrumbPath()
-          .map((p) => p.name)
-          .join(" / ")}
       />
-
       <NewFolderModal
         isOpen={isNewFolderModalOpen}
         onClose={() => setIsNewFolderModalOpen(false)}
-        onFolderCreated={handleFolderCreated}
-        currentPath={getBreadcrumbPath()
-          .map((p) => p.name)
-          .join(" / ")}
       />
     </div>
   );

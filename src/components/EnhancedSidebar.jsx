@@ -1,20 +1,44 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
-  Users,
   Star,
   Trash2,
-  Upload,
   User,
   LogOut,
+  FolderOpen,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-export default function EnhancedSidebar({ onUploadClick }) {
+export default function EnhancedSidebar({ onUploadClick, isCollapsed, setIsCollapsed }) {
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
   const isActive = (path) => currentPath === path;
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ✅ Detect mobile screen size
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setIsCollapsed(true); // default collapsed on mobile
+      } else {
+        setIsCollapsed(false); // default expanded on desktop
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [setIsCollapsed]);
 
   const handleLogout = () => {
     localStorage.clear();
@@ -23,102 +47,108 @@ export default function EnhancedSidebar({ onUploadClick }) {
   };
 
   return (
-    <div className="w-60 h-screen fixed left-0 top-0 bg-sidebar border-r border-sidebar-border flex flex-col">
-      {/* Top Logo */}
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm">
-            CO
-          </div>
+    <div
+      className={cn(
+        "relative h-screen bg-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300 z-30",
+        isCollapsed ? "w-20" : "w-60"
+      )}
+    >
+      {/* Header */}
+      <div className="flex items-center gap-3 px-4 py-5 border-b border-sidebar-border">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-panel">
+          <FolderOpen className="h-5 w-5 text-panel-foreground" />
+        </div>
+        {!isCollapsed && (
           <span className="font-semibold text-sidebar-foreground">
             Co-Consultants
           </span>
-        </div>
+        )}
       </div>
 
-      {/* Navigation Links */}
+      {/* Collapse Toggle */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="absolute top-16 -right-3 z-40 flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-card shadow-md hover:bg-gray-100 transition"
+      >
+        {isCollapsed ? (
+          <ChevronRight className="h-4 w-4" />
+        ) : (
+          <ChevronLeft className="h-4 w-4" />
+        )}
+      </button>
+
+      {/* Navigation */}
       <div className="flex-1 p-4">
-        <nav className="space-y-1">
+        <nav className="space-y-2">
           <button
             onClick={() => navigate("/filemanager")}
-            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm w-full transition-colors",
               isActive("/filemanager")
                 ? "bg-panel text-white font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+              isCollapsed && "justify-center"
+            )}
           >
-            <Home className="w-4 h-4" />
-            <span className="text-sm">Home</span>
+            <Home className="h-5 w-5" />
+            {!isCollapsed && "Home"}
           </button>
 
-          <div className="mt-8 space-y-1">
-            {/* <button
-              onClick={() => navigate("/shared")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/shared")
-                  ? "bg-panel text-white font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Shared with me</span>
-            </button> */}
+          <button
+            onClick={() => navigate("/starred")}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm w-full transition-colors",
+              isActive("/starred")
+                ? "bg-panel text-white font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Star className="h-5 w-5" />
+            {!isCollapsed && "Starred"}
+          </button>
 
-            <button
-              onClick={() => navigate("/starred")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/starred")
-                  ? "bg-panel text-white font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
-            >
-              <Star className="w-4 h-4" />
-              <span>Starred</span>
-            </button>
+          <button
+            onClick={() => navigate("/trash")}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm w-full transition-colors",
+              isActive("/trash")
+                ? "bg-panel text-white font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <Trash2 className="h-5 w-5" />
+            {!isCollapsed && "Trash"}
+          </button>
 
-            <button
-              onClick={() => navigate("/trash")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/trash")
-                  ? "bg-panel text-white font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Trash</span>
-            </button>
-
-            <button
-              onClick={() => navigate("/customerprofile")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/customerprofile")
-                  ? "bg-panel text-white font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
-            >
-              <User className="w-4 h-4" />
-              <span>Profile</span>
-            </button>
-          </div>
+          <button
+            onClick={() => navigate("/customerprofile")}
+            className={cn(
+              "flex items-center gap-3 rounded-md px-3 py-2 text-sm w-full transition-colors",
+              isActive("/customerprofile")
+                ? "bg-panel text-white font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50",
+              isCollapsed && "justify-center"
+            )}
+          >
+            <User className="h-5 w-5" />
+            {!isCollapsed && "Profile"}
+          </button>
         </nav>
       </div>
 
-      {/* Bottom Buttons */}
-      <div className="p-4 border-t border-sidebar-border flex flex-col gap-2">
-        {/* <Button
-          className="w-full bg-panel hover:bg-panel/90 text-panel-foreground"
-          onClick={onUploadClick}
-        >
-          <Upload className="w-4 h-4 mr-2" />
-          New Upload
-        </Button> */}
-
+      {/* Footer */}
+      <div className="border-t border-sidebar-border p-4 space-y-2">
         <Button
-          className="w-full bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2"
+          className={cn(
+            "w-full bg-red-500 hover:bg-red-600 text-white flex items-center gap-2",
+            isCollapsed && "justify-center"
+          )}
           onClick={handleLogout}
         >
-          <LogOut className="w-4 h-4" />
-          Logout
+          <LogOut className="h-5 w-5" />
+          {!isCollapsed && "Logout"}
         </Button>
       </div>
     </div>
