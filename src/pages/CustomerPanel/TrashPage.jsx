@@ -112,12 +112,10 @@ export default function TrashPage() {
       const fileIds = Array.from(selectedFiles);
       const response = await trashService.bulkRestoreFiles(fileIds);
 
-      // Fix: Check for the correct response structure
       if (response.success || response.status === "success" || response.original?.status === "ok") {
         loadTrashedFiles();
         setSelectedFiles(new Set());
         setIsSelectionMode(false);
-        // Use the message from the nested original object if available
         const successMessage = response.original?.message || response.message || `${fileIds.length} file(s) restored successfully`;
         toast.success(successMessage);
       } else {
@@ -197,7 +195,7 @@ export default function TrashPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
+      <div className="min-h-screen dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-center py-20">
             <div className="relative">
@@ -212,14 +210,11 @@ export default function TrashPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-red-50 via-white to-pink-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
+    <div className="min-h-screen dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center space-x-4">
-            <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-              <Trash2 className="w-6 h-6 text-white" />
-            </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trash</h1>
               <p className="text-gray-600 dark:text-gray-300">
@@ -311,10 +306,11 @@ export default function TrashPage() {
           </div>
         ) : (
           <div className="w-full">
-            {/* Table Headers */}
+            {/* ✅ Fixed Table Headers - Using proper grid structure */}
             <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl mb-4 px-6 py-4 border border-gray-200 dark:border-gray-600">
-              <div className="grid grid-cols-12 lg:grid-cols-6 gap-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
-                <div className="col-span-6 lg:col-span-1 flex items-center gap-2">
+              <div className="hidden sm:grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 dark:text-gray-300 items-center">
+                {/* Selection + Name Column - 6 cols */}
+                <div className="col-span-6 flex items-center gap-2">
                   {isSelectionMode && (
                     <button
                       onClick={toggleSelectAll}
@@ -331,14 +327,19 @@ export default function TrashPage() {
                   <FileText className="w-4 h-4 mr-2 text-blue-500" />
                   Name
                 </div>
-                <div className="col-span-3 lg:col-span-1 hidden sm:block"></div>
-                <div className="col-span-3 lg:col-span-1 hidden md:block">Owner</div>
-                <div className="col-span-3 lg:col-span-1 hidden lg:block">File Size</div>
-                <div className="col-span-3 lg:col-span-2 text-right">Actions</div>
+                
+                {/* Owner Column - 2 cols */}
+                <div className="col-span-2 hidden md:block">Owner</div>
+                
+                {/* File Size Column - 2 cols */}
+                <div className="col-span-2 hidden lg:block">File Size</div>
+                
+                {/* Actions Column - 2 cols */}
+                <div className="col-span-2 text-right">Actions</div>
               </div>
             </div>
 
-            {/* File List */}
+            {/* ✅ Fixed File List - Matching grid structure */}
             <div className="space-y-3">
               {trashedFiles.map((file, index) => (
                 <div
@@ -350,25 +351,26 @@ export default function TrashPage() {
                   }`}
                   style={{
                     animationDelay: `${index * 50}ms`,
-                    animation: 'fadeInUp 0.5s ease-out forwards'
+                    animation: "fadeInUp 0.5s ease-out forwards",
                   }}
                   onClick={() => isSelectionMode && toggleFileSelection(file.id)}
                 >
                   {/* Subtle gradient overlay */}
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                  
+
                   <div className="relative px-6 py-4">
-                    <div className="grid grid-cols-12 lg:grid-cols-6 gap-4 text-sm items-center">
-                      {/* File Name */}
-                      <div className="col-span-6 lg:col-span-1 flex items-center min-w-0">
-                        <div className="flex items-center space-x-3">
+                    {/* ✅ Desktop Grid Layout - Fixed column alignment */}
+                    <div className="hidden sm:grid grid-cols-12 gap-4 text-sm items-center">
+                      {/* Name Column - 6 cols (same as header) */}
+                      <div className="col-span-6 flex items-center min-w-0">
+                        <div className="flex items-center space-x-3 min-w-0 flex-1">
                           {isSelectionMode && (
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
                                 toggleFileSelection(file.id);
                               }}
-                              className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
+                              className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors"
                             >
                               {selectedFiles.has(file.id) ? (
                                 <CheckSquare className="w-4 h-4 text-blue-600" />
@@ -377,33 +379,40 @@ export default function TrashPage() {
                               )}
                             </button>
                           )}
-                          <div className="flex-shrink-0">
-                            {getFileIcon(file.type)}
-                          </div>
-                          <span className="text-foreground font-medium truncate group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-200">
+                          <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
+                          <span 
+                            className="text-foreground font-medium group-hover:text-red-700 dark:group-hover:text-red-300 transition-colors duration-200 min-w-0 flex-1"
+                            style={{
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                              overflow: 'hidden',
+                              wordBreak: 'break-all',
+                              lineHeight: '1.4'
+                            }}
+                            title={file.name}
+                          >
                             {file.name}
                           </span>
                         </div>
                       </div>
 
-                      {/* Owner - Hidden on mobile */}
-                      <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium hidden sm:block truncate">
+                      {/* Owner Column - 2 cols (same as header) */}
+                      <div className="col-span-2 text-muted-foreground font-medium hidden md:block">
+                        <span className="truncate block" title={file.user_id}>
+                          {file.user_id}
+                        </span>
                       </div>
 
-                      {/* Deleted Date - Hidden on mobile and tablet */}
-                      <div className="col-span-3 lg:col-span-1 text-muted-foreground hidden md:block">
-                        {file.user_id}
-                      </div>
-
-                      {/* Size - Hidden on mobile, tablet, and small desktop */}
-                      <div className="col-span-3 lg:col-span-1 hidden lg:block">
+                      {/* File Size Column - 2 cols (same as header) */}
+                      <div className="col-span-2 hidden lg:block">
                         <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">
                           {file.size}
                         </span>
                       </div>
 
-                      {/* Actions */}
-                      <div className="col-span-6 lg:col-span-2 flex items-center justify-end gap-2">
+                      {/* Actions Column - 2 cols (same as header) */}
+                      <div className="col-span-2 flex items-center justify-end gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -431,24 +440,75 @@ export default function TrashPage() {
                       </div>
                     </div>
 
-                    {/* Mobile Info Row - Only visible on small screens */}
-                    <div className="sm:hidden mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex justify-between items-center text-xs text-muted-foreground">
-                        <span>By {file.user_id}</span>
-                        <span>Deleted {file.deleted_at}</span>
-                        <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
-                          {file.size}
+                    {/* ✅ Mobile Layout */}
+                    <div className="sm:hidden flex flex-col space-y-3">
+                      {/* Top Row: Icon + Name */}
+                      <div className="flex items-start space-x-3">
+                        {isSelectionMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFileSelection(file.id);
+                            }}
+                            className="flex-shrink-0 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors mt-1"
+                          >
+                            {selectedFiles.has(file.id) ? (
+                              <CheckSquare className="w-5 h-5 text-blue-600" />
+                            ) : (
+                              <Square className="w-5 h-5 text-gray-400" />
+                            )}
+                          </button>
+                        )}
+                        <div className="flex-shrink-0 mt-1">{getFileIcon(file.type)}</div>
+                        <span 
+                          className="text-foreground font-medium flex-1 min-w-0"
+                          style={{
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            wordBreak: 'break-all',
+                            lineHeight: '1.4'
+                          }}
+                          title={file.name}
+                        >
+                          {file.name}
                         </span>
+                      </div>
+
+                      {/* Info Row */}
+                      <div className="flex justify-between text-xs text-muted-foreground">
+                        <span>By {file.user_id}</span>
+                        <span>{file.size}</span>
+                      </div>
+
+                      {/* Actions Row */}
+                      <div className="flex justify-end gap-3">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRestoreFile(file.id);
+                          }}
+                          className="h-10 w-10 p-0 rounded-full hover:bg-green-50 hover:text-green-600 dark:hover:bg-green-900/20 dark:hover:text-green-400"
+                        >
+                          <RotateCcw className="h-5 w-5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePermanentDelete(file.id);
+                          }}
+                          className="h-10 w-10 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                        >
+                          <X className="h-5 w-5" />
+                        </Button>
                       </div>
                     </div>
                   </div>
-
-                  {/* Bottom border accent */}
-                  <div className={`absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r transition-transform duration-300 origin-left ${
-                    selectedFiles.has(file.id) 
-                      ? 'from-blue-500 to-purple-500 scale-x-100' 
-                      : 'from-red-500 to-pink-500 scale-x-0 group-hover:scale-x-100'
-                  }`}></div>
                 </div>
               ))}
             </div>
