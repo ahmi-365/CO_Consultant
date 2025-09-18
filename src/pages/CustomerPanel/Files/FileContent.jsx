@@ -204,7 +204,8 @@ export default function FileContent({
     }
     setIsUploading(false);
   };
-// In your FileContent, add this console.log
+
+  // In your FileContent, add this console.log
   const handleUploadFile = async (file, targetFolderId) => {
     try {
       const parentId = targetFolderId || (currentPath.length > 0 ? currentPath[currentPath.length - 1]?.id : null);
@@ -228,20 +229,25 @@ export default function FileContent({
   };
 
   return (
-    <div className="grid grid-cols-1 gap-8">
+    <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:gap-8">
       <div className="animate-fade-in">
         <Card className="shadow-card border-0 bg-gradient-file">
-          <CardHeader className="bg-card/95 backdrop-blur-sm rounded-t-lg border-b">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-foreground">
+          {/* Mobile optimized card header */}
+          <CardHeader className="bg-card/95 backdrop-blur-sm rounded-t-lg border-b p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-0">
+              <CardTitle className="flex items-center gap-2 text-foreground text-lg sm:text-xl">
                 <HardDrive className="h-5 w-5 text-primary" />
-                {isGlobalSearch ? "Global Search Results" : "Files & Folders"}
+                <span className="truncate">
+                  {isGlobalSearch ? "Search Results" : "Files & Folders"}
+                </span>
                 {(indexing || isSearching) && (
                   <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
                 )}
               </CardTitle>
-              <div className="flex items-center gap-3">
-                <div className="relative">
+              
+              {/* Mobile responsive search */}
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <div className="relative flex-1 sm:flex-none">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                   <Input
                     placeholder={
@@ -249,9 +255,9 @@ export default function FileContent({
                         ? "Indexing files..."
                         : isSearching
                         ? "Searching..."
-                        : "Search all files and folders..."
+                        : "Search files..."
                     }
-                    className="pl-9 w-64 border-border bg-background"
+                    className="pl-9 w-full sm:w-64 border-border bg-background h-10 sm:h-10 text-base"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     disabled={indexing}
@@ -278,13 +284,14 @@ export default function FileContent({
             </div>
           </CardHeader>
 
-          <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-6">
+          {/* Mobile optimized card content */}
+          <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-4 sm:p-6">
             <div className="space-y-3">
               {loading || indexing ? (
                 <div className="text-center py-12">
                   <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
                   <p className="text-muted-foreground">
-                    {indexing ? "Loading files..." : "Loading files..."}
+                    {indexing ? "Indexing files..." : "Loading files..."}
                   </p>
                 </div>
               ) : displayItems.length === 0 ? (
@@ -293,18 +300,19 @@ export default function FileContent({
                   <h3 className="text-lg font-medium text-foreground mb-2">
                     {searchTerm ? "No files found" : "No files available"}
                   </h3>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground px-4">
                     {searchTerm
                       ? `No results found for "${searchTerm}". Try different search terms.`
                       : "Start by uploading files or creating folders"}
                   </p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                /* Responsive grid - stacks on mobile, 2 cols on tablet, 3+ on desktop */
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
                   {(displayItems || []).map((item) => (
                     <div key={item.id || item.name} className="relative">
                       {isGlobalSearch && item.path && (
-                        <div className="text-xs text-muted-foreground mb-1 pl-2">
+                        <div className="text-xs text-muted-foreground mb-1 pl-2 truncate">
                           <span>📁 {item.path}</span>
                         </div>
                       )}
@@ -332,7 +340,7 @@ export default function FileContent({
                           isSelected={selectedFiles && selectedFiles.has(item.id)}
                           onSelectionChange={isSelectionMode ? handleFileSelectionChange : undefined} // Only use selection change in selection mode
                           onStarChange={onStarChange} // ADD THIS
-/>
+                        />
                       </DragDropZone>
                     </div>
                   ))}
@@ -343,6 +351,7 @@ export default function FileContent({
         </Card>
       </div>
 
+      {/* Mobile optimized preview dialog */}
       <FilePreviewDialog
         open={preview?.open || false}
         onOpenChange={(open) => setPreview(open ? preview : null)}

@@ -54,6 +54,7 @@ export default function CPFileManagement() {
   const [isRenaming, setIsRenaming] = useState({});
 
   const { toast } = useToast();
+  
   const toggleSelectionMode = () => {
     setIsSelectionMode(!isSelectionMode);
     setSelectedFiles(new Set());
@@ -63,6 +64,7 @@ export default function CPFileManagement() {
   const handleSelectAll = (allFileIds) => {
     setSelectedFiles(new Set(allFileIds));
   };
+  
   // Load files when path or user changes
   useEffect(() => {
     loadFiles();
@@ -161,8 +163,22 @@ export default function CPFileManagement() {
         force: opts.force || !!selectedUser,
       };
 
-      const data = await fileApi.listFiles(currentParentId, params, options);
-      const safeData = Array.isArray(data) ? data : [];
+      const response = await fileApi.listFiles(currentParentId, params, options);
+      
+      // Handle different API response formats
+      let safeData = [];
+      if (Array.isArray(response)) {
+        // Direct array response
+        safeData = response;
+      } else if (response && Array.isArray(response.data)) {
+        // Response with data property
+        safeData = response.data;
+      } else if (response && response.status === "ok" && Array.isArray(response.data)) {
+        // Response with status and data
+        safeData = response.data;
+      }
+      
+      console.log("Loaded files:", safeData);
       setFiles(safeData);
     } catch (error) {
       console.error("Failed to load files:", error);
@@ -177,28 +193,30 @@ export default function CPFileManagement() {
     }
   };
 
-// Load recent files - FIXED VERSION
-const loadRecentFiles = async () => {
-  try {
-    const response = await fetchRecentFiles();
-    let recentFilesData = [];
-    
-    if (response && response.status === "ok" && Array.isArray(response.recent_views)) {
-      recentFilesData = response.recent_views;
-    } else if (Array.isArray(response)) {
-      recentFilesData = response;
-    }
+  // Load recent files - FIXED VERSION
+  const loadRecentFiles = async () => {
+    try {
+      const response = await fetchRecentFiles();
+      let recentFilesData = [];
+      
+      if (response && response.status === "ok" && Array.isArray(response.recent_views)) {
+        recentFilesData = response.recent_views;
+      } else if (Array.isArray(response)) {
+        recentFilesData = response;
+      }
+      
       const sorted = recentFilesData
-      .filter((f) => f && f.viewed_at) 
-      .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
-      .slice(0, 5);
-    
-    setRecentFiles(sorted);
-  } catch (error) {
-    console.error("Error loading recent files:", error);
-    setRecentFiles([]);
-  }
-};
+        .filter((f) => f && f.viewed_at) 
+        .sort((a, b) => new Date(b.viewed_at) - new Date(a.viewed_at))
+        .slice(0, 5);
+      
+      setRecentFiles(sorted);
+    } catch (error) {
+      console.error("Error loading recent files:", error);
+      setRecentFiles([]);
+    }
+  };
+  
   // Load available folders for move dialog
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
@@ -250,11 +268,48 @@ const loadRecentFiles = async () => {
     }
   };
 
+  // Handle file upload - NEW FUNCTION
+  const handleFileUpload = async (file, targetFolderId) => {
+    setIsUploading(true);
+    try {
+      const parentId =
+        targetFolderId ||
+        (currentPath.length > 0
+          ? currentPath[currentPath.length - 1].id
+          : null);
+
+      await fileApi.uploadFile(file, parentId);
+
+      toast({
+        title: "Success",
+        description: `File "${file.name}" uploaded successfully`,
+      });
+
+      // Refresh files and recent files
+      await loadFiles({ force: true });
+      await loadRecentFiles();
+
+      // Refresh search index
+      searchService.clearIndex();
+      await searchService.indexAllFiles(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: `Failed to upload file "${file.name}"`,
+        variant: "destructive",
+      });
+      throw error; // Re-throw so FileHeader can handle it
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   // Handle refresh
   const handleRefresh = async () => {
     try {
       setIsRefreshing(true);
       await loadFiles({ force: true });
+      await loadRecentFiles(); // Also refresh recent files
     } catch (error) {
       console.error("Error refreshing files:", error);
       toast({
@@ -266,6 +321,7 @@ const loadRecentFiles = async () => {
       setIsRefreshing(false);
     }
   };
+  
   // Handle breadcrumb navigation
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
@@ -274,39 +330,39 @@ const loadRecentFiles = async () => {
       setCurrentPath(currentPath.slice(0, index + 1));
     }
   };
-const handleBulkMoveToTrash = async (fileIds) => {
-  try {
-    const response = await trashService.bulkMoveToTrash(fileIds);
-    console.log("TRASH RESPONSE:", response);
 
-    // backend ka ulta structure handle kar rahe hain
-    const message = response.success === true 
-      ? response.message || "Files moved successfully"
-      : response.error || "Something went wrong";
+  const handleBulkMoveToTrash = async (fileIds) => {
+    try {
+      const response = await trashService.bulkMoveToTrash(fileIds);
+      console.log("TRASH RESPONSE:", response);
 
-    const variant = response.success === true ? "default" : "default"; 
-    // yahan default variant use karenge kyunki backend ka success=false hai, par message success ka hai
+      // backend ka ulta structure handle kar rahe hain
+      const message = response.success === true 
+        ? response.message || "Files moved successfully"
+        : response.error || "Something went wrong";
 
-    loadFiles({ force: true });
-    setSelectedFiles(new Set());
-    setIsSelectionMode(false);
+      const variant = response.success === true ? "default" : "default"; 
+      // yahan default variant use karenge kyunki backend ka success=false hai, par message success ka hai
 
-    toast({
-      title: "Success",
-      description: message,
-      variant: variant,
-    });
+      loadFiles({ force: true });
+      setSelectedFiles(new Set());
+      setIsSelectionMode(false);
 
-  } catch (err) {
-    console.error(err);
-    toast({
-      title: "Error",
-      description: err.message || "Network error",
-      variant: "destructive",
-    });
-  }
-};
+      toast({
+        title: "Success",
+        description: message,
+        variant: variant,
+      });
 
+    } catch (err) {
+      console.error(err);
+      toast({
+        title: "Error",
+        description: err.message || "Network error",
+        variant: "destructive",
+      });
+    }
+  };
 
   const handleFolderNavigation = (item) => {
     console.log("Navigating to folder:", item);
@@ -315,6 +371,7 @@ const handleBulkMoveToTrash = async (fileIds) => {
     }
     setSelectedItem(item);
   };
+  
   const handleFileSelection = (fileId, isSelected) => {
     console.log("File selection changed:", fileId, isSelected);
 
@@ -329,48 +386,52 @@ const handleBulkMoveToTrash = async (fileIds) => {
       return newSelected;
     });
   };
-const handleStarChange = (fileId, isStarred) => {
-  // Update files state
-  setFiles(prevFiles => 
-    prevFiles.map(file => 
-      file.id === fileId 
-        ? { ...file, is_starred: isStarred }
-        : file
-    )
-  );
 
-  // Update search results if in global search
-  if (isGlobalSearch) {
-    setSearchResults(prevResults => 
-      prevResults.map(file => 
+  const handleStarChange = (fileId, isStarred) => {
+    // Update files state
+    setFiles(prevFiles => 
+      prevFiles.map(file => 
         file.id === fileId 
           ? { ...file, is_starred: isStarred }
           : file
       )
     );
-  }
 
-  // Update recent files
-  setRecentFiles(prevRecent => 
-    prevRecent.map(file => 
-      file.id === fileId 
-        ? { ...file, is_starred: isStarred }
-        : file
-    )
-  );
-};
+    // Update search results if in global search
+    if (isGlobalSearch) {
+      setSearchResults(prevResults => 
+        prevResults.map(file => 
+          file.id === fileId 
+            ? { ...file, is_starred: isStarred }
+            : file
+        )
+      );
+    }
+
+    // Update recent files
+    setRecentFiles(prevRecent => 
+      prevRecent.map(file => 
+        file.id === fileId 
+          ? { ...file, is_starred: isStarred }
+          : file
+      )
+    );
+  };
+  
   useEffect(() => {
   }, [selectedFiles]);
+  
   const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="p-8 max-w-7xl mx-auto">
-        {/* Upload Progress Overlay */}
+      {/* Mobile responsive container with proper padding */}
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
+        {/* Upload Progress Overlay - Mobile optimized */}
         {isUploading && (
-          <div className="fixed top-4 right-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
+          <div className="fixed top-4 left-4 right-4 sm:top-4 sm:right-4 sm:left-auto bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Uploading files...
+            <span className="text-sm">Uploading files...</span>
           </div>
         )}
 
@@ -389,6 +450,10 @@ const handleStarChange = (fileId, isStarred) => {
           selectedFiles={selectedFiles}
           files={files}
           handleSelectAll={handleSelectAll}
+          // Upload functionality props
+          onFileUpload={handleFileUpload}
+          currentPath={currentPath}
+          setIsUploading={setIsUploading}
         />
 
         {/* Navigation Breadcrumb */}
@@ -432,20 +497,23 @@ const handleStarChange = (fileId, isStarred) => {
           } // Use conditional handler
           isSelectionMode={isSelectionMode}
           selectedFiles={selectedFiles}
-onStarChange={handleStarChange}
+          onStarChange={handleStarChange}
         />
-          {selectedFiles.size > 0 && isSelectionMode && (
-            <BulkActionToolbar
-              selectedCount={selectedFiles.size}
-              onMoveToTrash={() =>
-                handleBulkMoveToTrash(Array.from(selectedFiles))
-              }
-              onCancel={() => {
-                setSelectedFiles(new Set());
-                setIsSelectionMode(false);
-              }}
-            />
-          )}
+        
+        {/* Mobile optimized bulk action toolbar */}
+        {selectedFiles.size > 0 && isSelectionMode && (
+          <BulkActionToolbar
+            selectedCount={selectedFiles.size}
+            onMoveToTrash={() =>
+              handleBulkMoveToTrash(Array.from(selectedFiles))
+            }
+            onCancel={() => {
+              setSelectedFiles(new Set());
+              setIsSelectionMode(false);
+            }}
+          />
+        )}
+        
         {/* All Dialogs */}
         <FileDialogs
           isCreateFolderOpen={isCreateFolderOpen}

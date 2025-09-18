@@ -1,7 +1,16 @@
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { FolderPlus, Upload, RefreshCw, Loader2 } from "lucide-react";
-import FileUploadModal from "../../../components/FileUploadModal";
+import { useToast } from "@/hooks/use-toast";
 
 export default function FileHeader({
   recentFiles,
@@ -16,9 +25,16 @@ export default function FileHeader({
   toggleSelectionMode, 
   selectedFiles, 
   files, 
-  handleSelectAll 
+  handleSelectAll,
+  // New props for upload functionality
+  onFileUpload,
+  currentPath = []
 }) {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [uploadProgress, setUploadProgress] = useState(false);
+  
+  const { toast } = useToast();
 
   const getFileIcon = (fileName, fileType) => {
     // If it's a folder, return folder icon
@@ -48,9 +64,35 @@ export default function FileHeader({
     return iconMap[ext || ""] || "📄";
   };
 
-  const handleFileUploaded = (file) => {
-    console.log("Uploaded:", file);
-    // Optionally refresh recent files here
+  const handleFileUploaded = async () => {
+    if (!selectedFile || !onFileUpload) return;
+
+    setUploadProgress(true);
+    try {
+      // Get current folder ID from path
+      const parentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+      
+      await onFileUpload(selectedFile, parentId);
+      
+      toast({
+        title: "Success",
+        description: `File "${selectedFile.name}" uploaded successfully`,
+      });
+
+      // Reset state
+      setSelectedFile(null);
+      setIsUploadOpen(false);
+      
+    } catch (error) {
+      console.error('Upload failed:', error);
+      toast({
+        title: "Error",
+        description: `Failed to upload file "${selectedFile.name}"`,
+        variant: "destructive",
+      });
+    } finally {
+      setUploadProgress(false);
+    }
   };
 
   const handleFileClick = (file) => {
@@ -75,8 +117,17 @@ export default function FileHeader({
       minute: '2-digit'
     });
   };
+
   return (
     <div className="mb-8">
+      {/* Upload Progress Overlay */}
+      {(isUploading || uploadProgress) && (
+        <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Uploading files...
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex items-center justify-between mb-6 border-b pb-4">
         <div>
@@ -91,59 +142,62 @@ export default function FileHeader({
 
       {/* Quick Actions */}
       <div className="mb-8">
-        
-     <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
-  <h2 className="text-lg font-medium text-foreground">Quick Actions:</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <h2 className="text-lg font-medium text-foreground">Quick Actions:</h2>
 
-  <div className="flex flex-wrap gap-2">
-    {hasPermission(user, "files.upload") && (
-      <Button
-        onClick={() => setIsUploadOpen(true)}
-        disabled={isUploading}
-        className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-1 px-3 py-1.5 h-8 text-sm"
-      >
-        {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-        Upload
-      </Button>
-    )}
+          <div className="flex flex-wrap gap-2">
+            {hasPermission(user, "files.upload") && (
+              <Button
+                onClick={() => setIsUploadOpen(true)}
+                disabled={isUploading || uploadProgress}
+                className="bg-red-600 hover:bg-red-700 text-white flex items-center gap-1 px-3 py-1.5 h-8 text-sm"
+              >
+                {(isUploading || uploadProgress) ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4" />
+                )}
+                Upload
+              </Button>
+            )}
 
-    {(hasPermission(user, "files.create") || hasPermission(user, "files.upload")) && (
-      <Button
-        onClick={() => setIsCreateFolderOpen(true)}
-        disabled={isCreating}
-        variant="outline"
-        className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
-      >
-        {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
-        New Folder
-      </Button>
-    )}
+            {(hasPermission(user, "files.create") || hasPermission(user, "files.upload")) && (
+              <Button
+                onClick={() => setIsCreateFolderOpen(true)}
+                disabled={isCreating}
+                variant="outline"
+                className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
+              >
+                {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
+                New Folder
+              </Button>
+            )}
 
-    <Button
-      onClick={handleRefresh}
-      disabled={isRefreshing}
-      variant="outline"
-      className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
-    >
-      {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-      Refresh
-    </Button>
-     <Button 
-          onClick={toggleSelectionMode}
-          variant={isSelectionMode ? "default" : "outline"}
-          size="sm"
-        >
-          {isSelectionMode ? "Cancel Selection" : "Select Files"}
-        </Button>
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
+            >
+              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+              Refresh
+            </Button>
+            
+            <Button 
+              onClick={toggleSelectionMode}
+              variant={isSelectionMode ? "default" : "outline"}
+              size="sm"
+            >
+              {isSelectionMode ? "Cancel Selection" : "Select Files"}
+            </Button>
 
-        {isSelectionMode && files.length > 0 && (
-          <Button onClick={() => handleSelectAll(files.map(f => f.id))} size="sm">
-            Select All
-          </Button>
-        )}
-  </div>
-</div>
-
+            {isSelectionMode && files.length > 0 && (
+              <Button onClick={() => handleSelectAll(files.map(f => f.id))} size="sm">
+                Select All
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Recent Files */}
@@ -180,12 +234,57 @@ export default function FileHeader({
         )}
       </div>
 
-      {/* Upload Modal */}
-      <FileUploadModal
-        isOpen={isUploadOpen}
-        onClose={() => setIsUploadOpen(false)}
-        onFileUploaded={handleFileUploaded}
-      />
+      {/* Upload File Dialog */}
+      <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
+        <DialogContent className="bg-card shadow-card">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">
+              Upload Files
+            </DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Select files to upload to the current folder
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <Input
+              type="file"
+              onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+              className="cursor-pointer border-border"
+              multiple
+              disabled={uploadProgress}
+            />
+            {selectedFile && (
+              <div className="mt-3 p-3 bg-primary/10 rounded-lg">
+                <p className="text-sm text-primary font-medium">
+                  Selected: {selectedFile.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsUploadOpen(false)}
+              disabled={uploadProgress}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleFileUploaded}
+              disabled={!selectedFile || uploadProgress}
+              className="flex items-center gap-2 bg-red-600 hover:bg-red-700"
+            >
+              {uploadProgress && <Loader2 className="h-4 w-4 animate-spin" />}
+              {uploadProgress ? "Uploading..." : "Upload File"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

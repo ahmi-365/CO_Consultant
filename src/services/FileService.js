@@ -202,36 +202,49 @@ export const fileApi = {
 
     fileCache.clear();
   },
+async moveItem(id, new_parent_id) {
+  const token = localStorage.getItem('token');
+  const url = `${API_URL}/onedrive/move-file`;
 
- async moveItem(id, new_parent_id) {
-    const token = localStorage.getItem('token');
-    const url = `${API_URL}/onedrive/move/${id}`;
+  if (!token) throw new Error("No auth token found");
 
-    if (!token) {
-      throw new Error("No auth token found");
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      file_id: parseInt(id),
+      new_parent_id: new_parent_id ? parseInt(new_parent_id) : null,
+    }),
+  });
+
+  let result;
+  try {
+    result = await response.json();
+  } catch {
+    result = {};
+  }
+
+  if (!response.ok) {
+    let errorMessage = `Move failed with status ${response.status}`;
+    if (result.error) {
+      if (typeof result.error === 'string') {
+        errorMessage = result.error;
+      } else if (result.error.message) {
+        errorMessage = result.error.message;
+      }
+    } else if (result.message) {
+      errorMessage = result.message;
     }
+    throw new Error(errorMessage);
+  }
 
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        new_parent_id: new_parent_id ? parseInt(new_parent_id) : null,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Move failed with status ${response.status}`);
-    }
-
-    const result = await response.json().catch(() => null);
-
-    fileCache.clear(); // optional: agar cache system use kar rahe ho
-    return result?.data || result;
-  },
+  fileCache.clear();
+  return result;
+}
+,
 
   async renameItem(id, newName) {
     const response = await fetch(`${API_URL}/onedrive/rename/${id}`, {
