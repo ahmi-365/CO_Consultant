@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -17,14 +17,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { 
-  Folder, 
-  File, 
-  FileText, 
-  Image, 
-  Video, 
-  Music, 
-  Archive, 
+import {
+  Folder,
+  File,
+  FileText,
+  Image,
+  Video,
+  Music,
+  Archive,
   MoreHorizontal,
   Download,
   Edit,
@@ -36,45 +36,49 @@ import {
   Check,
   X,
   Loader2,
-  Star
+  Star,
 } from "lucide-react";
-import { formatFileSize, formatDate, getFileIcon } from "@/services/FileService";
-import { starService } from "@/services/StarredService"; // Fixed: Consistent naming
+import {
+  formatFileSize,
+  formatDate,
+  getFileIcon,
+} from "../../services/FileService";
+import { starService } from "../../services/Starredservice"; 
 import { useToast } from "@/hooks/use-toast";
 
 const getFileIconComponent = (filename, type) => {
   const iconType = getFileIcon(filename, type);
-  
+
   switch (iconType) {
-    case 'folder':
+    case "folder":
       return <Folder className="h-5 w-5 text-folder" />;
-    case 'file-text':
+    case "file-text":
       return <FileText className="h-5 w-5 text-file-pdf" />;
-    case 'file-spreadsheet':
+    case "file-spreadsheet":
       return <FileText className="h-5 w-5 text-file-xls" />;
-    case 'image':
+    case "image":
       return <Image className="h-5 w-5 text-file-img" />;
-    case 'video':
+    case "video":
       return <Video className="h-5 w-5 text-accent" />;
-    case 'music':
+    case "music":
       return <Music className="h-5 w-5 text-accent" />;
-    case 'archive':
+    case "archive":
       return <Archive className="h-5 w-5 text-muted-foreground" />;
     default:
       return <File className="h-5 w-5 text-file-doc" />;
   }
 };
 
-export default function FileItem({ 
-  item, 
-  onSelect, 
-  onDelete, 
-  onMove, 
-  onDownload, 
+export default function FileItem({
+  item,
+  onSelect,
+  onDelete,
+  onMove,
+  onDownload,
   onRename,
   onManagePermissions,
   onPreview,
-  onStarChange, 
+  onStarChange,
   isDeleting = false,
   isDownloading = false,
   isRenaming = false,
@@ -90,14 +94,14 @@ export default function FileItem({
   const [isStarring, setIsStarring] = useState(false);
   const [isStarred, setIsStarred] = useState(item.is_starred || false);
   const { toast } = useToast();
-  
+
   const handleItemClick = () => {
     // Prevent clicking when any operation is in progress
     if (isDeleting || isDownloading || isRenaming || isMoving || isStarring) {
       return;
     }
-    
-    if (item.type === 'folder') {
+
+    if (item.type === "folder") {
       setIsExpanded(!isExpanded);
       onSelect?.(item);
     } else {
@@ -109,44 +113,50 @@ export default function FileItem({
     e.stopPropagation();
     e.preventDefault();
     const isChecked = e.target.checked;
-    console.log('Checkbox changed:', item.id, isChecked);
+    console.log("Checkbox changed:", item.id, isChecked);
     onSelectionChange?.(item.id, isChecked);
   };
 
   const handleStarToggle = async (e) => {
-    e.stopPropagation(); 
+    e.stopPropagation();
 
-    if (isStarring || item.type === 'folder') {
-      return; 
+    if (isStarring || item.type === "folder") {
+      return;
     }
 
-    console.log("handleStarToggle called for item:", item.id, "Current starred state:", isStarred); 
+    console.log(
+      "handleStarToggle called for item:",
+      item.id,
+      "Current starred state:",
+      isStarred
+    );
 
-    setIsStarring(true); 
+    setIsStarring(true);
     const previousState = isStarred;
 
     try {
       // Optimistically update UI
       setIsStarred(!isStarred);
-      console.log("Calling starService.toggleStar with itemId:", item.id); 
-      
-      const result = await starService.toggleStar(item.id);
-      console.log("API response from toggleStar:", result); 
+      console.log("Calling starService.toggleStar with itemId:", item.id);
 
-      if (result && result.success !== false) { 
-        const newStarredState = result.is_starred !== undefined ? result.is_starred : !previousState;
-        setIsStarred(newStarredState); 
+      const result = await starService.toggleStar(item.id);
+      console.log("API response from toggleStar:", result);
+
+      if (result && result.success !== false) {
+        const newStarredState =
+          result.is_starred !== undefined ? result.is_starred : !previousState;
+        setIsStarred(newStarredState);
 
         // Call parent's star change handler
-        onStarChange?.(item.id, newStarredState); 
+        onStarChange?.(item.id, newStarredState);
 
         toast({
           title: "Success",
           description: newStarredState ? "File starred" : "File unstarred",
         });
       } else {
-        console.error("API reported an error or failed success:", result); 
-        setIsStarred(previousState); 
+        console.error("API reported an error or failed success:", result);
+        setIsStarred(previousState);
         toast({
           title: "Error",
           description: result?.error || "Failed to toggle star (API error)",
@@ -154,15 +164,15 @@ export default function FileItem({
         });
       }
     } catch (error) {
-      console.error("Network or unexpected error during star toggle:", error); 
-      setIsStarred(previousState); 
+      console.error("Network or unexpected error during star toggle:", error);
+      setIsStarred(previousState);
       toast({
         title: "Error",
         description: "Failed to toggle star (network error)",
         variant: "destructive",
       });
     } finally {
-      setIsStarring(false); 
+      setIsStarring(false);
     }
   };
 
@@ -180,9 +190,9 @@ export default function FileItem({
 
   const handleDownload = (e) => {
     e.stopPropagation();
-    if (item.type === 'file' && !isDownloading) {
+    if (item.type === "file" && !isDownloading) {
       onDownload?.(item.id, item.name);
-    } else if (item.type === 'folder') {
+    } else if (item.type === "folder") {
       toast({
         title: "Error",
         description: "Cannot download folders",
@@ -215,7 +225,9 @@ export default function FileItem({
   const handleDeleteClick = (e) => {
     e.stopPropagation();
     if (!isAnyOperationInProgress) {
-      if (window.confirm(`Are you sure you want to move "${item.name}" to trash?`)) {
+      if (
+        window.confirm(`Are you sure you want to move "${item.name}" to trash?`)
+      ) {
         onDelete?.(item.id);
       }
     }
@@ -228,22 +240,25 @@ export default function FileItem({
     }
   };
 
-  const isAnyOperationInProgress = isDeleting || isDownloading || isRenaming || isMoving || isStarring;
+  const isAnyOperationInProgress =
+    isDeleting || isDownloading || isRenaming || isMoving || isStarring;
 
   return (
     <div className="animate-fade-in">
-      <div 
+      <div
         className={`flex flex-col p-3 sm:p-4 border border-border rounded-lg hover:bg-card-hover transition-smooth cursor-pointer group shadow-file bg-gradient-file h-full min-h-[100px] sm:min-h-[120px] ${
-          isAnyOperationInProgress ? 'opacity-60 pointer-events-none' : ''
-        } ${isSelected ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+          isAnyOperationInProgress ? "opacity-60 pointer-events-none" : ""
+        } ${isSelected ? "ring-2 ring-primary bg-primary/5" : ""}`}
         onClick={!isRenamingLocal ? handleItemClick : undefined}
       >
-        
         {/* Header with icon, name, and actions - Mobile optimized */}
         <div className="flex items-start justify-between mb-3 gap-2">
           <div className="flex items-center gap-3 flex-1 min-w-0">
             {isSelectionMode && (
-              <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0"> 
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="flex-shrink-0"
+              >
                 <input
                   type="checkbox"
                   checked={isSelected || false}
@@ -252,30 +267,33 @@ export default function FileItem({
                 />
               </div>
             )}
-            
+
             <div className="flex-shrink-0">
               {getFileIconComponent(item.name, item.type)}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               {isRenamingLocal ? (
                 // Rename input section - Mobile optimized
-                <div className="flex flex-col sm:flex-row sm:items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                <div
+                  className="flex flex-col sm:flex-row sm:items-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <Input
                     value={newName}
                     onChange={(e) => setNewName(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleRename();
-                      if (e.key === 'Escape') handleCancelRename();
+                      if (e.key === "Enter") handleRename();
+                      if (e.key === "Escape") handleCancelRename();
                     }}
                     className="h-10 sm:h-8 text-base sm:text-sm flex-1"
                     autoFocus
                     disabled={isRenaming}
                   />
                   <div className="flex gap-1 justify-end sm:justify-start">
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={handleRename}
                       disabled={isRenaming}
                       className="h-8 w-8 p-0"
@@ -286,9 +304,9 @@ export default function FileItem({
                         <Check className="h-4 w-4 text-success" />
                       )}
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
+                    <Button
+                      size="sm"
+                      variant="ghost"
                       onClick={handleCancelRename}
                       disabled={isRenaming}
                       className="h-8 w-8 p-0"
@@ -298,17 +316,25 @@ export default function FileItem({
                   </div>
                 </div>
               ) : (
-                <div className="font-medium text-foreground text-sm sm:text-base flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2" title={item.name}>
+                <div
+                  className="font-medium text-foreground text-sm sm:text-base flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2"
+                  title={item.name}
+                >
                   <span className="truncate">{item.name}</span>
                   {/* Operation indicators */}
                   {(isDeleting || isRenaming || isMoving || isStarring) && (
                     <div className="flex items-center gap-1 text-xs">
                       <Loader2 className="h-3 w-3 animate-spin" />
                       <span>
-                        {isDeleting ? "Deleting..." : 
-                         isRenaming ? "Renaming..." : 
-                         isMoving ? "Moving..." : 
-                         isStarring ? "Updating..." : ""}
+                        {isDeleting
+                          ? "Deleting..."
+                          : isRenaming
+                          ? "Renaming..."
+                          : isMoving
+                          ? "Moving..."
+                          : isStarring
+                          ? "Updating..."
+                          : ""}
                       </span>
                     </div>
                   )}
@@ -321,7 +347,7 @@ export default function FileItem({
           {!isRenamingLocal && (
             <div className="flex items-center gap-1 flex-shrink-0">
               {/* Star button for files - Better touch target on mobile */}
-              {item.type === 'file' && (
+              {item.type === "file" && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -336,8 +362,8 @@ export default function FileItem({
                     <Star
                       className={`h-4 w-4 transition-colors ${
                         item.is_starred
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-muted-foreground hover:text-yellow-400'
+                          ? "fill-yellow-400 text-yellow-400"
+                          : "text-muted-foreground hover:text-yellow-400"
                       }`}
                     />
                   )}
@@ -345,7 +371,7 @@ export default function FileItem({
               )}
 
               {/* Quick download for files - Mobile optimized */}
-              {item.type === 'file' && (
+              {item.type === "file" && (
                 <Button
                   variant="ghost"
                   size="sm"
@@ -364,10 +390,13 @@ export default function FileItem({
 
               {/* More options dropdown - Mobile friendly */}
               <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
+                <DropdownMenuTrigger
+                  asChild
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
                     className="h-8 w-8 sm:h-8 sm:w-8 p-0 cursor-pointer touch-manipulation"
                     disabled={isAnyOperationInProgress}
                   >
@@ -376,9 +405,9 @@ export default function FileItem({
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-48 sm:w-40">
-                  {item.type === 'file' && (
+                  {item.type === "file" && (
                     <>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={handleStarToggle}
                         className="cursor-pointer py-3 sm:py-2 text-base sm:text-sm"
                         disabled={isAnyOperationInProgress}
@@ -386,12 +415,20 @@ export default function FileItem({
                         {isStarring ? (
                           <Loader2 className="h-4 w-4 mr-3 sm:mr-2 animate-spin" />
                         ) : (
-                          <Star className={`h-4 w-4 mr-3 sm:mr-2 ${isStarred ? 'fill-yellow-400 text-yellow-400' : ''}`} />
+                          <Star
+                            className={`h-4 w-4 mr-3 sm:mr-2 ${
+                              isStarred ? "fill-yellow-400 text-yellow-400" : ""
+                            }`}
+                          />
                         )}
-                        {isStarring ? 'Updating...' : (isStarred ? 'Unstar' : 'Star')}
+                        {isStarring
+                          ? "Updating..."
+                          : isStarred
+                          ? "Unstar"
+                          : "Star"}
                       </DropdownMenuItem>
 
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={handleDownload}
                         className="cursor-pointer py-3 sm:py-2 text-base sm:text-sm"
                         disabled={isAnyOperationInProgress}
@@ -401,15 +438,15 @@ export default function FileItem({
                         ) : (
                           <Download className="h-4 w-4 mr-3 sm:mr-2" />
                         )}
-                        {isDownloading ? 'Downloading...' : 'Download'}
+                        {isDownloading ? "Downloading..." : "Download"}
                       </DropdownMenuItem>
 
                       <DropdownMenuSeparator />
                     </>
                   )}
 
-                  <DropdownMenuItem 
-                    onClick={handleRenameClick} 
+                  <DropdownMenuItem
+                    onClick={handleRenameClick}
                     className="cursor-pointer py-3 sm:py-2 text-base sm:text-sm"
                     disabled={isAnyOperationInProgress}
                   >
@@ -418,11 +455,11 @@ export default function FileItem({
                     ) : (
                       <Edit className="h-4 w-4 mr-3 sm:mr-2" />
                     )}
-                    {isRenaming ? 'Renaming...' : 'Rename'}
+                    {isRenaming ? "Renaming..." : "Rename"}
                   </DropdownMenuItem>
 
-                  <DropdownMenuItem 
-                    onClick={handleMoveClick} 
+                  <DropdownMenuItem
+                    onClick={handleMoveClick}
                     className="cursor-pointer py-3 sm:py-2 text-base sm:text-sm"
                     disabled={isAnyOperationInProgress}
                   >
@@ -431,13 +468,13 @@ export default function FileItem({
                     ) : (
                       <Move className="h-4 w-4 mr-3 sm:mr-2" />
                     )}
-                    {isMoving ? 'Moving...' : 'Move'}
+                    {isMoving ? "Moving..." : "Move"}
                   </DropdownMenuItem>
 
                   <DropdownMenuSeparator />
 
-                  <DropdownMenuItem 
-                    onClick={handleDeleteClick} 
+                  <DropdownMenuItem
+                    onClick={handleDeleteClick}
                     className="text-destructive cursor-pointer py-3 sm:py-2 text-base sm:text-sm"
                     disabled={isAnyOperationInProgress}
                   >
@@ -446,7 +483,7 @@ export default function FileItem({
                     ) : (
                       <Trash2 className="h-4 w-4 mr-3 sm:mr-2" />
                     )}
-                    {isDeleting ? 'Deleting...' : 'Trash'}
+                    {isDeleting ? "Deleting..." : "Trash"}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -459,17 +496,24 @@ export default function FileItem({
           <div className="mt-auto">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-2 text-xs text-muted-foreground">
               <div className="flex items-center gap-2 flex-wrap">
-                {item.type === 'file' && item.size && (
-                  <span className="whitespace-nowrap">{formatFileSize(item.size)}</span>
+                {item.type === "file" && item.size && (
+                  <span className="whitespace-nowrap">
+                    {formatFileSize(item.size)}
+                  </span>
                 )}
-                <span className="whitespace-nowrap">{formatDate(item.created_at)}</span>
+                <span className="whitespace-nowrap">
+                  {formatDate(item.created_at)}
+                </span>
                 {/* Star indicator in file info */}
-                {item.type === 'file' && isStarred && (
+                {item.type === "file" && isStarred && (
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 flex-shrink-0" />
                 )}
               </div>
               {item.owner && (
-                <span className="truncate max-w-[120px] sm:max-w-[80px] text-right" title={item.owner.name}>
+                <span
+                  className="truncate max-w-[120px] sm:max-w-[80px] text-right"
+                  title={item.owner.name}
+                >
                   {item.owner.name}
                 </span>
               )}
@@ -479,7 +523,7 @@ export default function FileItem({
       </div>
 
       {/* Render sub-items if folder is expanded */}
-      {item.type === 'folder' && isExpanded && item.items && (
+      {item.type === "folder" && isExpanded && item.items && (
         <div className="mt-2 space-y-2">
           {item.items.map((subItem) => (
             <FileItem

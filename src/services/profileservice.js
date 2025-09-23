@@ -8,9 +8,9 @@ export const profileService = {
       const res = await fetch(`${BASE_URL}/profile/update`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "Accept": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(profileData),
       });
@@ -20,7 +20,10 @@ export const profileService = {
       if (res.ok) {
         return { success: true, data };
       } else {
-        return { success: false, error: data.message || "Failed to update profile" };
+        return {
+          success: false,
+          error: data.message || "Failed to update profile",
+        };
       }
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -35,8 +38,8 @@ export const profileService = {
       const res = await fetch(`${BASE_URL}/onedrive/storage-usage`, {
         method: "GET",
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Accept": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
         },
       });
 
@@ -45,7 +48,10 @@ export const profileService = {
       if (res.ok) {
         return { success: true, data };
       } else {
-        return { success: false, error: data.message || "Failed to fetch storage usage" };
+        return {
+          success: false,
+          error: data.message || "Failed to fetch storage usage",
+        };
       }
     } catch (error) {
       console.error("Error fetching storage usage:", error);
@@ -60,9 +66,9 @@ export const profileService = {
       const res = await fetch(`${BASE_URL}/password/update`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "Accept": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(passwordData),
       });
@@ -72,7 +78,10 @@ export const profileService = {
       if (res.ok) {
         return { success: true, data };
       } else {
-        return { success: false, error: data.message || "Failed to update password" };
+        return {
+          success: false,
+          error: data.message || "Failed to update password",
+        };
       }
     } catch (error) {
       console.error("Error updating password:", error);
