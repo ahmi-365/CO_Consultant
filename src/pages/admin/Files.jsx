@@ -35,10 +35,12 @@ import FileItem from "@/components/admin/Files/FileItem";
 import UserPermissions from "@/components/admin/Files/UserPermissions";
 import FilePreviewDialog from "@/components/admin/Files/FilePreviewDialog";
 import DragDropZone from "@/components/admin/Files/DragDropZone";
+import FileUploadModal from "@/components/FileUploadModal"; // Import your existing modal
 import { fileApi, getCachedFiles } from "@/services/FileService";
 import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
 import SearchUser from "../../components/admin/Files/SearchUser";
+import MoveFileDialog from '@/components/MoveFileDialog';
 
 export default function FileManagement() {
   const [files, setFiles] = useState([]);
@@ -50,11 +52,8 @@ export default function FileManagement() {
   const [loading, setLoading] = useState(false);
   const [indexing, setIndexing] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
-  const [isUploadOpen, setIsUploadOpen] = useState(false);
-  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [isUploadOpen, setIsUploadOpen] = useState(false); // For your FileUploadModal
   const [newFolderName, setNewFolderName] = useState("");
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [itemToMove, setItemToMove] = useState(null);
   const [moveDestination, setMoveDestination] = useState("");
   const [availableFolders, setAvailableFolders] = useState([]);
   const [preview, setPreview] = useState(null);
@@ -64,22 +63,25 @@ export default function FileManagement() {
   const [itemForPermissions, setItemForPermissions] = useState(null);
   const [selectedUser, setSelectedUser] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [isMoving, setIsMoving] = useState(false);
   const [isDeleting, setIsDeleting] = useState({});
   const [isDownloading, setIsDownloading] = useState({});
   const [isRenaming, setIsRenaming] = useState({});
   const [isSearching, setIsSearching] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
+const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+const [itemToMove, setItemToMove] = useState(null);
 
   const { toast } = useToast();
 
   useEffect(() => {
     loadFiles();
   }, [currentPath, selectedUser]);
+  
   useEffect(() => {
     initializeSearch();
   }, []);
+  
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchTerm.trim()) {
@@ -117,21 +119,22 @@ export default function FileManagement() {
         force: opts.force || !!selectedUser // Always force when user is selected
       };
 
-    const data = await fileApi.listFiles(currentParentId, params, options);
-    const safeData = Array.isArray(data) ? data : [];
-    setFiles(safeData);
-  } catch (error) {
-    console.error("Failed to load files:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load files. Please check your authentication.",
-      variant: "destructive",
-    });
-    setFiles([]);
-  } finally {
-    setLoading(false);
-  }
-};
+      const data = await fileApi.listFiles(currentParentId, params, options);
+      const safeData = Array.isArray(data) ? data : [];
+      setFiles(safeData);
+    } catch (error) {
+      console.error("Failed to load files:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load files. Please check your authentication.",
+        variant: "destructive",
+      });
+      setFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const initializeSearch = async () => {
     setIndexing(true);
     try {
@@ -161,7 +164,7 @@ export default function FileManagement() {
 
       // Apply user filter to search results if user is selected
       if (selectedUser) {
-        results = results.filter(item => item.created_by === selectedUser); // This might need to be item.user_id depending on your data structure
+        results = results.filter(item => item.created_by === selectedUser);
       }
 
       setSearchResults(results);
@@ -248,58 +251,25 @@ export default function FileManagement() {
     }
   };
 
-  const handleUploadFile = async (file, targetFolderId) => {
-    setIsUploading(true);
-    try {
-      const parentId =
-        targetFolderId ||
-        (currentPath.length > 0
-          ? currentPath[currentPath.length - 1].id
-          : null);
-
-      await fileApi.uploadFile(file, parentId);
-
-      toast({
-        title: "Success",
-        description: `File "${file.name}" uploaded successfully`,
-      });
-
-      loadFiles({ force: true });
-
-      // Refresh search index
-      searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: `Failed to upload file "${file.name}"`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleMultipleFilesUpload = async () => {
-    if (!selectedFile) return;
-
-    try {
-      await handleUploadFile(selectedFile);
-      setSelectedFile(null);
-      setIsUploadOpen(false);
-    } catch (error) {
-      // Error already handled in handleUploadFile
-    }
+  // Handle file upload completion from FileUploadModal
+  const handleFileUploaded = async (uploadedFile) => {
+    // Refresh the files list
+    await loadFiles({ force: true });
+    
+    // Refresh search index
+    searchService.clearIndex();
+    await searchService.indexAllFiles(true);
   };
 
   const handleFileDrop = async (files, targetFolderId) => {
     const fileArray = Array.from(files);
-
-    setIsUploading(true);
-    for (const file of fileArray) {
-      await handleUploadFile(file, targetFolderId);
+    
+    // Use the FileUploadModal for dropped files
+    if (fileArray.length > 0) {
+      setIsUploadOpen(true);
+      // Note: You might need to modify FileUploadModal to accept pre-selected files
+      // For now, this opens the modal and user can select files again
     }
-    setIsUploading(false);
   };
 
   const handleFileSelect = (item) => {
@@ -398,10 +368,28 @@ export default function FileManagement() {
     }
   };
 
-  const handleMove = async (id) => {
-    setItemToMove(id);
-    setIsMoveDialogOpen(true);
-  };
+const handleMove = async (item) => {
+  console.log("handleMove called with:", item); // Debug log
+  
+  if (!item) {
+    console.error("No item provided to handleMove");
+    return;
+  }
+  
+  if (!item.id) {
+    console.error("Item missing ID:", item);
+    toast({
+      title: "Error",
+      description: "Selected item has no ID",
+      variant: "destructive",
+    });
+    return;
+  }
+  
+  console.log("Setting itemToMove:", item);
+  setItemToMove(item);
+  setIsMoveDialogOpen(true);
+};
 
   const handleConfirmMove = async () => {
     if (!itemToMove || !moveDestination) {
@@ -485,8 +473,13 @@ export default function FileManagement() {
     } finally {
       setIsRenaming((prev) => ({ ...prev, [id]: false }));
     }
-    };
-    
+  };
+    const handleMoveSuccess = async (movedItem, destination) => {
+  await loadFiles({ force: true });
+  searchService.clearIndex();
+  await searchService.indexAllFiles(true);
+};
+
   const handleManagePermissions = (item) => {
     setItemForPermissions(item);
     setShowPermissionsDialog(true);
@@ -553,18 +546,15 @@ export default function FileManagement() {
         return matchesSearch && matchesUser;
       });
 
+  // Get current folder for FileUploadModal
+  const currentFolder = currentPath.length > 0 
+    ? currentPath[currentPath.length - 1] 
+    : null;
+
   return (
     <DragDropZone onFileDrop={handleFileDrop}>
       <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
         <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-          {/* Upload Progress Overlay */}
-          {isUploading && (
-            <div className="fixed top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Uploading files...
-            </div>
-          )}
-
           {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b pb-4">
             {/* Left side: title and subtitle */}
@@ -591,18 +581,13 @@ export default function FileManagement() {
                 {loading ? "Syncing..." : "Sync"}
               </button>
 
-              {/* Upload Button */}
+              {/* Upload Button - Now opens FileUploadModal */}
               <button
                 onClick={() => setIsUploadOpen(true)}
-                disabled={isUploading}
-                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition disabled:opacity-50"
+                className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition"
               >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Upload className="h-4 w-4 mr-2" />
-                )}
-                {isUploading ? "Uploading..." : "Upload"}
+                <Upload className="h-4 w-4 mr-2" />
+                Upload Files
               </button>
 
               {/* New Folder Button */}
@@ -793,6 +778,14 @@ export default function FileManagement() {
             </div>
           </div>
 
+          {/* File Upload Modal - Replace the old upload dialog */}
+          <FileUploadModal
+            isOpen={isUploadOpen}
+            onClose={() => setIsUploadOpen(false)}
+            onFileUploaded={handleFileUploaded}
+            currentFolder={currentFolder}
+          />
+
           {/* Create Folder Dialog */}
           <Dialog
             open={isCreateFolderOpen}
@@ -844,120 +837,17 @@ export default function FileManagement() {
             </DialogContent>
           </Dialog>
 
-          {/* Upload File Dialog */}
-          <Dialog open={isUploadOpen} onOpenChange={setIsUploadOpen}>
-            <DialogContent className="bg-card shadow-card">
-              <DialogHeader>
-                <DialogTitle className="text-foreground">
-                  Upload Files
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground">
-                  Select files to upload to the current folder
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <Input
-                  type="file"
-                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="cursor-pointer border-border"
-                  multiple
-                  disabled={isUploading}
-                />
-                {selectedFile && (
-                  <div className="mt-3 p-3 bg-primary-light rounded-lg">
-                    <p className="text-sm text-primary font-medium">
-                      Selected: {selectedFile.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsUploadOpen(false)}
-                  disabled={isUploading}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="upload"
-                  onClick={handleMultipleFilesUpload}
-                  disabled={!selectedFile || isUploading}
-                  className="flex items-center gap-2"
-                >
-                  {isUploading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isUploading ? "Uploading..." : "Upload File"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
           {/* Move Item Dialog */}
-          <Dialog open={isMoveDialogOpen} onOpenChange={setIsMoveDialogOpen}>
-            <DialogContent className="bg-card shadow-card">
-              <DialogHeader>
-                <DialogTitle className="text-foreground flex items-center gap-2">
-                  <Move className="h-5 w-5" />
-                  Move Item
-                  {isMoving && <Loader2 className="h-4 w-4 animate-spin" />}
-                </DialogTitle>
-                <DialogDescription className="text-muted-foreground">
-                  Select the destination folder for this item
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                {loadingFolders ? (
-                  <div className="flex items-center justify-center py-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="ml-2 text-muted-foreground">
-                      Loading folders...
-                    </span>
-                  </div>
-                ) : (
-                  <Select
-                    value={moveDestination}
-                    onValueChange={setMoveDestination}
-                    disabled={isMoving}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select destination folder" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="root">Root folder</SelectItem>
-                      {availableFolders.map((folder) => (
-                        <SelectItem key={folder.id} value={folder.id}>
-                          <div className="flex items-center gap-2">
-                            <FolderOpen className="h-4 w-4 mr-2 text-primary" />
-                            {folder.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsMoveDialogOpen(false)}
-                  disabled={isMoving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleConfirmMove}
-                  disabled={!moveDestination || isMoving}
-                  className="flex items-center gap-2"
-                >
-                  {isMoving && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {isMoving ? "Moving..." : "Move"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+         <MoveFileDialog
+  isOpen={isMoveDialogOpen}
+  onClose={() => {
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+  }}
+  itemToMove={itemToMove}
+  onMoveSuccess={handleMoveSuccess}
+  currentPath={currentPath}
+/>
 
           {/* User Permissions Dialog */}
           <Dialog

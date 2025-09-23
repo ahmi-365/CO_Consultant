@@ -18,7 +18,6 @@ import LoginPage from "./pages/Auths/Login";
 import RegisterPage from "./pages/Auths/Register";
 import RefactoredCloudVaultLayout from "./components/RefactoredCloudVaultLayout";
 import StarredPage from "./pages/CustomerPanel/StarredPage";
-import SharedPage from "./pages/CustomerPanel/SharedPage";
 import TrashPage from "./pages/CustomerPanel/TrashPage";
 import ProfilePage from "./pages/CustomerPanel/ProfilePage";
 import { CustomerLayout } from "./pages/CustomerPanel/CustomerLayout";
@@ -153,16 +152,7 @@ const App = () => (
             <Route index element={<StarredPage />} />
           </Route>
           
-          <Route
-            path="/shared"
-            element={
-              <AuthGuard>
-                <CustomerLayout />
-              </AuthGuard>
-            }
-          >
-            <Route index element={<SharedPage />} />
-          </Route>
+        
           
           <Route
             path="/trash"

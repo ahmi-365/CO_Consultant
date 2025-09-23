@@ -158,36 +158,47 @@ export const fileApi = {
     
     return result.data;
   },
+// Updated uploadFile method to handle both single files and arrays
+async uploadFile(files, parent_id) {
+  const formData = new FormData();
+  
+  // Handle both single file and array of files
+  const fileArray = Array.isArray(files) ? files : [files];
+  
+  // Append all files with array notation 'files[]'
+  // The backend will receive them as an array even for single files
+  fileArray.forEach((file) => {
+    formData.append('files[]', file);
+  });
+  
+  if (parent_id) {
+    formData.append('parent_id', parent_id.toString());
+  }
 
-  async uploadFile(file, parent_id) {
-    const formData = new FormData();
-    formData.append('file', file);
-    if (parent_id) {
-      formData.append('parent_id', parent_id.toString());
-    }
+  const response = await fetch(`${API_URL}/onedrive/upload`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    },
+    body: formData,
+  });
 
-    const response = await fetch(`${API_URL}/onedrive/upload`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-      body: formData,
-    });
+  if (!response.ok) {
+    throw new Error('Failed to upload file');
+  }
 
-    if (!response.ok) {
-      throw new Error('Failed to upload file');
-    }
+  const result = await response.json();
+  
+  const cacheKey = `files_${parent_id || 'root'}`;
+  const folderNamesKey = `folder_names_${parent_id || 'root'}`;
+  fileCache.delete(cacheKey);
+  fileCache.delete(folderNamesKey);
+  
+  return result.data;
+},
 
-    const result = await response.json();
-    
-    const cacheKey = `files_${parent_id || 'root'}`;
-    const folderNamesKey = `folder_names_${parent_id || 'root'}`;
-    fileCache.delete(cacheKey);
-    fileCache.delete(folderNamesKey);
-    
-    return result.data;
-  },
-
+// Remove the uploadMultipleFiles method since we're using uploadFile for both
+// Just keep this unified uploadFile method
   async deleteItem(id) {
     const response = await fetch(`${API_URL}/onedrive/trash/${id}`, {
       method: 'POST',
@@ -203,21 +214,57 @@ export const fileApi = {
     fileCache.clear();
   },
 async moveItem(id, new_parent_id) {
+  console.log("moveItem called with:", { id, new_parent_id, id_type: typeof id, parent_type: typeof new_parent_id });
+  
   const token = localStorage.getItem('token');
   const url = `${API_URL}/onedrive/move-file`;
 
   if (!token) throw new Error("No auth token found");
 
+  if (!id) {
+    throw new Error("File ID is required");
+  }
+
+  // Create FormData object
+  const formData = new FormData();
+  
+  // Ensure we're sending the right values
+  const fileId = parseInt(id);
+  const parentId = new_parent_id ? parseInt(new_parent_id) : null;
+  
+  console.log("Parsed values:", { fileId, parentId });
+  
+  if (isNaN(fileId)) {
+    throw new Error(`Invalid file ID: ${id}`);
+  }
+  
+  formData.append('file_id', fileId.toString());
+  
+  // Handle null parent_id correctly
+  if (parentId !== null) {
+    if (isNaN(parentId)) {
+      throw new Error(`Invalid parent ID: ${new_parent_id}`);
+    }
+    formData.append('new_parent_id', parentId.toString());
+  } else {
+    // For root folder, you might need to send empty string or specific value
+    // Check what your backend expects for root folder
+    formData.append('new_parent_id', '');
+  }
+
+  // Debug: log what we're sending
+  console.log("FormData contents:");
+  for (let [key, value] of formData.entries()) {
+    console.log(`${key}: ${value} (type: ${typeof value})`);
+  }
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
+      // Don't set Content-Type for FormData
     },
-    body: JSON.stringify({
-      file_id: parseInt(id),
-      new_parent_id: new_parent_id ? parseInt(new_parent_id) : null,
-    }),
+    body: formData,
   });
 
   let result;
@@ -226,6 +273,8 @@ async moveItem(id, new_parent_id) {
   } catch {
     result = {};
   }
+
+  console.log("API Response:", { status: response.status, result });
 
   if (!response.ok) {
     let errorMessage = `Move failed with status ${response.status}`;
@@ -238,14 +287,13 @@ async moveItem(id, new_parent_id) {
     } else if (result.message) {
       errorMessage = result.message;
     }
+    console.error("Move API Error:", errorMessage);
     throw new Error(errorMessage);
   }
 
   fileCache.clear();
   return result;
-}
-,
-
+},
   async renameItem(id, newName) {
     const response = await fetch(`${API_URL}/onedrive/rename/${id}`, {
       method: 'POST',
