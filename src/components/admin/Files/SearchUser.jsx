@@ -2,56 +2,119 @@ import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronDown, Users, Loader2 } from "lucide-react";
+import { ChevronDown, Users, Loader2, X } from "lucide-react";
 import { userApi } from "@/services/UserService";
 import { useToast } from "@/hooks/use-toast";
 
 // Dropdown Portal Component
-function DropdownPortal({ children, isOpen, triggerRef }) {
+function DropdownPortal({ children, isOpen, triggerRef, onClose }) {
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
       const updatePosition = () => {
         const rect = triggerRef.current.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const viewportWidth = window.innerWidth;
+        const dropdownHeight = 320;
+        const dropdownWidth = 288;
+
+        // Calculate available space
+        const spaceBelow = viewportHeight - rect.bottom;
+        const spaceAbove = rect.top;
+
+        // Position vertically (above or below)
+        let topPosition;
+        let positionType = 'below';
+
+        if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
+          // Position above
+          topPosition = rect.top + window.scrollY - dropdownHeight - 4;
+          positionType = 'above';
+        } else {
+          // Position below
+          topPosition = rect.bottom + window.scrollY + 4;
+          positionType = 'below';
+        }
+
+        // Position horizontally (ensure it stays within viewport)
+        let leftPosition = rect.left + window.scrollX;
+        const maxLeft = viewportWidth - dropdownWidth;
+
+        if (leftPosition > maxLeft) {
+          leftPosition = maxLeft;
+        }
+        if (leftPosition < 0) {
+          leftPosition = 8; // Add some padding from edge
+        }
+
         setPosition({
-          top: rect.bottom + window.scrollY + 4,
-          left: rect.left + window.scrollX,
-          width: rect.width
+          top: topPosition,
+          left: leftPosition,
+          width: Math.max(rect.width, dropdownWidth),
+          positionType
         });
       };
 
       updatePosition();
-      window.addEventListener('scroll', updatePosition);
-      window.addEventListener('resize', updatePosition);
+
+      // Use passive event listeners for better performance
+      const options = { passive: true, capture: true };
+
+      window.addEventListener('scroll', updatePosition, options);
+      window.addEventListener('resize', updatePosition, options);
 
       return () => {
-        window.removeEventListener('scroll', updatePosition);
-        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition, true);
       };
     }
   }, [isOpen, triggerRef]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target) &&
+        triggerRef.current && !triggerRef.current.contains(event.target)) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return createPortal(
-    <div 
+    <div
+      ref={dropdownRef}
+      className="fixed bg-white border border-gray-200 rounded-lg shadow-xl z-50 overflow-hidden animate-in fade-in-0 zoom-in-95"
       style={{
-        position: 'fixed',
         top: `${position.top}px`,
         left: `${position.left}px`,
-        width: '288px',
-        maxHeight: '320px',
-        backgroundColor: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: '6px',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        zIndex: 999999,
-        overflow: 'hidden'
+        width: `${position.width}px`,
+        maxHeight: '320px'
       }}
     >
       {children}
     </div>,
+    document.body
+  );
+}
+
+// Backdrop component to prevent background interaction
+function Backdrop({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 bg-black bg-opacity-0 z-40"
+      onClick={onClose}
+    />,
     document.body
   );
 }
@@ -64,27 +127,44 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
   const triggerRef = useRef(null);
   const { toast } = useToast();
 
+  // Store original body style
+  const originalStyleRef = useRef('');
+
   useEffect(() => {
     loadUsers();
   }, []);
 
+  // Prevent body scroll when dropdown is open
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (triggerRef.current && !triggerRef.current.contains(event.target)) {
-        const portal = document.querySelector('[style*="z-index: 999999"]');
-        if (!portal || !portal.contains(event.target)) {
-          setIsDropdownOpen(false);
-        }
-      }
-    };
-
     if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      // Store original style
+      originalStyleRef.current = document.body.style.overflow;
+
+      // Completely lock scroll without shifting content
+      document.body.style.overflow = 'hidden';
+      document.documentElement.style.overflow = 'hidden';
+    } else {
+      // Restore original style
+      document.body.style.overflow = originalStyleRef.current;
+      document.documentElement.style.overflow = originalStyleRef.current;
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      // Cleanup on unmount
+      document.body.style.overflow = originalStyleRef.current;
+      document.documentElement.style.overflow = originalStyleRef.current;
     };
+  }, [isDropdownOpen]);
+
+  useEffect(() => {
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && isDropdownOpen) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
   }, [isDropdownOpen]);
 
   const loadUsers = async () => {
@@ -116,127 +196,116 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
     setUserSearchTerm("");
   };
 
+  const handleToggleDropdown = () => {
+    const newState = !isDropdownOpen;
+    setIsDropdownOpen(newState);
+    if (newState) {
+      setUserSearchTerm("");
+    }
+  };
+
+  const handleCloseDropdown = () => {
+    setIsDropdownOpen(false);
+  };
+
   const selectedUserData = users.find(u => u.id === selectedUser);
 
   return (
-    <div ref={triggerRef} className={`relative ${className}`}>
+    <div ref={triggerRef} className={`relative inline-block ${className}`}>
       <Button
         variant="outline"
-        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-        className="flex items-center gap-2 min-w-[150px] justify-between"
+        onClick={handleToggleDropdown}
+        className="flex items-center gap-2 min-w-[150px] justify-between w-full relative z-10"
         disabled={loadingUsers}
-        style={{
-          backgroundColor: 'white',
-          border: '1px solid #d1d5db',
-          color: '#374151'
-        }}
       >
         {loadingUsers ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : selectedUser && selectedUserData ? (
-          <span className="truncate" style={{ color: '#111827' }}>
+          <span className="truncate text-gray-900 font-medium">
             {selectedUserData.name}
           </span>
         ) : (
-          <span style={{ color: '#6b7280' }}>All Users</span>
+          <span className="text-gray-500">All Users</span>
         )}
-        <ChevronDown className="h-4 w-4" style={{ color: '#9ca3af' }} />
+        <ChevronDown
+          className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''
+            }`}
+        />
       </Button>
-      
-      <DropdownPortal isOpen={isDropdownOpen} triggerRef={triggerRef}>
-        <div style={{ padding: '8px', borderBottom: '1px solid #e5e7eb' }}>
-          <Input
-            placeholder="Search users..."
-            value={userSearchTerm}
-            onChange={(e) => setUserSearchTerm(e.target.value)}
-            style={{ 
-              height: '32px',
-              border: '1px solid #d1d5db',
-              borderRadius: '4px'
-            }}
-          />
+
+      {/* Backdrop for outside clicks */}
+      <Backdrop isOpen={isDropdownOpen} onClose={handleCloseDropdown} />
+
+      {/* Dropdown Portal */}
+      <DropdownPortal
+        isOpen={isDropdownOpen}
+        triggerRef={triggerRef}
+        onClose={handleCloseDropdown}
+      >
+        {/* Header with search and close button */}
+        <div className="p-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+          <div className="flex-1 mr-2">
+            <Input
+              placeholder="Search users..."
+              value={userSearchTerm}
+              onChange={(e) => setUserSearchTerm(e.target.value)}
+              className="h-9 bg-white"
+              autoFocus
+            />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCloseDropdown}
+            className="h-9 w-9 p-0 hover:bg-gray-200"
+          >
+            <X className="h-4 w-4" />
+          </Button>
         </div>
-        <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
+
+        {/* Users list */}
+        <div className="max-h-64 overflow-y-auto">
+          {/* All Users option */}
           <button
             onClick={() => handleUserSelect("")}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              textAlign: 'left',
-              backgroundColor: selectedUser === "" ? '#dbeafe' : 'transparent',
-              borderLeft: selectedUser === "" ? '4px solid #3b82f6' : '4px solid transparent',
-              border: 'none',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors duration-150 hover:bg-blue-50 group ${selectedUser === ""
+                ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                : "text-gray-700 hover:text-gray-900"
+              }`}
           >
-            <Users className="h-4 w-4" style={{ color: '#4b5563' }} />
-            <span style={{ color: '#111827', fontWeight: '500' }}>All Users</span>
+            <Users className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
+            <span className="font-medium">All Users</span>
           </button>
+
+          {/* Users list */}
           {filteredUsers.map((user) => (
             <button
               key={user.id}
               onClick={() => handleUserSelect(user.id)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                textAlign: 'left',
-                backgroundColor: selectedUser === user.id ? '#dbeafe' : 'transparent',
-                borderLeft: selectedUser === user.id ? '4px solid #3b82f6' : '4px solid transparent',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
+              className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors duration-150 hover:bg-blue-50 group ${selectedUser === user.id
+                  ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
+                  : "text-gray-700 hover:text-gray-900"
+                }`}
             >
-              <div 
-                style={{
-                  width: '24px',
-                  height: '24px',
-                  borderRadius: '50%',
-                  backgroundColor: '#2563eb',
-                  color: 'white',
-                  fontSize: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: '500'
-                }}
-              >
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-medium flex items-center justify-center shadow-sm">
                 {user.name.charAt(0).toUpperCase()}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ 
-                  fontWeight: '500', 
-                  color: '#111827',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
+              <div className="flex-1 min-w-0">
+                <div className="font-medium truncate text-current">
                   {user.name}
                 </div>
-                <div style={{ 
-                  fontSize: '12px', 
-                  color: '#6b7280',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
+                <div className="text-xs truncate text-gray-500 group-hover:text-gray-600 mt-0.5">
                   {user.email}
                 </div>
               </div>
             </button>
           ))}
+
+          {/* No results */}
           {filteredUsers.length === 0 && userSearchTerm && (
-            <div style={{ 
-              padding: '8px 12px', 
-              textAlign: 'center', 
-              color: '#6b7280' 
-            }}>
-              No users found
+            <div className="px-4 py-8 text-center text-gray-500">
+              <Users className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+              <p className="text-sm">No users found for "{userSearchTerm}"</p>
             </div>
           )}
         </div>

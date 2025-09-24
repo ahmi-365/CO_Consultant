@@ -55,7 +55,7 @@ const ServicesSection = () => {
             <BarChart3 className="w-8 h-8 text-secondary" />
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-primary">
-            Our Comprehensive Services
+            All-in-One Services
           </h2>
           <p className="text-xl text-construction-grey max-w-3xl mx-auto leading-relaxed">
             Cutting-edge construction management solutions designed to streamline your projects from conception to completion

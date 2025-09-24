@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Search, UserPlus, X, Users, Info, Crown, Eye, Upload, Edit, Trash, FolderPlus } from "lucide-react";
+import { Search, UserPlus, X, Users, Info, Crown, Eye, Upload, Edit, Trash, FolderPlus, Loader2 } from "lucide-react";
 import { permissionsApi } from "@/services/FileService";
 import { useToast } from "@/hooks/use-toast";
 import FolderUsersDialog from "./FolderUsersDialog";
@@ -12,44 +12,44 @@ import UserSearchDialog from "./UserSearchDialog";
 
 // Define permission options based on your backend enums
 const PERMISSION_OPTIONS = [
-  { 
-    value: 'owner', 
-    label: 'Owner', 
+  {
+    value: 'owner',
+    label: 'Owner',
     description: 'Full control over the file/folder',
     icon: Crown,
     color: 'bg-red-100 text-red-800 border-red-200'
   },
-  { 
-    value: 'view', 
-    label: 'View', 
+  {
+    value: 'view',
+    label: 'View',
     description: 'Can view and download the file',
     icon: Eye,
     color: 'bg-blue-100 text-blue-800 border-blue-200'
   },
-  { 
-    value: 'upload', 
-    label: 'Upload', 
-    description: 'Can upload files to the folder',
+  {
+    value: 'upload',
+    label: 'Upload',
+    Description: 'Can upload files to the folder',
     icon: Upload,
     color: 'bg-green-100 text-green-800 border-green-200'
   },
-  { 
-    value: 'edit', 
-    label: 'Edit', 
+  {
+    value: 'edit',
+    label: 'Edit',
     description: 'Can modify the file content',
     icon: Edit,
     color: 'bg-yellow-100 text-yellow-800 border-yellow-200'
   },
-  { 
-    value: 'delete', 
-    label: 'Delete', 
+  {
+    value: 'delete',
+    label: 'Delete',
     description: 'Can delete files and folders',
     icon: Trash,
     color: 'bg-red-100 text-red-800 border-red-200'
   },
-  { 
-    value: 'create_folder', 
-    label: 'Create Folder', 
+  {
+    value: 'create_folder',
+    label: 'Create Folder',
     description: 'Can create new folders',
     icon: FolderPlus,
     color: 'bg-purple-100 text-purple-800 border-purple-200'
@@ -76,6 +76,8 @@ const getPermissionColor = (permissionValue) => {
 export default function UserPermissions({ selectedItem, onPermissionChange, openUsersDialog, onClose }) {
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [addingUser, setAddingUser] = useState(false); // ye "Add User Access" button ke liye hai
+
   const [showUsersDialog, setShowUsersDialog] = useState(false);
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
@@ -85,7 +87,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
   // Universal safe function to get user initials from any data structure
   const getSafeUserInitials = (userData) => {
     if (!userData) return 'U';
-    
+
     try {
       // Try multiple possible name fields
       let name = null;
@@ -93,10 +95,10 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
         name = userData;
       } else if (userData && typeof userData === 'object') {
         // Try different possible name properties
-        name = userData.user_name || 
-               (userData.user && userData.user.name) || 
-               userData.name || 
-               null;
+        name = userData.user_name ||
+          (userData.user && userData.user.name) ||
+          userData.name ||
+          null;
       }
 
       // If we have a valid name string, process it
@@ -114,10 +116,10 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
       // Fallback to email
       let email = null;
       if (userData && typeof userData === 'object') {
-        email = userData.user_email || 
-                (userData.user && userData.user.email) || 
-                userData.email || 
-                null;
+        email = userData.user_email ||
+          (userData.user && userData.user.email) ||
+          userData.email ||
+          null;
       }
 
       if (email && typeof email === 'string' && email.trim().length > 0) {
@@ -134,16 +136,16 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
   // Safe function to get user name
   const getSafeUserName = (userData) => {
     if (!userData) return 'Unknown User';
-    
+
     try {
       if (typeof userData === 'string') return userData;
-      
+
       if (userData && typeof userData === 'object') {
-        const name = userData.user_name || 
-                     (userData.user && userData.user.name) || 
-                     userData.name || 
-                     null;
-        
+        const name = userData.user_name ||
+          (userData.user && userData.user.name) ||
+          userData.name ||
+          null;
+
         if (name && typeof name === 'string' && name.trim()) {
           return name.trim();
         }
@@ -151,21 +153,21 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     } catch (error) {
       console.warn('Error getting user name:', error);
     }
-    
+
     return 'Unknown User';
   };
 
   // Safe function to get user email
   const getSafeUserEmail = (userData) => {
     if (!userData) return 'No email';
-    
+
     try {
       if (userData && typeof userData === 'object') {
-        const email = userData.user_email || 
-                      (userData.user && userData.user.email) || 
-                      userData.email || 
-                      null;
-        
+        const email = userData.user_email ||
+          (userData.user && userData.user.email) ||
+          userData.email ||
+          null;
+
         if (email && typeof email === 'string' && email.trim()) {
           return email.trim();
         }
@@ -173,7 +175,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     } catch (error) {
       console.warn('Error getting user email:', error);
     }
-    
+
     return 'No email';
   };
 
@@ -193,11 +195,11 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
 
   const loadPermissions = async () => {
     if (!selectedItem) return;
-    
+
     setLoading(true);
     try {
       console.log('Loading permissions for file ID:', selectedItem.id);
-      
+
       // Try the direct API call to debug the endpoint
       const token = localStorage.getItem('token');
       const response = await fetch(`https://co-consultant.majesticsofts.com/api/files/permissions/list/${selectedItem.id}`, {
@@ -206,19 +208,19 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
           'Content-Type': 'application/json',
         },
       });
-      
+
       console.log('API Response status:', response.status);
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
       console.log('Raw permissions data:', data);
-      
+
       // Handle different possible response formats
       let permissionsArray = [];
-      
+
       if (data && typeof data === 'object') {
         // Check if it's the format you showed: {status: "success", file: {...}, permissions: [...]}
         if (data.status === 'success' && data.permissions && Array.isArray(data.permissions)) {
@@ -239,7 +241,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
       } else if (Array.isArray(data)) {
         permissionsArray = data;
       }
-      
+
       console.log('Final processed permissions:', permissionsArray);
       setPermissions(permissionsArray);
     } catch (error) {
@@ -255,74 +257,71 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     }
   };
 
-  // Enhanced handleAddUserAccess with better error handling for desktop/mobile
+  // Enhanced handleAddUserAccess with proper loading state
   const handleAddUserAccess = async (userId, permissions) => {
-    console.log("Adding user:", userId, permissions);
     if (!selectedItem) return;
 
+    setAddingUser(true); // Start loading
+    console.log("Starting to add user access - loading state:", true);
+
     try {
-      // Add a small delay between API calls to prevent rate limiting
+      // Add a small delay to show the loading state clearly
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       for (let i = 0; i < permissions.length; i++) {
         const permission = permissions[i];
-        console.log(`Assigning permission ${i + 1}/${permissions.length}:`, permission);
-        
-        try {
-          // Use direct fetch with enhanced error handling
-          const token = localStorage.getItem('token');
-          const response = await fetch('https://co-consultant.majesticsofts.com/api/files/permissions/assign', {
-            method: 'POST',
+        console.log(`Assigning permission ${i + 1}/${permissions.length}: ${permission}`);
+
+        const token = localStorage.getItem("token");
+
+        const response = await fetch(
+          "https://co-consultant.majesticsofts.com/api/files/permissions/assign",
+          {
+            method: "POST",
             headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+              Accept: "application/json",
             },
-            body: JSON.stringify({ 
-              file_id: parseInt(selectedItem.id), 
-              user_id: userId, 
-              permission: permission 
+            body: JSON.stringify({
+              file_id: parseInt(selectedItem.id),
+              user_id: userId,
+              permission: permission,
             }),
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            console.error(`Failed to assign ${permission}:`, errorData);
-            throw new Error(errorData.message || `Failed to assign ${permission} permission`);
           }
+        );
 
-          const result = await response.json();
-          console.log(`✅ Successfully assigned ${permission}:`, result);
-          
-          // Add small delay between requests (100ms)
-          if (i < permissions.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-          }
-        } catch (permissionError) {
-          console.error(`Error assigning ${permission}:`, permissionError);
-          // Continue with other permissions even if one fails
-          toast({
-            title: "Partial Error",
-            description: `Failed to assign ${permission} permission: ${permissionError.message}`,
-            variant: "destructive",
-          });
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || `Failed to assign ${permission}`);
+        }
+
+        // Small delay between requests to show progress
+        if (i < permissions.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 200));
         }
       }
-      
-      console.log("Completed assigning permissions");
-      toast({ title: "Success", description: `User access added successfully` });
 
-      // Reload permissions after a short delay
-      setTimeout(() => {
-        loadPermissions();
-        onPermissionChange?.();
-      }, 500);
-      
-    } catch (error) {
-      console.error("Add user error:", error);
-      toast({ 
-        title: "Error", 
-        description: `Failed to add user access: ${error.message}`, 
-        variant: "destructive" 
+      toast({
+        title: "Success",
+        description: "User access added successfully! 🎉",
       });
+
+      // Refresh permissions and close dialog
+      await loadPermissions();
+      onPermissionChange?.();
+      setShowAddUserDialog(false);
+
+    } catch (error) {
+      console.error("Add user access error:", error);
+      toast({
+        title: "Error",
+        description: `Failed to add user access: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      console.log("Finished adding user access - loading state:", false);
+      setAddingUser(false); // Stop loading
     }
   };
 
@@ -339,10 +338,10 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: JSON.stringify({ 
-          file_id: parseInt(selectedItem.id), 
-          user_id: userId, 
-          permission: permission 
+        body: JSON.stringify({
+          file_id: parseInt(selectedItem.id),
+          user_id: userId,
+          permission: permission
         }),
       });
 
@@ -350,12 +349,12 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || 'Failed to remove permission');
       }
-      
+
       toast({
         title: "Success",
         description: "Permission removed successfully",
       });
-      
+
       loadPermissions();
       onPermissionChange?.();
     } catch (error) {
@@ -371,8 +370,8 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
   const handleRemoveAllUserPermissions = async (userId, userPermissions) => {
     if (!selectedItem) return;
 
+    setRemovingAll(true); // Start loading
     try {
-      // Remove all permissions for this user
       for (const permission of userPermissions) {
         const token = localStorage.getItem('token');
         const response = await fetch('https://co-consultant.majesticsofts.com/api/files/permissions/remove', {
@@ -382,10 +381,10 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
             'Content-Type': 'application/json',
             'Accept': 'application/json',
           },
-          body: JSON.stringify({ 
-            file_id: parseInt(selectedItem.id), 
-            user_id: userId, 
-            permission: permission.permission 
+          body: JSON.stringify({
+            file_id: parseInt(selectedItem.id),
+            user_id: userId,
+            permission: permission.permission
           }),
         });
 
@@ -394,15 +393,14 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
           throw new Error(errorData.message || `Failed to remove ${permission.permission} permission`);
         }
 
-        // Small delay between removals
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       toast({
         title: "Success",
         description: "All user permissions removed successfully",
       });
-      
+
       loadPermissions();
       onPermissionChange?.();
     } catch (error) {
@@ -412,8 +410,11 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
         description: `Failed to remove user permissions: ${error.message}`,
         variant: "destructive",
       });
+    } finally {
+      setRemovingAll(false); // Stop loading
     }
   };
+
 
   const handleUserClick = (userGroup) => {
     setSelectedUserDetails(userGroup);
@@ -459,13 +460,23 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
           <div className="flex items-center justify-between">
             <h4 className="font-medium text-sm">Quick Actions</h4>
           </div>
-          
-          <Button 
+
+          <Button
             onClick={() => setShowAddUserDialog(true)}
-            className="w-full bg-panel hover:bg-panel/60"
+            className="w-full bg-panel hover:bg-panel/60 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={addingUser}
           >
-            <UserPlus className="h-4 w-4 mr-2" />
-            Add User Access
+            {addingUser ? (
+              <div className="flex items-center justify-center">
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                <span className="animate-pulse">Processing...</span>
+              </div>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User Access
+              </>
+            )}
           </Button>
         </div>
 
@@ -483,7 +494,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
                   // Group permissions by user_id with safe data handling
                   const groupedPermissions = permissions.reduce((acc, permission) => {
                     if (!permission || !permission.user_id) return acc;
-                    
+
                     const userId = permission.user_id;
                     if (!acc[userId]) {
                       acc[userId] = {
@@ -500,8 +511,8 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
                   }, {});
 
                   return Object.values(groupedPermissions).map((userGroup) => (
-                    <div 
-                      key={userGroup.user_id} 
+                    <div
+                      key={userGroup.user_id}
                       className="flex items-center justify-between p-3 bg-card rounded-lg border hover:bg-muted/50 transition-colors cursor-pointer"
                       onClick={() => handleUserClick(userGroup)}
                     >
@@ -517,11 +528,11 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
                             {userGroup.permissions && userGroup.permissions.slice(0, 3).map((permission, index) => {
                               const permissionDetails = getPermissionDetails(permission.permission);
                               const IconComponent = permissionDetails.icon;
-                              
+
                               return (
-                                <Badge 
+                                <Badge
                                   key={index}
-                                  variant="secondary" 
+                                  variant="secondary"
                                   className={`text-xs ${permissionDetails.color}`}
                                 >
                                   <IconComponent className="h-3 w-3 mr-1" />
@@ -585,7 +596,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
                   <div className="text-sm text-muted-foreground">{getSafeUserEmail(selectedUserDetails)}</div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="text-sm font-medium">
                   Permissions ({selectedUserDetails.permissions?.length || 0}):
@@ -594,11 +605,11 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
                   {selectedUserDetails.permissions?.map((permission, index) => {
                     const permissionDetails = getPermissionDetails(permission.permission);
                     const IconComponent = permissionDetails.icon;
-                    
+
                     return (
                       <div key={index} className="flex items-center gap-2">
-                        <Badge 
-                          variant="secondary" 
+                        <Badge
+                          variant="secondary"
                           className={`${permissionDetails.color} flex items-center gap-1`}
                         >
                           <IconComponent className="h-3 w-3" />
@@ -648,13 +659,13 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
               )}
 
               <div className="flex justify-end gap-2 pt-4">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   onClick={() => setShowUserDetailsDialog(false)}
                 >
                   Close
                 </Button>
-                <Button 
+                <Button
                   variant="destructive"
                   onClick={() => {
                     setShowUserDetailsDialog(false);
@@ -678,9 +689,14 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
 
       <UserSearchDialog
         isOpen={showAddUserDialog}
-        onClose={() => setShowAddUserDialog(false)}
+        onClose={() => {
+          if (!addingUser) { // Only allow close if not loading
+            setShowAddUserDialog(false);
+          }
+        }}
         onAddUser={handleAddUserAccess}
         permissionOptions={PERMISSION_OPTIONS}
+        isLoading={addingUser} // 👈 YE IMPORTANT HAI! Pass the loading state to UserSearchDialog
       />
     </Card>
   );
