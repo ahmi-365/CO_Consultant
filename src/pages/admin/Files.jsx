@@ -102,39 +102,56 @@ const [itemToMove, setItemToMove] = useState(null);
     }
   }, [isMoveDialogOpen]);
 
-  const loadFiles = async (opts = {}) => {
-    setLoading(true);
-    try {
-      const currentParentId =
-        currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+const loadFiles = async (opts = {}) => {
+  console.log("🔄 loadFiles called with opts:", opts);
 
-      // Prepare parameters for API call
-      const params = {};
-      if (selectedUser) {
-        params.user_id = selectedUser; // Changed from created_by to user_id
-      }
+  setLoading(true);
+  try {
+    const currentParentId =
+      currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
 
-      // Pass options to the API service
-      const options = {
-        force: opts.force || !!selectedUser // Always force when user is selected
-      };
+    console.log("📂 Current Parent ID:", currentParentId);
 
-      const data = await fileApi.listFiles(currentParentId, params, options);
-      const safeData = Array.isArray(data) ? data : [];
-      setFiles(safeData);
-    } catch (error) {
-      console.error("Failed to load files:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load files. Please check your authentication.",
-        variant: "destructive",
-      });
-      setFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Always pass the correct parent_id
+    const params = {
+      ...(selectedUser ? { user_id: selectedUser } : {}),
+    };
 
+    const options = {
+      force: opts.force || !!selectedUser,
+    };
+
+    console.log("⚙️ API options:", options);
+    console.log("📡 Calling fileApi.listFiles with:", {
+      parentId: currentParentId,
+      params,
+      options,
+    });
+
+    const data = await fileApi.listFiles(currentParentId, params, options);
+    console.log("✅ API Response raw:", data);
+
+    // ✅ Filter to only show files/folders from current parent
+    const safeData = Array.isArray(data)
+      ? data.filter((f) => f.parent_id === currentParentId || (currentParentId === null && f.parent_id === 1))
+      : [];
+
+    console.log("📊 Safe Data (files count):", safeData.length);
+
+    setFiles(safeData);
+  } catch (error) {
+    console.error("❌ Failed to load files:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load files. Please check your authentication.",
+      variant: "destructive",
+    });
+    setFiles([]);
+  } finally {
+    console.log("🏁 loadFiles finished");
+    setLoading(false);
+  }
+};
   const initializeSearch = async () => {
     setIndexing(true);
     try {
