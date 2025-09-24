@@ -140,12 +140,12 @@ export default function FileItem({
     }
   };
 
-const handleMoveClick = (e) => {
-  e.stopPropagation();
-  if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
-    onMove?.(item);  
-  }
-};
+  const handleMoveClick = (e) => {
+    e.stopPropagation();
+    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
+      onMove?.(item.id);
+    }
+  };
 
   const handleDeleteClick = (e) => {
     e.stopPropagation();
