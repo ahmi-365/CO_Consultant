@@ -1,0 +1,19 @@
+{
+  "redirects": [
+    {
+      "source": "/old-path",
+      "destination": "/new-path",
+      "permanent": true
+    },
+    {
+      "source": "/blog/:slug",
+      "destination": "/articles/:slug",
+      "permanent": false
+    },
+    {
+      "source": "/api/*",
+      "destination": "https://co-consultant.vercel.app/api/:splat",
+      "permanent": false
+    }
+  ]
+}

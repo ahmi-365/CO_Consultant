@@ -16,7 +16,6 @@ export default function FileContent({
   isGlobalSearch,
   searchTerm,
   setSearchTerm,
-  selectedUser,
   loading,
   indexing,
   isSearching,
@@ -46,17 +45,8 @@ export default function FileContent({
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
-  const displayItems = isGlobalSearch
-    ? searchResults.filter(
-        (item) => !selectedUser || item.created_by === selectedUser
-      )
-    : files.filter((file) => {
-        const matchesSearch = file.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-        const matchesUser = !selectedUser || file.created_by === selectedUser;
-        return matchesSearch && matchesUser;
-      });
+  // Use files/searchResults as-is from backend (no client-side filtering)
+  const displayItems = isGlobalSearch ? searchResults : files;
 
   // Handle selection from search results
   const handleSearchResultSelect = (result) => {
@@ -71,16 +61,24 @@ export default function FileContent({
   };
 
   const handleFileSelect = (item) => {
+    console.log("FileContent - handleFileSelect called with:", item);
+    console.log("Selection mode:", isSelectionMode);
+    
     setSelectedItem(item);
     
     // Handle folder navigation - if it's a folder, navigate into it
     if (item.type === "folder" && !isSelectionMode) {
+      console.log("Navigating to folder via FileContent");
       // Call parent component's navigation handler
       if (onFileSelect && typeof onFileSelect === 'function') {
-        // Check if onFileSelect expects navigation logic or selection logic
-        // For navigation, we need to update currentPath in parent
+        console.log("Calling parent onFileSelect with item:", item);
         onFileSelect(item);
+      } else {
+        console.warn("onFileSelect is not available or not a function");
       }
+    } else if (item.type === "file") {
+      // Handle file preview
+      handlePreview(item);
     }
   };
 
@@ -94,7 +92,6 @@ export default function FileContent({
     }
     
     // Force a re-render to ensure UI updates immediately
-    // This helps with the timing issue
     setTimeout(() => {
       // Small delay to ensure state has propagated
     }, 0);
@@ -205,7 +202,6 @@ export default function FileContent({
     setIsUploading(false);
   };
 
-  // In your FileContent, add this console.log
   const handleUploadFile = async (file, targetFolderId) => {
     try {
       const parentId = targetFolderId || (currentPath.length > 0 ? currentPath[currentPath.length - 1]?.id : null);
@@ -308,43 +304,52 @@ export default function FileContent({
                 </div>
               ) : (
                 /* Responsive grid - stacks on mobile, 2 cols on tablet, 3+ on desktop */
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
-                  {(displayItems || []).map((item) => (
-                    <div key={item.id || item.name} className="relative">
-                      {isGlobalSearch && item.path && (
-                        <div className="text-xs text-muted-foreground mb-1 pl-2 truncate">
-                          <span>📁 {item.path}</span>
-                        </div>
-                      )}
-                      <DragDropZone
-                        onFileDrop={handleFileDrop}
-                        folderId={item.id}
-                        isFolder={item.type === "folder"}
-                        className="rounded-lg h-full"
-                      >
-                        <FileItem
-                          key={`${item.id}-${isSelectionMode}-${selectedFiles.has(item.id)}`} // Force re-render
-                          item={item}
-                          onSelect={isGlobalSearch ? handleSearchResultSelect : (!isSelectionMode ? (onFileSelect || handleFileSelect) : undefined)}
-                          onDelete={handleDelete}
-                          onMove={() => {
-                            setItemToMove(item.id);
-                            setIsMoveDialogOpen(true);
-                          }}
-                          onDownload={() => handleDownload(item)}
-                          onRename={handleRename}
-                          onManagePermissions={handleManagePermissions}
-                          isDownloading={isDownloading[item.id]}
-                          isRenaming={isRenaming[item.id]}
-                          isSelectionMode={isSelectionMode}
-                          isSelected={selectedFiles && selectedFiles.has(item.id)}
-                          onSelectionChange={isSelectionMode ? handleFileSelectionChange : undefined} // Only use selection change in selection mode
-                          onStarChange={onStarChange} // ADD THIS
-                        />
-                      </DragDropZone>
-                    </div>
-                  ))}
-                </div>
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+  {(displayItems || []).map((item) => (
+    <div key={item.id || item.name} className="relative">
+      {isGlobalSearch && item.path && (
+        <div className="text-xs text-muted-foreground mb-1 pl-2 truncate">
+          <span>📁 {item.path}</span>
+        </div>
+      )}
+      <DragDropZone
+        onFileDrop={handleFileDrop}
+        folderId={item.id}
+        isFolder={item.type === "folder"}
+        className="rounded-lg h-full"
+      >
+        <FileItem
+          key={`${item.id}-${isSelectionMode}-${selectedFiles.has(item.id)}`}
+          item={item}
+          onSelect={
+            isGlobalSearch
+              ? handleSearchResultSelect
+              : !isSelectionMode
+              ? handleFileSelect
+              : undefined
+          }
+          onDelete={handleDelete}
+          onMove={() => {
+  setItemToMove(item);   
+            setIsMoveDialogOpen(true);
+          }}
+          onDownload={() => handleDownload(item)}
+          onRename={handleRename}
+          onManagePermissions={handleManagePermissions}
+          isDownloading={isDownloading[item.id]}
+          isRenaming={isRenaming[item.id]}
+          isSelectionMode={isSelectionMode}
+          isSelected={selectedFiles && selectedFiles.has(item.id)}
+          onSelectionChange={
+            isSelectionMode ? handleFileSelectionChange : undefined
+          }
+          onStarChange={onStarChange}
+        />
+      </DragDropZone>
+    </div>
+  ))}
+</div>
+
               )}
             </div>
           </CardContent>

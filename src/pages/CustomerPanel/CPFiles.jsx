@@ -10,7 +10,6 @@ import { useToast } from "../../hooks/use-toast";
 import { hasPermission } from "../../utils/permissions";
 import BulkActionToolbar from "../../components/Customer/BulkActionToolbar";
 import { trashService } from "../../services/trashservice";
-// import { starService } from "@/services/StarredService";
 
 export default function CPFileManagement() {
   // State management
@@ -45,7 +44,6 @@ export default function CPFileManagement() {
   const [moveDestination, setMoveDestination] = useState("");
   const [availableFolders, setAvailableFolders] = useState([]);
   const [itemForPermissions, setItemForPermissions] = useState(null);
-  const [selectedUser, setSelectedUser] = useState("");
   const [preview, setPreview] = useState(null);
   const [selectedFiles, setSelectedFiles] = useState(new Set());
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -65,10 +63,10 @@ export default function CPFileManagement() {
     setSelectedFiles(new Set(allFileIds));
   };
 
-  // Load files when path or user changes
+  // Load files when path changes
   useEffect(() => {
     loadFiles();
-  }, [currentPath, selectedUser]);
+  }, [currentPath]);
 
   // Initialize search index
   useEffect(() => {
@@ -128,12 +126,7 @@ export default function CPFileManagement() {
         return handleSearch();
       }
 
-      let results = searchService.search(searchTerm);
-
-      if (selectedUser) {
-        results = results.filter((item) => item.created_by === selectedUser);
-      }
-
+      const results = searchService.search(searchTerm);
       setSearchResults(results);
       setIsGlobalSearch(true);
     } catch (error) {
@@ -148,60 +141,78 @@ export default function CPFileManagement() {
       setIsSearching(false);
     }
   };
+const loadFiles = async (opts = {}) => {
+  console.log("🔄 loadFiles called with opts:", opts);
 
-  // Load files from API
-  const loadFiles = async (opts = {}) => {
-    setLoading(true);
-    try {
-      const currentParentId =
-        currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
-      const params = {};
-      if (selectedUser) {
-        params.user_id = selectedUser;
+  setLoading(true);
+  try {
+    const currentParentId =
+      currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+
+    console.log("📂 Current Parent ID:", currentParentId);
+    console.log("📍 Current Path:", currentPath);
+
+    // Prepare parameters with parent_id
+    const params = {
+      parent_id: currentParentId // Explicitly pass parent_id
+    };
+    
+    const options = { force: opts.force };
+
+    console.log("⚙️ API call parameters:", {
+      parentId: currentParentId,
+      params,
+      options,
+    });
+    
+    console.log("📡 Calling fileApi.listFiles with parentId:", currentParentId);
+
+    // Pass the parentId as the first parameter AND in params for redundancy
+    const data = await fileApi.listFiles(currentParentId, params, options);
+    console.log("✅ API Response raw:", data);
+
+    // CRITICAL FIX: Handle response structure
+    const safeData = Array.isArray(data) ? data : (data?.files || []);
+    
+    // Debug logging
+    console.log("📊 Safe Data (files count):", safeData.length);
+    console.log("📋 Parent IDs in response:", [...new Set(safeData.map(f => f.parent_id))]);
+    console.log("🎯 Expected parent_id:", currentParentId);
+    
+    // Filter files to ensure they belong to current parent
+    const filteredFiles = safeData.filter(file => {
+      // For root level (currentParentId is null)
+      if (currentParentId === null) {
+        // Show files with parent_id = null, 1 (admin assigned), or 2 (UserRoot)
+        return file.parent_id === null || file.parent_id === 1 || file.parent_id === 2;
       }
-      const options = {
-        force: opts.force || !!selectedUser,
-      };
+      // For nested folders, show only files with matching parent_id
+      return file.parent_id === currentParentId;
+    });
+    
+    console.log("🔍 Filtered Files (parent match):", filteredFiles.length);
+    console.log("📁 Filtered files preview:", filteredFiles.slice(0, 3).map(f => ({
+      id: f.id,
+      name: f.name,
+      parent_id: f.parent_id,
+      type: f.type
+    })));
 
-      const response = await fileApi.listFiles(
-        currentParentId,
-        params,
-        options
-      );
-
-      // Handle different API response formats
-      let safeData = [];
-      if (Array.isArray(response)) {
-        // Direct array response
-        safeData = response;
-      } else if (response && Array.isArray(response.data)) {
-        // Response with data property
-        safeData = response.data;
-      } else if (
-        response &&
-        response.status === "ok" &&
-        Array.isArray(response.data)
-      ) {
-        // Response with status and data
-        safeData = response.data;
-      }
-
-      console.log("Loaded files:", safeData);
-      setFiles(safeData);
-    } catch (error) {
-      console.error("Failed to load files:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load files. Please check your authentication.",
-        variant: "destructive",
-      });
-      setFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load recent files - FIXED VERSION
+    setFiles(filteredFiles);
+  } catch (error) {
+    console.error("❌ Failed to load files:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load files. Please check your authentication.",
+      variant: "destructive",
+    });
+    setFiles([]);
+  } finally {
+    console.log("🏁 loadFiles finished");
+    setLoading(false);
+  }
+};
+  // Load recent files
   const loadRecentFiles = async () => {
     try {
       const response = await fetchRecentFiles();
@@ -280,7 +291,7 @@ export default function CPFileManagement() {
     }
   };
 
-  // Handle file upload - NEW FUNCTION
+  // Handle file upload
   const handleFileUpload = async (file, targetFolderId) => {
     setIsUploading(true);
     try {
@@ -310,7 +321,7 @@ export default function CPFileManagement() {
         description: `Failed to upload file "${file.name}"`,
         variant: "destructive",
       });
-      throw error; // Re-throw so FileHeader can handle it
+      throw error;
     } finally {
       setIsUploading(false);
     }
@@ -321,7 +332,7 @@ export default function CPFileManagement() {
     try {
       setIsRefreshing(true);
       await loadFiles({ force: true });
-      await loadRecentFiles(); // Also refresh recent files
+      await loadRecentFiles();
     } catch (error) {
       console.error("Error refreshing files:", error);
       toast({
@@ -348,14 +359,12 @@ export default function CPFileManagement() {
       const response = await trashService.bulkMoveToTrash(fileIds);
       console.log("TRASH RESPONSE:", response);
 
-      // backend ka ulta structure handle kar rahe hain
       const message =
         response.success === true
           ? response.message || "Files moved successfully"
           : response.error || "Something went wrong";
 
       const variant = response.success === true ? "default" : "default";
-      // yahan default variant use karenge kyunki backend ka success=false hai, par message success ka hai
 
       loadFiles({ force: true });
       setSelectedFiles(new Set());
@@ -424,15 +433,12 @@ export default function CPFileManagement() {
     );
   };
 
-  useEffect(() => {}, [selectedFiles]);
-
   const user = JSON.parse(localStorage.getItem("user"));
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile responsive container with proper padding */}
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto">
-        {/* Upload Progress Overlay - Mobile optimized */}
+        {/* Upload Progress Overlay */}
         {isUploading && (
           <div className="fixed top-4 left-4 right-4 sm:top-4 sm:right-4 sm:left-auto bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 z-50">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -440,26 +446,26 @@ export default function CPFileManagement() {
           </div>
         )}
 
-        {/* Header Section with Recent Files */}
-        <FileHeader
-          recentFiles={recentFiles}
-          isUploading={isUploading}
-          isCreating={isCreating}
-          isRefreshing={isRefreshing}
-          user={user}
-          hasPermission={hasPermission}
-          setIsCreateFolderOpen={setIsCreateFolderOpen}
-          handleRefresh={handleRefresh}
-          isSelectionMode={isSelectionMode}
-          toggleSelectionMode={toggleSelectionMode}
-          selectedFiles={selectedFiles}
-          files={files}
-          handleSelectAll={handleSelectAll}
-          // Upload functionality props
-          onFileUpload={handleFileUpload}
-          currentPath={currentPath}
-          setIsUploading={setIsUploading}
-        />
+
+<FileHeader
+  recentFiles={recentFiles}
+  isUploading={isUploading}
+  isCreating={isCreating}
+  isRefreshing={isRefreshing}
+  user={user}
+  hasPermission={hasPermission}
+  setIsCreateFolderOpen={setIsCreateFolderOpen}
+  handleRefresh={handleRefresh}
+  isSelectionMode={isSelectionMode}
+  toggleSelectionMode={toggleSelectionMode}
+  selectedFiles={selectedFiles}
+  files={files}
+  handleSelectAll={handleSelectAll}
+  onFileUpload={handleFileUpload} // Keep this for future use if needed
+  currentPath={currentPath}
+  setIsUploading={setIsUploading} // Add this prop to control upload state from parent
+  loadFiles={loadFiles} // Add this prop to refresh files after upload
+/>
 
         {/* Navigation Breadcrumb */}
         <FileNavigation
@@ -475,7 +481,6 @@ export default function CPFileManagement() {
           isGlobalSearch={isGlobalSearch}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          selectedUser={selectedUser}
           loading={loading}
           indexing={indexing}
           isSearching={isSearching}
@@ -499,13 +504,13 @@ export default function CPFileManagement() {
           loadFiles={loadFiles}
           onFileSelect={
             isSelectionMode ? handleFileSelection : handleFolderNavigation
-          } // Use conditional handler
+          }
           isSelectionMode={isSelectionMode}
           selectedFiles={selectedFiles}
           onStarChange={handleStarChange}
         />
 
-        {/* Mobile optimized bulk action toolbar */}
+        {/* Bulk action toolbar */}
         {selectedFiles.size > 0 && isSelectionMode && (
           <BulkActionToolbar
             selectedCount={selectedFiles.size}

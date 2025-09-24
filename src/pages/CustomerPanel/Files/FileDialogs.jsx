@@ -196,16 +196,17 @@ export default function FileDialogs({
       </Dialog>
 
       {/* Replace the old move dialog with the better MoveFileDialog component */}
-      <MoveFileDialog
-        isOpen={isMoveDialogOpen}
-        onClose={() => {
-          setIsMoveDialogOpen(false);
-          setItemToMove(null);
-        }}
-        itemToMove={itemToMove}
-        onMoveSuccess={handleMoveSuccess}
-        currentPath={currentPath}
-      />
+<MoveFileDialog
+  isOpen={isMoveDialogOpen}
+  onClose={() => {
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+  }}
+  itemToMove={itemToMove}
+  onMoveSuccess={handleMoveSuccess}
+  currentPath={currentPath}
+  currentParentId={itemToMove?.parent_id ?? null} // 🔑 Pass the parent_id
+/>
 
       {/* User Permissions Dialog */}
       <Dialog

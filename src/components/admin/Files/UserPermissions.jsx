@@ -258,72 +258,73 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
   };
 
   // Enhanced handleAddUserAccess with proper loading state
-  const handleAddUserAccess = async (userId, permissions) => {
-    if (!selectedItem) return;
+// This is a direct modification of your existing function
+const handleAddUserAccess = async (userId, permissions) => {
+  if (!selectedItem) return;
 
-    setAddingUser(true); // Start loading
-    console.log("Starting to add user access - loading state:", true);
+  setAddingUser(true);
+  console.log("Starting to add user access - loading state:", true);
 
-    try {
-      // Add a small delay to show the loading state clearly
-      await new Promise(resolve => setTimeout(resolve, 300));
+  try {
+    await new Promise(resolve => setTimeout(resolve, 300));
 
-      for (let i = 0; i < permissions.length; i++) {
-        const permission = permissions[i];
-        console.log(`Assigning permission ${i + 1}/${permissions.length}: ${permission}`);
+    // Check if permissions array is not empty
+    if (permissions.length > 0) {
+      const permission = permissions[0]; // Get only the first permission
+      console.log(`Assigning single permission: ${permission}`);
 
-        const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token");
 
-        const response = await fetch(
-          "https://co-consultant.majesticsofts.com/api/files/permissions/assign",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-              Accept: "application/json",
-            },
-            body: JSON.stringify({
-              file_id: parseInt(selectedItem.id),
-              user_id: userId,
-              permission: permission,
-            }),
-          }
-        );
-
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Failed to assign ${permission}`);
+      const response = await fetch(
+        "https://co-consultant.majesticsofts.com/api/files/permissions/assign",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({
+            file_id: parseInt(selectedItem.id),
+            user_id: userId,
+            permission: permission, // Send only the single permission
+          }),
         }
+      );
 
-        // Small delay between requests to show progress
-        if (i < permissions.length - 1) {
-          await new Promise((resolve) => setTimeout(resolve, 200));
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to assign ${permission}`);
       }
 
       toast({
         title: "Success",
-        description: "User access added successfully! 🎉",
+        description: `User access with '${permission}' permission added successfully! 🎉`,
       });
-
-      // Refresh permissions and close dialog
-      await loadPermissions();
-      onPermissionChange?.();
-      setShowAddUserDialog(false);
-
-    } catch (error) {
-      console.error("Add user access error:", error);
+    } else {
       toast({
-        title: "Error",
-        description: `Failed to add user access: ${error.message}`,
-        variant: "destructive",
+        title: "Info",
+        description: "No permissions selected to add.",
+        variant: "default",
       });
-    } finally {
-      console.log("Finished adding user access - loading state:", false);
-      setAddingUser(false); // Stop loading
     }
-  };
+
+    await loadPermissions();
+    onPermissionChange?.();
+    setShowAddUserDialog(false);
+
+  } catch (error) {
+    console.error("Add user access error:", error);
+    toast({
+      title: "Error",
+      description: `Failed to add user access: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    console.log("Finished adding user access - loading state:", false);
+    setAddingUser(false);
+  }
+};
 
   const handleRemovePermission = async (userId, permission) => {
     if (!selectedItem) return;
