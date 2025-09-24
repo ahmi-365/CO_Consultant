@@ -672,102 +672,105 @@ export default function Roles() {
   };
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Role Management</h1>
-          <p className="text-muted-foreground mt-1">Manage user roles and permissions</p>
-        </div>
-        <Button onClick={handleAddRole} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Add Role
-        </Button>
-      </div>
+    <div className="p-4 sm:p-8">
+  {/* Header */}
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+    <div>
+      <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Role Management</h1>
+      <p className="text-sm sm:text-base text-muted-foreground mt-1">Manage user roles and permissions</p>
+    </div>
+    <Button onClick={handleAddRole} className="flex items-center gap-2 self-start sm:self-auto">
+      <Plus className="h-4 w-4" />
+      Add Role
+    </Button>
+  </div>
 
-      {/* Roles List */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Existing Roles</CardTitle>
-          <Badge variant="outline">{roles.length} roles</Badge>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading roles...</span>
-            </div>
-          ) : roles.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-sm text-muted-foreground mb-4">No roles found. Create your first role.</p>
-              <Button onClick={handleAddRole} variant="outline">
-                <Plus className="h-4 w-4 mr-2" />
-                Create First Role
-              </Button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-                <div>Role Name</div>
-                <div>Users</div>
-                <div>Permissions</div>
-                <div className="text-right">Actions</div>
+  {/* Roles List */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between">
+      <CardTitle>Existing Roles</CardTitle>
+      <Badge variant="outline">{roles.length} roles</Badge>
+    </CardHeader>
+    <CardContent>
+      {loading ? (
+        <div className="flex justify-center py-6">
+          <Loader2 className="h-6 w-6 animate-spin" />
+        </div>
+      ) : roles.length === 0 ? (
+        <div className="text-center py-6">
+          <p className="text-sm text-muted-foreground mb-4">No roles found. Create your first role.</p>
+          <Button onClick={handleAddRole} variant="outline" className="flex items-center gap-2 justify-center">
+            <Plus className="h-4 w-4" />
+            Create First Role
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Header row for desktop */}
+          <div className="hidden md:grid grid-cols-4 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+            <div>Role Name</div>
+            <div>Users</div>
+            <div>Permissions</div>
+            <div className="text-right">Actions</div>
+          </div>
+
+          {/* Roles */}
+          {roles.map((role) => (
+            <div
+              key={role.id || role._id}
+              className="flex flex-col sm:grid sm:grid-cols-2 md:grid-cols-4 gap-2 items-start sm:items-center py-4 border-b border-border last:border-0 hover:bg-muted/50 rounded-lg px-2 transition-colors"
+            >
+              {/* Role Name */}
+              <div>
+                <div className="font-medium text-sm">{role.name}</div>
+                {role.created_at && (
+                  <div className="text-xs text-muted-foreground">Created: {new Date(role.created_at).toLocaleDateString()}</div>
+                )}
               </div>
 
-              {roles.map((role) => (
-                <div
-                  key={role.id || role._id}
-                  className="grid grid-cols-4 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-muted/50 rounded-lg px-2 transition-colors"
-                >
-                  <div>
-                    <div className="font-medium text-sm">{role.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {role.created_at && (
-                        <>Created: {new Date(role.created_at).toLocaleDateString()}</>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <Badge variant="outline" className="text-xs">
-                      {role.user_count || 0} users
-                    </Badge>
-                  </div>
-                  <div>
-                    <RolePermissionsModal role={role} />
-                  </div>
-                  <div className="flex justify-end items-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleEditRole(role)}>
-                          Edit Role
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          onClick={() => handleDeleteRole(role)}
-                          className="text-destructive"
-                        >
-                          Delete Role
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              {/* Users Count */}
+              <div>
+                <Badge variant="outline" className="text-xs">
+                  {role.user_count || 0} users
+                </Badge>
+              </div>
 
-      {/* Add/Edit Role Modal */}
-      <RoleModal
-        open={roleModalOpen}
-        onOpenChange={setRoleModalOpen}
-        role={selectedRole}
-        onSuccess={handleRoleSuccess}
-      />
-    </div>
+              {/* Permissions */}
+              <div className="mt-2 sm:mt-0">
+                <RolePermissionsModal role={role} />
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-start md:justify-end mt-2 sm:mt-0">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-5 w-5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleEditRole(role)}>Edit Role</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDeleteRole(role)} className="text-destructive">
+                      Delete Role
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </CardContent>
+  </Card>
+
+  {/* Add/Edit Role Modal */}
+  <RoleModal
+    open={roleModalOpen}
+    onOpenChange={setRoleModalOpen}
+    role={selectedRole}
+    onSuccess={handleRoleSuccess}
+  />
+</div>
+
   );
 }

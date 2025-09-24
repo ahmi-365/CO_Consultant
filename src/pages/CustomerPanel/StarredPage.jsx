@@ -81,12 +81,15 @@ export default function StarredPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-4">
-        <div className="relative">
-          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
-          <div className="absolute inset-0 w-8 h-8 border-4 border-transparent border-t-purple-400 rounded-full animate-spin" style={{ animationDirection: 'reverse' }}></div>
+        {/* Single ring loader */}
+        <div className="w-10 h-10 border-4 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin"></div>
+
+        {/* Loader text */}
+        <div className="text-center text-muted-foreground font-medium tracking-wide">
+          Loading starred files...
         </div>
-        <div className="text-center text-muted-foreground font-medium">Loading starred files...</div>
       </div>
+
     );
   }
 
@@ -169,7 +172,7 @@ export default function StarredPage() {
                   >
                     <Star className="h-4 w-4 fill-current text-yellow-500" />
                   </Button>
-                  
+
                 </div>
               </div>
 
@@ -198,7 +201,7 @@ export default function StarredPage() {
                   >
                     <Star className="h-5 w-5 fill-current text-yellow-500" />
                   </Button>
-                 
+
                 </div>
               </div>
             </div>

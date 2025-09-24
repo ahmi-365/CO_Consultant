@@ -1,13 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Search, ChevronRight, Menu } from "lucide-react";
+import { Search, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import EnhancedSidebar from "./EnhancedSidebar";
 import FileUploadModal from "./FileUploadModal";
 import NewFolderModal from "./NewFolderModal";
 import NotificationDropdown from "./NotificationDropdown";
-import { Button } from "@/components/ui/button";
 
 export default function RefactoredCloudVaultLayout({ children }) {
   const navigate = useNavigate();
@@ -37,6 +36,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // ✅ Breadcrumb banane ka logic
   const getBreadcrumbPath = () => {
     switch (currentPath) {
       case "/starred":
@@ -58,9 +58,13 @@ export default function RefactoredCloudVaultLayout({ children }) {
     }
   };
 
+  // ✅ Profile click pe navigate
   const handleProfileClick = () => {
-    navigate("/profile");
+    navigate("/customerprofile");
   };
+
+  // ✅ LocalStorage se user nikalna
+  const storedUser = JSON.parse(localStorage.getItem("user"));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -72,16 +76,11 @@ export default function RefactoredCloudVaultLayout({ children }) {
       />
 
       {/* Main Content Area */}
-      <div
-        className={`flex-1 flex flex-col min-h-screen overflow-auto transition-all duration-300 `}
-      >
+      <div className="flex-1 flex flex-col min-h-screen overflow-auto transition-all duration-300">
         {/* Header */}
         <header className="bg-background border-b border-border px-4 md:px-6 py-3 flex items-center justify-between sticky top-0 z-30">
-          {/* Left: Breadcrumb & Toggle Button */}
+          {/* Left: Breadcrumb */}
           <div className="flex items-center gap-3">
-           
-
-            {/* Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground flex-wrap">
               {getBreadcrumbPath().map((crumb, index) => (
                 <div key={crumb.path} className="flex items-center gap-2">
@@ -119,9 +118,13 @@ export default function RefactoredCloudVaultLayout({ children }) {
 
             {/* User Avatar */}
             <Avatar className="cursor-pointer" onClick={handleProfileClick}>
-              <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
-                U
-              </AvatarFallback>
+              {storedUser?.profile_photo ? (
+                <AvatarImage src={storedUser.profile_photo} alt="User" />
+              ) : (
+                <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
+                  {storedUser?.name?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              )}
             </Avatar>
           </div>
         </header>

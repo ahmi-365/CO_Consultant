@@ -195,15 +195,13 @@ export default function TrashPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-center py-20">
-            <div className="relative">
-              <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin"></div>
-              <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-pink-400 rounded-full animate-spin" style={{animationDirection: 'reverse'}}></div>
-            </div>
-            <span className="ml-4 text-lg text-gray-600 dark:text-gray-300">Loading trashed files...</span>
-          </div>
+      <div className="flex flex-col items-center justify-center py-16 space-y-4">
+        {/* Single ring loader */}
+        <div className="w-10 h-10 border-4 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin"></div>
+
+        {/* Loader text */}
+        <div className="text-center text-muted-foreground font-medium tracking-wide">
+          Loading Trashed files...
         </div>
       </div>
     );
@@ -213,7 +211,26 @@ export default function TrashPage() {
     <div className="min-h-screen dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+        
+
+        {trashedFiles.length === 0 ? (
+          <div className="text-center py-20">
+            <div className="relative inline-flex items-center justify-center w-24 h-24 mb-8">
+              <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-pink-500 rounded-full opacity-20 animate-pulse"></div>
+              <div className="relative bg-gradient-to-r from-red-400 to-pink-500 rounded-2xl p-6 shadow-xl">
+                <Trash2 className="h-12 w-12 text-white" />
+              </div>
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Trash is empty</h3>
+            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-md mx-auto">
+              Files you delete will appear here before being permanently removed.
+            </p>
+          </div>
+        ) : (
+          <div className="w-full">
+            {/* ✅ Fixed Table Headers - Using proper grid structure */}
+            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl mb-4 px-6 py-4 border border-gray-200 dark:border-gray-600">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
           <div className="flex items-center space-x-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Trash</h1>
@@ -290,24 +307,6 @@ export default function TrashPage() {
             )}
           </div>
         </div>
-
-        {trashedFiles.length === 0 ? (
-          <div className="text-center py-20">
-            <div className="relative inline-flex items-center justify-center w-24 h-24 mb-8">
-              <div className="absolute inset-0 bg-gradient-to-r from-red-400 to-pink-500 rounded-full opacity-20 animate-pulse"></div>
-              <div className="relative bg-gradient-to-r from-red-400 to-pink-500 rounded-2xl p-6 shadow-xl">
-                <Trash2 className="h-12 w-12 text-white" />
-              </div>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Trash is empty</h3>
-            <p className="text-lg text-gray-600 dark:text-gray-300 max-w-md mx-auto">
-              Files you delete will appear here before being permanently removed.
-            </p>
-          </div>
-        ) : (
-          <div className="w-full">
-            {/* ✅ Fixed Table Headers - Using proper grid structure */}
-            <div className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl mb-4 px-6 py-4 border border-gray-200 dark:border-gray-600">
               <div className="hidden sm:grid grid-cols-12 gap-4 text-sm font-semibold text-gray-700 dark:text-gray-300 items-center">
                 {/* Selection + Name Column - 6 cols */}
                 <div className="col-span-6 flex items-center gap-2">

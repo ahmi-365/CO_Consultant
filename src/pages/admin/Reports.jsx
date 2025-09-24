@@ -69,16 +69,19 @@ export default function Reports() {
 
   return (
     <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Reports & Analytics</h1>
-          <p className="text-muted-foreground mt-1">Generate and manage system reports</p>
-        </div>
-        <Button onClick={handleExportAll}>
-          <Download className="h-4 w-4 mr-2" />
-          Export All
-        </Button>
-      </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
+  <div>
+    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports & Analytics</h1>
+    <p className="text-sm sm:text-base text-muted-foreground mt-1">
+      Generate and manage system reports
+    </p>
+  </div>
+  <Button onClick={handleExportAll} className="self-start sm:self-auto flex items-center gap-2">
+    <Download className="h-4 w-4" />
+    Export All
+  </Button>
+</div>
+
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -178,49 +181,63 @@ export default function Reports() {
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>Recent Reports</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="grid grid-cols-5 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-                  <div className="col-span-2">Report Name</div>
-                  <div>Type</div>
-                  <div>Generated</div>
-                  <div>Actions</div>
-                </div>
-                {recentReports.map((report, index) => (
-                  <div key={index} className="grid grid-cols-5 gap-4 items-center py-3 border-b border-border last:border-0 hover:bg-accent/50 rounded-lg px-2">
-                    <div className="col-span-2">
-                      <div className="font-medium text-sm">{report.name}</div>
-                      <div className="text-xs text-muted-foreground">{report.size}</div>
-                    </div>
-                    <div>
-                      <Badge variant="outline" className="text-xs">
-                        {report.type}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">{report.generated}</div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleDownloadReport(report.name)}
-                      >
-                        <Download className="h-3 w-3" />
-                      </Button>
-                      <Badge 
-                        variant={report.status === 'Ready' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {report.status}
-                      </Badge>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+  <CardHeader>
+    <CardTitle>Recent Reports</CardTitle>
+  </CardHeader>
+  <CardContent>
+    <div className="space-y-4">
+      {/* Header row */}
+      <div className="hidden md:grid md:grid-cols-5 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+        <div className="col-span-2">Report Name</div>
+        <div>Type</div>
+        <div>Generated</div>
+        <div>Actions</div>
+      </div>
+
+      {/* Data rows */}
+      {recentReports.map((report, index) => (
+        <div
+          key={index}
+          className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start md:items-center py-3 border-b border-border last:border-0 hover:bg-accent/50 rounded-lg px-2"
+        >
+          {/* Report name + size */}
+          <div className="col-span-2">
+            <div className="font-medium text-sm">{report.name}</div>
+            <div className="text-xs text-muted-foreground">{report.size}</div>
+          </div>
+
+          {/* Report type */}
+          <div>
+            <Badge variant="outline" className="text-xs">
+              {report.type}
+            </Badge>
+          </div>
+
+          {/* Generated */}
+          <div className="text-sm text-muted-foreground">{report.generated}</div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => handleDownloadReport(report.name)}
+            >
+              <Download className="h-3 w-3" />
+            </Button>
+            <Badge
+              variant={report.status === "Ready" ? "default" : "secondary"}
+              className="text-xs"
+            >
+              {report.status}
+            </Badge>
+          </div>
+        </div>
+      ))}
+    </div>
+  </CardContent>
+</Card>
+
         </div>
 
         <div>

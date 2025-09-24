@@ -166,7 +166,7 @@ export default function FileHeader({
                 onClick={() => setIsCreateFolderOpen(true)}
                 disabled={isCreating}
                 variant="outline"
-                className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
+                className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm "
               >
                 {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <FolderPlus className="h-4 w-4" />}
                 New Folder
@@ -177,7 +177,7 @@ export default function FileHeader({
               onClick={handleRefresh}
               disabled={isRefreshing}
               variant="outline"
-              className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm border-2"
+              className="flex items-center gap-1 px-3 py-1.5 h-8 text-sm "
             >
               {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
               Refresh
@@ -241,6 +241,7 @@ export default function FileHeader({
             <DialogTitle className="text-foreground">
               Upload Files
             </DialogTitle>
+
             <DialogDescription className="text-muted-foreground">
               Select files to upload to the current folder
             </DialogDescription>
@@ -273,6 +274,8 @@ export default function FileHeader({
               disabled={uploadProgress}
             >
               Cancel
+
+              
             </Button>
             <Button
               onClick={handleFileUploaded}

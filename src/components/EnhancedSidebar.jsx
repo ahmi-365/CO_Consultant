@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Home,
@@ -21,11 +21,17 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
   const currentPath = location.pathname;
   const isActive = (path) => currentPath === path;
 
-  // ✅ Mobile auto collapse
+  const [isMobile, setIsMobile] = useState(false);
+
+  // ✅ Detect screen size
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth < 768) {
-        setCollapsed(true);
+        setIsMobile(true);
+        setCollapsed(true); // mobile always collapsed
+      } else {
+        setIsMobile(false);
+        setCollapsed(false); // desktop default expanded
       }
     };
     handleResize();
@@ -53,24 +59,26 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-panel">
             <FolderOpen className="h-5 w-5 text-panel-foreground" />
           </div>
-          {!collapsed && (
+          {!collapsed && !isMobile && (
             <span className="font-semibold text-sidebar-foreground">
               Co-Consultants
             </span>
           )}
         </div>
 
-        {/* Collapse Toggle */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute top-16 -right-3 z-40 flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-card shadow-md hover:bg-gray-100 transition"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-4 w-4" />
-          ) : (
-            <ChevronLeft className="h-4 w-4" />
-          )}
-        </button>
+        {/* Collapse Toggle (sirf desktop pe) */}
+        {!isMobile && (
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="absolute top-16 -right-3 z-40 flex h-7 w-7 items-center justify-center rounded-full border border-sidebar-border bg-card shadow-md hover:bg-gray-100 transition"
+          >
+            {collapsed ? (
+              <ChevronRight className="h-4 w-4" />
+            ) : (
+              <ChevronLeft className="h-4 w-4" />
+            )}
+          </button>
+        )}
 
         {/* Navigation */}
         <div className="flex-1 p-4 overflow-auto">
@@ -86,7 +94,7 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
               )}
             >
               <Home className="h-5 w-5" />
-              {!collapsed && "Home"}
+              {!collapsed && !isMobile && "Home"}
             </button>
 
             <button
@@ -100,7 +108,7 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
               )}
             >
               <Star className="h-5 w-5" />
-              {!collapsed && "Starred"}
+              {!collapsed && !isMobile && "Starred"}
             </button>
 
             <button
@@ -114,7 +122,7 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
               )}
             >
               <Trash2 className="h-5 w-5" />
-              {!collapsed && "Trash"}
+              {!collapsed && !isMobile && "Trash"}
             </button>
 
             <button
@@ -128,23 +136,24 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
               )}
             >
               <User className="h-5 w-5" />
-              {!collapsed && "Profile"}
+              {!collapsed && !isMobile && "Profile"}
             </button>
           </nav>
         </div>
 
         {/* Footer */}
         <div className="border-t border-sidebar-border p-4 space-y-2">
-          <Button
-            className={cn(
-              "w-full bg-red-500 hover:bg-red-600 text-white flex items-center gap-2",
-              collapsed && "justify-center"
-            )}
-            onClick={handleLogout}
-          >
-            <LogOut className="h-5 w-5" />
-            {!collapsed && "Logout"}
-          </Button>
+          <button
+  onClick={handleLogout}
+  className={cn(
+    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-gray-200 hover:text-accent-foreground",
+    collapsed && "justify-center"
+  )}
+>
+  <LogOut className="h-5 w-5" />
+  {!collapsed && !isMobile && "Logout"}
+</button>
+
         </div>
       </div>
 
@@ -155,7 +164,7 @@ export default function EnhancedSidebar({ collapsed, setCollapsed }) {
           collapsed ? "ml-20" : "ml-60"
         )}
       >
-        {/* Yahan pe tumhara <Outlet /> ya main page content inject hoga */}
+        {/* Yahan <Outlet /> ya main content render hoga */}
       </div>
     </>
   );
