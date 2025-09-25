@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Folder, FolderOpen, ChevronRight, ChevronDown } from "lucide-react";
-import { apiService } from "@/services/api";
+import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
 
 export default function MoveFileModal({
@@ -32,7 +32,7 @@ export default function MoveFileModal({
 
   const loadFolders = async () => {
     try {
-      const response = await apiService.getFolders();
+      const response = await fileApi.listFiles();
       if (response.success) {
         const foldersWithState = response.data.map((folder) => ({
           ...folder,
@@ -50,7 +50,7 @@ export default function MoveFileModal({
 
   const loadSubfolders = async (folderId) => {
     try {
-      const response = await apiService.getFolders(folderId);
+      const response = await fileApi.listFiles(folderId);
       if (response.success) {
         setFolders((prevFolders) =>
           updateFolderInTree(prevFolders, folderId, {
@@ -110,7 +110,7 @@ export default function MoveFileModal({
 
     setIsMoving(true);
     try {
-      const response = await apiService.moveFile(fileId, selectedFolderId);
+      const response = await fileApi.moveFile(fileId, selectedFolderId);
       if (response.success) {
         toast.success("File moved successfully");
         onFileMoved();

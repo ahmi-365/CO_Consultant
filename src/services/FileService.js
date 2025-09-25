@@ -94,46 +94,34 @@ class FileCache {
 const fileCache = new FileCache();
 
 export const fileApi = {
-  async listFiles(parent_id, params = {}, options = {}) {
-    const userFilter = params.user_id || 'all';
-    const cacheKey = `files_${parent_id || 'root'}_${userFilter}`;
-    const cached = fileCache.get(cacheKey);
-    
-    if (cached && !params.user_id && !options.force) {
-      return cached;
-    }
-    
-    const queryParams = new URLSearchParams();
-    if (parent_id) queryParams.append('parent_id', parent_id);
-    if (params.id) queryParams.append('id', params.id);
-    if (params.search) queryParams.append('search', params.search);
-    if (params.user_id) queryParams.append('user_id', params.user_id);
+async listFiles(parent_id, params = {}, options = {}) {
+  const queryParams = new URLSearchParams();
+  if (parent_id) queryParams.append('parent_id', parent_id);
+  if (params.id) queryParams.append('id', params.id);
+  if (params.search) queryParams.append('search', params.search);
+  if (params.user_id) queryParams.append('user_id', params.user_id);
 
-    const url = `${API_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
-    });
-       
-    if (!response.ok) {
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('text/html')) {
-        throw new Error('Authentication failed or server error. Please check your login status.');
-      }
-      throw new Error(`Failed to fetch files: ${response.status} ${response.statusText}`);
-    }
-       
-    const data = await response.json();
-    const safeData = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+  const url = `${API_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json',
+    },
+  });
 
-    if (!params.user_id) {
-      fileCache.set(cacheKey, safeData);
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('Authentication failed or server error. Please check your login status.');
     }
-       
-    return safeData;
-  },
+    throw new Error(`Failed to fetch files: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  const safeData = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+
+  return safeData;
+},
 
   async createFolder(name, parent_id) {
     const response = await fetch(`${API_URL}/onedrive/folders/create`, {
@@ -294,7 +282,8 @@ async moveItem(id, new_parent_id) {
   fileCache.clear();
   return result;
 },
-  async renameItem(id, newName) {
+async renameItem(id, newName) {
+  try {
     const response = await fetch(`${API_URL}/onedrive/rename/${id}`, {
       method: 'POST',
       headers: {
@@ -304,12 +293,19 @@ async moveItem(id, new_parent_id) {
       body: JSON.stringify({ name: newName }),
     });
 
+    const data = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error('Failed to rename item');
+      throw new Error(data?.message || 'Failed to rename item');
     }
 
     fileCache.clear();
-  },
+    return data;
+  } catch (error) {
+    console.error("Rename item error:", error);
+    throw error;
+  }
+}
+,
 
   async getDownloadUrl(id) {
     const response = await fetch(`${API_URL}/onedrive/file/${id}/download-url`, {

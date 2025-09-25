@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Folder } from "lucide-react";
 import { toast } from "sonner";
+import { fileApi } from "../services/FileService";
 
 // Removed TypeScript interface as this is a JS file
 
@@ -19,31 +20,32 @@ export default function NewFolderModal({
   onClose,
   onFolderCreated,
   currentPath,
+  parentId
 }) {
   const [folderName, setFolderName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-
 const handleCreate = async () => {
-  if (!folderName.trim()) {
-    toast.error("Please enter a folder name");
-    return;
-  }
+  if (!folderName.trim() || isCreating) return; // prevent duplicate call
 
-    setIsCreating(true);
+  setIsCreating(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  try {
+    const newFolder = await fileApi.createFolder(folderName.trim(), parentId || null);
 
-    onFolderCreated(folderName.trim());
-    toast.success(`Folder "${folderName}" created successfully!`);
-
-    // Trigger sidebar refresh
+    toast.success(`Folder "${newFolder?.name || folderName}" created successfully!`);
+    onFolderCreated(newFolder);
     window.dispatchEvent(new CustomEvent("folderCreated"));
 
     setFolderName("");
-    setIsCreating(false);
     onClose();
-  };
+  } catch (error) {
+    // console.error("Error creating folder:", error);
+    toast.error(error.message || "Failed to create folder");
+  } finally {
+    setIsCreating(false);
+  }
+};
+
 
   const handleClose = () => {
     setFolderName("");

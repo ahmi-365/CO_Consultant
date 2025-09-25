@@ -20,25 +20,25 @@ export const trashService = {
     }
   },
 
-  moveToTrash: async (fileId) => {
-    const token = localStorage.getItem("token");
-    if (!fileId) throw new Error("File ID is required");
+async moveToTrash(fileId) {
+  const res = await fetch(`${API_URL}/onedrive/trash/${fileId}`, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      "Content-Type": "application/json",
+    },
+  });
 
-    try {
-      const res = await fetch(`${BASE_URL}/onedrive/trash/${fileId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!res.ok) throw new Error("Failed to move file to trash");
-      return await res.json();
-    } catch (error) {
-      console.error("Failed to move file to trash:", error);
-      return { success: false, error: error.message };
-    }
-  },
+  const data = await res.json();
+  console.log("MoveToTrash raw response:", data);
+
+  return {
+    success: data.status === "success" || data.status === "ok",
+    message: data.message,
+    data: data.original || null,
+  };
+}
+,
 
   bulkMoveToTrash: async (fileIds) => {
     const token = localStorage.getItem("token");
