@@ -21,7 +21,7 @@ export const trashService = {
   },
 
 async moveToTrash(fileId) {
-  const res = await fetch(`${API_URL}/onedrive/trash/${fileId}`, {
+  const res = await fetch(`${BASE_URL}/onedrive/trash/${fileId}`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${localStorage.getItem("token")}`,
@@ -30,14 +30,21 @@ async moveToTrash(fileId) {
   });
 
   const data = await res.json();
-  console.log("MoveToTrash raw response:", data);
+  console.log("📦 MoveToTrash raw response:", data);
 
-  return {
-    success: data.status === "success" || data.status === "ok",
-    message: data.message,
-    data: data.original || null,
+  // Laravel response unwrap
+  const normalized = data.original || data;
+
+  const response = {
+    success: normalized.status === "success" || normalized.status === "ok",
+    message: normalized.message || "Action completed",
+    data: normalized,
   };
+
+  console.log("📦 Normalized Trash Response:", response);
+  return response;
 }
+
 ,
 
   bulkMoveToTrash: async (fileIds) => {
@@ -68,25 +75,7 @@ async moveToTrash(fileId) {
     }
   },
 
-  restoreFile: async (fileId) => {
-    const token = localStorage.getItem("token");
-    if (!fileId) throw new Error("File ID is required");
 
-    try {
-      const res = await fetch(`${BASE_URL}/onedrive/restore/${fileId}`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!res.ok) throw new Error("Failed to restore file");
-      return await res.json();
-    } catch (error) {
-      console.error("Failed to restore file:", error);
-      return { success: false, error: error.message };
-    }
-  },
 
   bulkRestoreFiles: async (fileIds) => {
     const token = localStorage.getItem("token");
@@ -111,25 +100,6 @@ async moveToTrash(fileId) {
     }
   },
 
-  permanentDelete: async (fileId) => {
-    const token = localStorage.getItem("token");
-    if (!fileId) throw new Error("File ID is required");
-
-    try {
-      const res = await fetch(`${BASE_URL}/onedrive/delete/${fileId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
-      if (!res.ok) throw new Error("Failed to permanently delete file");
-      return await res.json();
-    } catch (error) {
-      console.error("Failed to permanently delete file:", error);
-      return { success: false, error: error.message };
-    }
-  },
 
   bulkPermanentDelete: async (fileIds) => {
     const token = localStorage.getItem("token");

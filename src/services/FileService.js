@@ -146,7 +146,6 @@ async listFiles(parent_id, params = {}, options = {}) {
     
     return result.data;
   },
-// Updated uploadFile method to handle both single files and arrays
 async uploadFile(files, parent_id) {
   const formData = new FormData();
   
@@ -184,9 +183,6 @@ async uploadFile(files, parent_id) {
   
   return result.data;
 },
-
-// Remove the uploadMultipleFiles method since we're using uploadFile for both
-// Just keep this unified uploadFile method
   async deleteItem(id) {
     const response = await fetch(`${API_URL}/onedrive/trash/${id}`, {
       method: 'POST',

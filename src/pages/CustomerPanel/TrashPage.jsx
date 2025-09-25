@@ -89,7 +89,7 @@ export default function TrashPage() {
     )
       return;
     try {
-      const response = await trashService.permanentDelete(fileId);
+      const response = await trashService.bulkPermanentDelete(fileId);
       if (response.success) {
         loadTrashedFiles();
         toast.success("File permanently deleted");

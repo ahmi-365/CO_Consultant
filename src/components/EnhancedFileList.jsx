@@ -16,6 +16,7 @@ import {
   Plus,
   Upload,
   FolderPlus,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -70,7 +71,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderHierarchy, setFolderHierarchy] = useState(new Map()); // Store folder hierarchy
-
+const [actionLoading, setActionLoading] = useState({
+  starring: {},
+  downloading: {},
+  trashing: {},
+  refreshing: false
+});
   // Load files function with enhanced folder details extraction
   const loadFiles = useCallback(async () => {
     try {
@@ -191,21 +197,37 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     return path;
   }, [folderHierarchy]);
 
-  // Enhanced search that works across all files
+  // Enhanced search that works across all files with folders on top sorting
   const getFilteredFiles = useCallback(() => {
+    let filteredItems;
+    
     if (!searchQuery || searchQuery.trim() === '') {
-      return files;
+      filteredItems = files;
+    } else {
+      const query = searchQuery.toLowerCase().trim();
+      
+      // If we're searching, search across all files, not just current folder
+      const searchTarget = query.length > 0 ? allFiles : files;
+      
+      filteredItems = searchTarget.filter((file) => 
+        file.name.toLowerCase().includes(query) ||
+        (file.type && file.type.toLowerCase().includes(query))
+      );
     }
     
-    const query = searchQuery.toLowerCase().trim();
-    
-    // If we're searching, search across all files, not just current folder
-    const searchTarget = query.length > 0 ? allFiles : files;
-    
-    return searchTarget.filter((file) => 
-      file.name.toLowerCase().includes(query) ||
-      (file.type && file.type.toLowerCase().includes(query))
-    );
+    // Sort items to always show folders first, then files
+    // Within each group (folders/files), maintain alphabetical order
+    return filteredItems.sort((a, b) => {
+      // First, separate folders and files
+      const aIsFolder = a.type === 'folder';
+      const bIsFolder = b.type === 'folder';
+      
+      if (aIsFolder && !bIsFolder) return -1; // Folder comes before file
+      if (!aIsFolder && bIsFolder) return 1;  // File comes after folder
+      
+      // If both are the same type (both folders or both files), sort alphabetically by name
+      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+    });
   }, [searchQuery, files, allFiles]);
 
   // Initial load
@@ -315,7 +337,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     };
   };
 
-  // Get filtered files using the enhanced search
+  // Get filtered files using the enhanced search with folders-first sorting
   const filteredFiles = getFilteredFiles();
 
   const getFileIcon = (type) => {
@@ -343,9 +365,13 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     }
   };
 const handleStarFile = async (fileId) => {
+  setActionLoading(prev => ({
+    ...prev,
+    starring: { ...prev.starring, [fileId]: true }
+  }));
+  
   try {
     const response = await starService.toggleStar(fileId);
-
     if (response.status === "ok") {
       toast.success(response.message || "File starred");
       loadFiles();
@@ -355,12 +381,22 @@ const handleStarFile = async (fileId) => {
   } catch (error) {
     console.error("Error starring file:", error);
     toast.error("Error starring file");
+  } finally {
+    setActionLoading(prev => ({
+      ...prev,
+      starring: { ...prev.starring, [fileId]: false }
+    }));
   }
 };
 
 
 const handleDownloadFile = async (fileId, fileName) => {
-    try {
+  setActionLoading(prev => ({
+    ...prev,
+    downloading: { ...prev.downloading, [fileId]: true }
+  }));
+  
+   try {
       const response = await fileApi.getDownloadUrl(fileId);
       
       // Handle different response formats
@@ -373,7 +409,7 @@ const handleDownloadFile = async (fileId, fileName) => {
           const link = document.createElement('a');
           link.href = downloadUrl;
           link.download = fileName;
-          link.target = '_blank'; // Open in new tab as fallback
+          // link.target = '_blank'; 
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -386,11 +422,16 @@ const handleDownloadFile = async (fileId, fileName) => {
         console.error("Invalid response format:", response);
         toast.error("Failed to get download URL");
       }
-    } catch (error) {
-      console.error("Error downloading file:", error);
-      toast.error("Error downloading file");
-    }
-  };
+    }  catch (error) {
+    console.error("Error downloading file:", error);
+    toast.error("Error downloading file");
+  } finally {
+    setActionLoading(prev => ({
+      ...prev,
+      downloading: { ...prev.downloading, [fileId]: false }
+    }));
+  }
+};
 
   const handleMoveFile = (fileId, fileName) => {
     setSelectedFileForMove({ id: fileId, name: fileName });
@@ -430,21 +471,45 @@ const handleDownloadFile = async (fileId, fileName) => {
       setRenaming(false);
     }
   };
+const handleRefresh = async () => {
+  setActionLoading(prev => ({ ...prev, refreshing: true }));
+  try {
+    await loadFiles();
+    toast.success("Files refreshed");
+  } catch (error) {
+    toast.error("Error refreshing files");
+  } finally {
+    setActionLoading(prev => ({ ...prev, refreshing: false }));
+  }
+};
+const handleTrashFile = async (fileId) => {
+  setActionLoading((prev) => ({
+    ...prev,
+    trashing: { ...prev.trashing, [fileId]: true },
+  }));
 
-  const handleTrashFile = async (fileId) => {
-    try {
-      const response = await trashService.moveToTrash(fileId);
-      if (response.success) {
-        toast.success("File moved to trash");
-        loadFiles();
-        // Trigger sidebar refresh
-        window.dispatchEvent(new CustomEvent("refreshSidebar"));
-      } else toast.error("Failed to move file to trash");
-    } catch (error) {
-      console.error("Error moving file to trash:", error);
-      toast.error("Error moving file to trash");
+  try {
+    const response = await trashService.moveToTrash(fileId);
+
+    if (response.success) {
+      toast.success(response.message);
+      loadFiles();
+      window.dispatchEvent(new CustomEvent("refreshSidebar"));
+    } else {
+      toast.error(response.message || "Failed to move file to trash");
     }
-  };
+  } catch (error) {
+    console.error("❌ Error moving file to trash:", error);
+    toast.error("Error moving file to trash");
+  } finally {
+    setActionLoading((prev) => ({
+      ...prev,
+      trashing: { ...prev.trashing, [fileId]: false },
+    }));
+  }
+};
+
+
 
   const handleDragStart = (e, fileId) => {
     e.dataTransfer.setData("text/plain", fileId);
@@ -531,23 +596,36 @@ const handleDownloadFile = async (fileId, fileName) => {
           )}
         </div>
         
-        <div className="flex justify-end gap-2">
-          <Button
-            onClick={() => setShowUploadModal(true)}
-            className="flex items-center gap-2"
-          >
-            <Upload className="w-4 h-4" />
-            Upload Files
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowNewFolderModal(true)}
-            className="flex items-center gap-2"
-          >
-            <FolderPlus className="w-4 h-4" />
-            New Folder
-          </Button>
-        </div>
+     <div className="flex justify-end gap-2">
+  <Button
+    onClick={handleRefresh}
+    variant="outline"
+    disabled={actionLoading.refreshing}
+    className="flex items-center gap-2"
+  >
+    {actionLoading.refreshing ? (
+      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+    ) : (
+      <RefreshCw className="w-4 h-4" />
+    )}
+    Refresh
+  </Button>
+  <Button
+    onClick={() => setShowUploadModal(true)}
+    className="flex items-center gap-2"
+  >
+    <Upload className="w-4 h-4" />
+    Upload Files
+  </Button>
+  <Button
+    variant="outline"
+    onClick={() => setShowNewFolderModal(true)}
+    className="flex items-center gap-2"
+  >
+    <FolderPlus className="w-4 h-4" />
+    New Folder
+  </Button>
+</div>
       </div>
 
       <div className="rounded-md border">
@@ -568,6 +646,8 @@ const handleDownloadFile = async (fileId, fileName) => {
                     <TableHead>Size</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
+                        <TableHead className="w-20">Status</TableHead> {/* Add this */}
+
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -619,16 +699,21 @@ const handleDownloadFile = async (fileId, fileName) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {item.type === 'file' && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadFile(item.id, item.name)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          )}
+                       {item.type === 'file' && (
+  <Button
+    variant="ghost"
+    size="sm"
+    onClick={() => handleDownloadFile(item.id, item.name)}
+    disabled={actionLoading.downloading[item.id]}
+    className="h-8 w-8 p-0"
+  >
+    {actionLoading.downloading[item.id] ? (
+      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+    ) : (
+      <Download className="w-4 h-4" />
+    )}
+  </Button>
+)}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -639,39 +724,68 @@ const handleDownloadFile = async (fileId, fileName) => {
                               align="end"
                               className="w-48 bg-popover border border-border"
                             >
-                              <DropdownMenuItem onClick={() => handleStarFile(item.id)}>
-                                <Star className="w-4 h-4 mr-2" />
-                                {item.is_starred ? "Unstar" : "Star"}
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleRenameItem(item)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Rename
-                              </DropdownMenuItem>
-                              {item.type === 'file' && (
-                                <DropdownMenuItem
-                                  onClick={() => handleDownloadFile(item.id, item.name)}
-                                >
-                                  <Download className="w-4 h-4 mr-2" />
-                                  Download
-                                </DropdownMenuItem>
-                              )}
-                              <DropdownMenuItem
+                            <DropdownMenuItem 
+  onClick={() => handleStarFile(item.id)}
+  disabled={actionLoading.starring[item.id]}
+>
+  <Star className="w-4 h-4 mr-2" />
+  {item.is_starred ? "Unstar" : "Star"}
+</DropdownMenuItem>
+
+{item.type === 'file' && (
+  <DropdownMenuItem
+    onClick={() => handleDownloadFile(item.id, item.name)}
+    disabled={actionLoading.downloading[item.id]}
+  >
+    <Download className="w-4 h-4 mr-2" />
+    Download
+  </DropdownMenuItem>
+)}
+
+<DropdownMenuItem
+  onClick={() => handleTrashFile(item.id)}
+  disabled={actionLoading.trashing[item.id]}
+  className="text-destructive focus:text-destructive"
+>
+  <Trash2 className="w-4 h-4 mr-2" />
+  Move to Trash
+</DropdownMenuItem>
+                               <DropdownMenuItem
                                 onClick={() => handleMoveFile(item.id, item.name)}
                               >
                                 <ArrowRightLeft className="w-4 h-4 mr-2" />
                                 Move
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleTrashFile(item.id)}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Move to Trash
+                                <DropdownMenuItem onClick={() => handleRenameItem(item)}>
+                                <Edit className="w-4 h-4 mr-2" />
+                                Rename
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
                       </TableCell>
+                      <TableCell className="w-20">
+  <div className="flex items-center gap-1">
+    {actionLoading.starring[item.id] && (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+        <span>Starring...</span>
+      </div>
+    )}
+    {actionLoading.downloading[item.id] && (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+        <span>Downloading...</span>
+      </div>
+    )}
+    {actionLoading.trashing[item.id] && (
+      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+        <span>Deleting...</span>
+      </div>
+    )}
+  </div>
+</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
