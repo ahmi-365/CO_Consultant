@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   MoreHorizontal,
@@ -51,10 +51,11 @@ import { starService } from "../services/Starredservice";
 import { trashService } from "../services/trashservice";
 import EmptyState from "@/components/ui/EmptyState";
 
-export default function EnhancedFileList({ searchQuery }) {
+export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const { folderId } = useParams();
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
+  const [allFiles, setAllFiles] = useState([]); // Store all files for global search
   const [loading, setLoading] = useState(true);
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [selectedFileForMove, setSelectedFileForMove] = useState(null);
@@ -68,35 +69,187 @@ export default function EnhancedFileList({ searchQuery }) {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
+  const [folderHierarchy, setFolderHierarchy] = useState(new Map()); // Store folder hierarchy
 
+  // Load files function with enhanced folder details extraction
+  const loadFiles = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fileApi.listFiles(folderId);
+      
+      // Handle the response structure you provided
+      if (response.status === 'ok' && Array.isArray(response.data)) {
+        let filesData = response.data;
+        
+        // Store all files for global search
+        setAllFiles(filesData);
+        
+        // Build folder hierarchy map for breadcrumb building
+        const hierarchyMap = new Map();
+        filesData.forEach(item => {
+          if (item.type === 'folder') {
+            hierarchyMap.set(item.id, {
+              id: item.id,
+              name: item.name,
+              parentId: item.parent_id,
+              type: item.type
+            });
+          }
+        });
+        setFolderHierarchy(hierarchyMap);
+        
+        // If no folderId is provided, show only root folders/files
+        if (!folderId) {
+          const existingIds = new Set(filesData.map(item => item.id));
+          filesData = filesData.filter(item => !existingIds.has(item.parent_id));
+        } else {
+          // Filter files for current folder
+          filesData = filesData.filter(item => 
+            item.parent_id && item.parent_id.toString() === folderId
+          );
+        }
+        
+        // Find current folder info from the hierarchy
+        if (folderId && hierarchyMap.has(parseInt(folderId))) {
+          const folderInfo = hierarchyMap.get(parseInt(folderId));
+          setCurrentFolder(folderInfo);
+        } else if (folderId) {
+          // Fallback: try to find folder info from any item that references this folder as parent
+          const childItem = response.data.find(item => item.parent_id && item.parent_id.toString() === folderId);
+          if (childItem) {
+            // We can infer some folder info, but it's limited
+            setCurrentFolder({
+              id: parseInt(folderId),
+              name: `Folder ${folderId}`,
+              parentId: null,
+              type: 'folder'
+            });
+          }
+        } else {
+          setCurrentFolder(null);
+        }
+        
+        setFiles(filesData);
+        
+        // Dispatch event with folder details for breadcrumb building
+        if (folderId && currentFolder) {
+          window.dispatchEvent(new CustomEvent("folderDetailsLoaded", {
+            detail: { 
+              folderId: parseInt(folderId), 
+              folderInfo: hierarchyMap.get(parseInt(folderId)),
+              hierarchy: hierarchyMap
+            }
+          }));
+        }
+        
+      } else if (Array.isArray(response)) {
+        // Fallback for when response is directly an array
+        let filesData = response;
+        setAllFiles(filesData);
+        
+        if (!folderId) {
+          const existingIds = new Set(filesData.map(item => item.id));
+          filesData = filesData.filter(item => !existingIds.has(item.parent_id));
+        } else {
+          filesData = filesData.filter(item => 
+            item.parent_id && item.parent_id.toString() === folderId
+          );
+        }
+        
+        setFiles(filesData);
+      } else {
+        console.error("API response is not in expected format:", response);
+        setFiles([]);
+        setAllFiles([]);
+        toast.error("Received an unexpected response from the server.");
+      }
+      
+    } catch (error) {
+      console.error("Error loading files:", error);
+      toast.error("Error loading files");
+    } finally {
+      setLoading(false);
+    }
+  }, [folderId, currentFolder]);
+
+  // Build folder path using the hierarchy map
+  const buildFolderPath = useCallback((folderId, hierarchy = folderHierarchy) => {
+    const path = [];
+    let currentId = folderId;
+    
+    // Traverse up the hierarchy
+    while (currentId && hierarchy.has(currentId)) {
+      const folder = hierarchy.get(currentId);
+      path.unshift({
+        id: folder.id,
+        name: folder.name,
+        path: `/folder/${folder.id}`
+      });
+      currentId = folder.parentId;
+    }
+    
+    return path;
+  }, [folderHierarchy]);
+
+  // Enhanced search that works across all files
+  const getFilteredFiles = useCallback(() => {
+    if (!searchQuery || searchQuery.trim() === '') {
+      return files;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    
+    // If we're searching, search across all files, not just current folder
+    const searchTarget = query.length > 0 ? allFiles : files;
+    
+    return searchTarget.filter((file) => 
+      file.name.toLowerCase().includes(query) ||
+      (file.type && file.type.toLowerCase().includes(query))
+    );
+  }, [searchQuery, files, allFiles]);
+
+  // Initial load
   useEffect(() => {
     loadFiles();
-  }, [folderId]);
+  }, [loadFiles]);
 
+  // Event listeners for refresh and other events
   useEffect(() => {
     const handleFileUploaded = () => loadFiles();
     const handleFolderCreated = () => loadFiles();
     const handleFilesMoved = () => loadFiles();
+    const handleRefreshFileList = () => {
+      console.log('Refreshing file list...');
+      loadFiles();
+    };
+    const handleGlobalSearch = (event) => {
+      // Global search is handled by the parent component updating searchQuery
+      // We just need to make sure our filtering logic handles it
+      console.log('Global search triggered:', event.detail?.query);
+    };
 
+    // Add all event listeners
     window.addEventListener("fileUploaded", handleFileUploaded);
     window.addEventListener("folderCreated", handleFolderCreated);
     window.addEventListener("filesMoved", handleFilesMoved);
+    window.addEventListener("refreshFileList", handleRefreshFileList);
+    window.addEventListener("globalSearch", handleGlobalSearch);
 
     return () => {
       window.removeEventListener("fileUploaded", handleFileUploaded);
       window.removeEventListener("folderCreated", handleFolderCreated);
       window.removeEventListener("filesMoved", handleFilesMoved);
+      window.removeEventListener("refreshFileList", handleRefreshFileList);
+      window.removeEventListener("globalSearch", handleGlobalSearch);
     };
-  }, []);
+  }, [loadFiles]);
 
   // Helper function to determine file type from filename or type field
   const getFileTypeFromItem = (item) => {
-    // If it's a folder, return folder type
     if (item.type === 'folder') {
       return 'folder';
     }
 
-    // For files, determine type from filename extension
     const filename = item.name;
     const extension = filename.toLowerCase().split('.').pop();
     
@@ -110,7 +263,7 @@ export default function EnhancedFileList({ searchQuery }) {
     if (documentExtensions.includes(extension)) return 'document';
     if (archiveExtensions.includes(extension)) return 'zip';
     
-    return 'document'; // default
+    return 'document';
   };
 
   // Helper function to format file size
@@ -131,101 +284,39 @@ export default function EnhancedFileList({ searchQuery }) {
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
 
-  // Get current folder information
+  // Get current folder information with enhanced details
   const getCurrentFolder = () => {
     if (!folderId) {
       return {
         id: null,
-        name: "Root",
+        name: "My Files",
         path: "/",
-        fullPath: "Root"
+        fullPath: "My Files"
       };
     }
 
     if (currentFolder) {
+      const folderPath = buildFolderPath(currentFolder.id);
+      const fullPath = ['My Files', ...folderPath.map(p => p.name)].join(' / ');
+      
       return {
-        id: folderId,
-        name: currentFolder.name || `Folder ${folderId}`,
-        path: `/folder/${folderId}`,
-        fullPath: buildFolderPath(currentFolder)
+        id: currentFolder.id,
+        name: currentFolder.name,
+        path: `/folder/${currentFolder.id}`,
+        fullPath: fullPath
       };
     }
 
     return {
-      id: folderId,
+      id: parseInt(folderId),
       name: `Folder ${folderId}`,
       path: `/folder/${folderId}`,
-      fullPath: `Root / Folder ${folderId}`
+      fullPath: `My Files / Folder ${folderId}`
     };
   };
 
-  // Build folder path for display
-  const buildFolderPath = (folder) => {
-    if (!folder) return "Root";
-    
-    // If folder has parent information, build the path
-    if (folder.parent_name) {
-      return `Root / ${folder.parent_name} / ${folder.name}`;
-    }
-    
-    return `Root / ${folder.name}`;
-  };
-
-  const loadFiles = async () => {
-    try {
-      setLoading(true);
-      const response = await fileApi.listFiles(folderId);
-      
-      // Handle the response structure you provided
-      if (response.status === 'ok' && Array.isArray(response.data)) {
-        let filesData = response.data;
-        
-        // If no folderId is provided, show only root folders
-        if (!folderId) {
-          // Get all IDs that exist in the data
-          const existingIds = new Set(filesData.map(item => item.id));
-          
-          // Filter to show only items whose parent_id doesn't exist in the data
-          // These are the root folders/files
-          filesData = filesData.filter(item => !existingIds.has(item.parent_id));
-        }
-        
-        // Try to find current folder info from the data
-        if (folderId) {
-          const folderInfo = filesData.find(item => item.id.toString() === folderId && item.type === 'folder');
-          if (folderInfo) {
-            setCurrentFolder(folderInfo);
-          }
-        }
-        
-        setFiles(filesData);
-      } else if (Array.isArray(response)) {
-        // Fallback for when response is directly an array
-        let filesData = response;
-        
-        if (!folderId) {
-          const existingIds = new Set(filesData.map(item => item.id));
-          filesData = filesData.filter(item => !existingIds.has(item.parent_id));
-        }
-        
-        setFiles(filesData);
-      } else {
-        console.error("API response is not in expected format:", response);
-        setFiles([]);
-        toast.error("Received an unexpected response from the server.");
-      }
-      
-    } catch (error) {
-      console.error("Error loading files:", error);
-      toast.error("Error loading files");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const filteredFiles = files.filter((file) =>
-    file.name.toLowerCase().includes(searchQuery?.toLowerCase() || "")
-  );
+  // Get filtered files using the enhanced search
+  const filteredFiles = getFilteredFiles();
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -246,33 +337,55 @@ export default function EnhancedFileList({ searchQuery }) {
 
   const handleItemClick = (item) => {
     if (item.type === 'folder') {
-      // Navigate to the folder
       navigate(`/folder/${item.id}`);
     } else {
-      // For files, you might want to preview or download
-      // For now, let's just download the file
       handleDownloadFile(item.id, item.name);
     }
   };
+const handleStarFile = async (fileId) => {
+  try {
+    const response = await starService.toggleStar(fileId);
 
-  const handleStarFile = async (fileId) => {
-    try {
-      const response = await starService.toggleStar(fileId);
-      if (response.success) {
-        toast.success("File starred");
-        loadFiles();
-      } else toast.error("Failed to star file");
-    } catch (error) {
-      console.error("Error starring file:", error);
-      toast.error("Error starring file");
+    if (response.status === "ok") {
+      toast.success(response.message || "File starred");
+      loadFiles();
+    } else {
+      toast.error(response.message || "Failed to star file");
     }
-  };
+  } catch (error) {
+    console.error("Error starring file:", error);
+    toast.error("Error starring file");
+  }
+};
 
-  const handleDownloadFile = async (fileId, fileName) => {
+
+const handleDownloadFile = async (fileId, fileName) => {
     try {
       const response = await fileApi.getDownloadUrl(fileId);
-      if (response.success) toast.success(`Downloaded ${fileName}`);
-      else toast.error("Failed to download file");
+      
+      // Handle different response formats
+      if (response && (response.success || response.download_url || response.url)) {
+        // Extract download URL from different possible response formats
+        const downloadUrl = response.download_url || response.url || response.data?.download_url || response.data?.url;
+        
+        if (downloadUrl) {
+          // Create and trigger download
+          const link = document.createElement('a');
+          link.href = downloadUrl;
+          link.download = fileName;
+          link.target = '_blank'; // Open in new tab as fallback
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          toast.success(`Downloaded ${fileName}`);
+        } else {
+          console.error("No download URL found in response:", response);
+          toast.error("Download URL not available");
+        }
+      } else {
+        console.error("Invalid response format:", response);
+        toast.error("Failed to get download URL");
+      }
     } catch (error) {
       console.error("Error downloading file:", error);
       toast.error("Error downloading file");
@@ -305,6 +418,8 @@ export default function EnhancedFileList({ searchQuery }) {
         setSelectedItemForRename(null);
         setNewName("");
         loadFiles();
+        // Trigger sidebar refresh to update folder names there too
+        window.dispatchEvent(new CustomEvent("refreshSidebar"));
       } else {
         toast.error("Failed to rename item");
       }
@@ -322,6 +437,8 @@ export default function EnhancedFileList({ searchQuery }) {
       if (response.success) {
         toast.success("File moved to trash");
         loadFiles();
+        // Trigger sidebar refresh
+        window.dispatchEvent(new CustomEvent("refreshSidebar"));
       } else toast.error("Failed to move file to trash");
     } catch (error) {
       console.error("Error moving file to trash:", error);
@@ -350,6 +467,7 @@ export default function EnhancedFileList({ searchQuery }) {
           toast.success("File moved successfully");
           loadFiles();
           window.dispatchEvent(new CustomEvent("filesMoved"));
+          window.dispatchEvent(new CustomEvent("refreshSidebar"));
         } else {
           toast.error("Failed to move file");
         }
@@ -362,13 +480,12 @@ export default function EnhancedFileList({ searchQuery }) {
     }
   };
 
-  // Handle file upload success
   const handleFileUploaded = () => {
     loadFiles();
     window.dispatchEvent(new CustomEvent("fileUploaded"));
+    window.dispatchEvent(new CustomEvent("refreshSidebar"));
   };
 
-  // Handle folder creation
   const handleFolderCreated = async (folderName) => {
     setCreatingFolder(true);
     try {
@@ -381,6 +498,7 @@ export default function EnhancedFileList({ searchQuery }) {
         toast.success(`Folder "${folderName}" created successfully!`);
         loadFiles();
         window.dispatchEvent(new CustomEvent("folderCreated"));
+        window.dispatchEvent(new CustomEvent("refreshSidebar"));
       } else {
         toast.error("Failed to create folder");
       }
@@ -395,22 +513,41 @@ export default function EnhancedFileList({ searchQuery }) {
   return (
     <div className="space-y-4">
       {/* Header with action buttons */}
-      <div className="flex justify-end gap-2">
-        <Button
-          onClick={() => setShowUploadModal(true)}
-          className="flex items-center gap-2"
-        >
-          <Upload className="w-4 h-4" />
-          Upload Files
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => setShowNewFolderModal(true)}
-          className="flex items-center gap-2"
-        >
-          <FolderPlus className="w-4 h-4" />
-          New Folder
-        </Button>
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          {searchQuery && searchQuery.trim() !== '' ? (
+            <span>
+              Showing {filteredFiles.length} results for "{searchQuery}"
+              {searchQuery.trim() !== '' && filteredFiles.length !== files.length && (
+                <span className="ml-2 text-xs">
+                  (searching across all files)
+                </span>
+              )}
+            </span>
+          ) : (
+            <span>
+              {files.length} items in {getCurrentFolder().name}
+            </span>
+          )}
+        </div>
+        
+        <div className="flex justify-end gap-2">
+          <Button
+            onClick={() => setShowUploadModal(true)}
+            className="flex items-center gap-2"
+          >
+            <Upload className="w-4 h-4" />
+            Upload Files
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowNewFolderModal(true)}
+            className="flex items-center gap-2"
+          >
+            <FolderPlus className="w-4 h-4" />
+            New Folder
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-md border">
@@ -610,6 +747,7 @@ export default function EnhancedFileList({ searchQuery }) {
           onFileMoved={() => {
             loadFiles();
             window.dispatchEvent(new CustomEvent("filesMoved"));
+            window.dispatchEvent(new CustomEvent("refreshSidebar"));
           }}
         />
       )}

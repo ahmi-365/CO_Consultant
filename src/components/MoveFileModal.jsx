@@ -30,45 +30,61 @@ export default function MoveFileModal({
     }
   }, [isOpen]);
 
-  const loadFolders = async () => {
-    try {
-      const response = await fileApi.listFiles();
-      if (response.success) {
-        const foldersWithState = response.data.map((folder) => ({
+const loadFolders = async () => {
+  try {
+    const response = await fileApi.listFiles();
+    console.log("📂 loadFolders raw response:", response);
+
+    if (Array.isArray(response)) {
+      const foldersWithState = response
+        .filter((item) => item.type === "folder")
+        .map((folder) => ({
           ...folder,
           children: [],
           isExpanded: false,
           isLoading: false,
         }));
-        setFolders(foldersWithState);
-      }
-    } catch (error) {
-      console.error("Error loading folders:", error);
-      toast.error("Error loading folders");
-    }
-  };
 
-  const loadSubfolders = async (folderId) => {
-    try {
-      const response = await fileApi.listFiles(folderId);
-      if (response.success) {
-        setFolders((prevFolders) =>
-          updateFolderInTree(prevFolders, folderId, {
-            children: response.data.map((folder) => ({
+      console.log("✅ Folders to show:", foldersWithState);
+      setFolders(foldersWithState);
+    } else {
+      console.warn("⚠️ loadFolders got unexpected response:", response);
+    }
+  } catch (error) {
+    console.error("❌ Error loading folders:", error);
+    toast.error("Error loading folders");
+  }
+};
+
+const loadSubfolders = async (folderId) => {
+  try {
+    const response = await fileApi.listFiles(folderId);
+    console.log(`📂 loadSubfolders(${folderId}) raw response:`, response);
+
+    if (Array.isArray(response)) {
+      setFolders((prevFolders) =>
+        updateFolderInTree(prevFolders, folderId, {
+          children: response
+            .filter((item) => item.type === "folder")
+            .map((folder) => ({
               ...folder,
               children: [],
               isExpanded: false,
               isLoading: false,
             })),
-            isLoading: false,
-          })
-        );
-      }
-    } catch (error) {
-      console.error("Error loading subfolders:", error);
-      toast.error("Error loading subfolders");
+          isLoading: false,
+        })
+      );
+    } else {
+      console.warn(`⚠️ loadSubfolders(${folderId}) unexpected response:`, response);
     }
-  };
+  } catch (error) {
+    console.error(`❌ Error loading subfolders for ${folderId}:`, error);
+    toast.error("Error loading subfolders");
+  }
+};
+
+
 
   const updateFolderInTree = (folders, folderId, updates) => {
     return folders.map((folder) => {
@@ -102,29 +118,32 @@ export default function MoveFileModal({
     setExpandedFolders(newExpanded);
   };
 
-  const handleMove = async () => {
-    if (!selectedFolderId) {
-      toast.error("Please select a destination folder");
-      return;
-    }
+ const handleMove = async () => {
+  if (!selectedFolderId) {
+    toast.error("Please select a destination folder");
+    return;
+  }
 
-    setIsMoving(true);
-    try {
-      const response = await fileApi.moveFile(fileId, selectedFolderId);
-      if (response.success) {
-        toast.success("File moved successfully");
-        onFileMoved();
-        onClose();
-      } else {
-        toast.error("Failed to move file");
-      }
-    } catch (error) {
-      console.error("Error moving file:", error);
-      toast.error("Error moving file");
-    } finally {
-      setIsMoving(false);
+  setIsMoving(true);
+  try {
+    const response = await fileApi.moveItem(fileId, selectedFolderId);
+    console.log("📦 Move file response:", response);
+
+    if (response.status === "success") {
+      toast.success(response.message || "File moved successfully");
+      onFileMoved();
+      onClose();
+    } else {
+      toast.error(response.message || "Failed to move file");
     }
-  };
+  } catch (error) {
+    console.error("❌ Error moving file:", error);
+    toast.error("Error moving file");
+  } finally {
+    setIsMoving(false);
+  }
+};
+
 
   const renderFolder = (folder, level = 0) => {
     const isExpanded = expandedFolders.has(folder.id);
@@ -138,13 +157,7 @@ export default function MoveFileModal({
             className="p-0.5 hover:bg-muted rounded transition-colors"
             disabled={folder.isLoading}
           >
-            {folder.isLoading ? (
-              <div className="w-3 h-3 animate-spin border border-muted-foreground border-t-transparent rounded-full" />
-            ) : isExpanded ? (
-              <ChevronDown className="w-3 h-3 text-muted-foreground" />
-            ) : (
-              <ChevronRight className="w-3 h-3 text-muted-foreground" />
-            )}
+           
           </button>
           <button
             onClick={() => setSelectedFolderId(folder.id)}

@@ -306,20 +306,49 @@ async renameItem(id, newName) {
   }
 }
 ,
+async getDownloadUrl(id) {
+    console.log("getDownloadUrl called with ID:", id);
 
-  async getDownloadUrl(id) {
-    const response = await fetch(`${API_URL}/onedrive/file/${id}/download-url`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      },
-    });
+    // Token ko parse karke log karein
+    let rawToken = localStorage.getItem("token");
+    console.log("Raw token from localStorage:", rawToken);
 
-    if (!response.ok) {
-      throw new Error(`Failed to get download URL: ${response.status} ${response.statusText}`);
+    // Agar token JSON ke andar hai to parse karein
+    let token;
+    try {
+      token = JSON.parse(rawToken)?.token || rawToken;
+    } catch (e) {
+      token = rawToken;
     }
+    console.log("Final token being sent:", token);
 
-    const result = await response.json();
-    return result;
+    const url = `${API_URL}/onedrive/file/${id}/download-url`;
+    console.log("Fetching URL:", url);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Accept": "application/json",
+        },
+      });
+
+      console.log("Response status:", response.status, response.statusText);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Error response body:", errorText);
+        throw new Error(`Failed to get download URL: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      console.log("Download URL response:", result);
+      return result;
+    } catch (error) {
+      console.error("Error in getDownloadUrl:", error);
+      throw error;
+    }
   },
 
   findFileInCache(files, targetId) {
