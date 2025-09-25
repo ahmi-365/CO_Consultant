@@ -17,16 +17,24 @@ import {
 import { Button } from "@/components/ui/button";
 import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
+import FileUploadModal from "./FileUploadModal";
 
-export default function EnhancedSidebar({ onUploadClick }) {
+export default function EnhancedSidebar() { // Removed onUploadClick prop
   const navigate = useNavigate();
   const location = useLocation();
-  const { folderId } = useParams(); // Get folderId from URL
+  const { folderId } = useParams();
   const currentPath = location.pathname;
-
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [allItems, setAllItems] = useState([]);
   const [folders, setFolders] = useState([]);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+
+  // Use a state to hold the current folder information for the modal
+  const [uploadTargetFolder, setUploadTargetFolder] = useState({
+    id: null,
+    name: "Root",
+    path: "/",
+  });
 
   const isActive = (path) => currentPath === path;
 
@@ -34,17 +42,44 @@ export default function EnhancedSidebar({ onUploadClick }) {
     loadAllItems();
   }, []);
 
+  // New useEffect to handle URL folderId changes and update upload target
+  useEffect(() => {
+    let targetFolder = {
+      id: null,
+      name: "Root",
+      path: "/",
+    };
+    if (folderId) {
+      // Find the folder from the allItems list
+      const folderItem = allItems.find(item => item.id.toString() === folderId);
+      if (folderItem) {
+        targetFolder = {
+          id: folderItem.id,
+          name: folderItem.name,
+          path: `/folder/${folderItem.id}`,
+          fullPath: "Root / " + folderItem.name // Simplified, you can use your buildFolderPath logic here
+        };
+      }
+    }
+    setUploadTargetFolder(targetFolder);
+  }, [folderId, allItems]); // Add allItems to the dependency array
+
+  const handleFileUploaded = () => {
+    loadAllItems(); // Renamed from loadFiles for clarity and consistency
+    window.dispatchEvent(new CustomEvent("fileUploaded"));
+  };
+
+  const handleUploadClick = () => {
+    setShowUploadModal(true);
+  };
+
   const loadAllItems = async () => {
     try {
       const response = await fileApi.listFiles();
-      
-      console.log("All items from API:", response);
-      
       if (Array.isArray(response)) {
         setAllItems(response);
         const organizedFolders = organizeItemsHierarchically(response);
         setFolders(organizedFolders);
-        console.log("Organized folders:", organizedFolders);
       }
     } catch (error) {
       console.error("Error loading items:", error);
@@ -55,7 +90,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
   const organizeItemsHierarchically = (items) => {
     const itemMap = new Map();
     const rootFolders = [];
-    
+
     items.forEach(item => {
       itemMap.set(item.id, {
         ...item,
@@ -63,16 +98,16 @@ export default function EnhancedSidebar({ onUploadClick }) {
         files: [],
         isLoaded: true,
       });
-      
+
       if ((item.parent_id === 1 || item.parent_id === 2 || item.parent_id === null) && item.type === 'folder') {
         rootFolders.push(item.id);
       }
     });
-    
+
     items.forEach(item => {
       if (item.parent_id && itemMap.has(item.parent_id)) {
         const parent = itemMap.get(item.parent_id);
-        
+
         if (item.type === 'folder') {
           parent.children.push(itemMap.get(item.id));
         } else {
@@ -80,7 +115,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
         }
       }
     });
-    
+
     return rootFolders.map(id => itemMap.get(id)).filter(Boolean);
   };
 
@@ -131,7 +166,6 @@ export default function EnhancedSidebar({ onUploadClick }) {
     try {
       await fileApi.moveItem(fileId, folderId);
       toast.success("File moved successfully");
-      
       await loadAllItems();
       window.dispatchEvent(new CustomEvent("filesMoved"));
     } catch (error) {
@@ -228,7 +262,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
               folder.files.map((file) => renderFile(file, level))}
 
             {!hasChildren && !hasFiles && (
-              <div 
+              <div
                 className="text-xs text-sidebar-foreground/60 px-2 py-1"
                 style={{ marginLeft: `${(level + 1) * 16}px` }}
               >
@@ -263,7 +297,7 @@ export default function EnhancedSidebar({ onUploadClick }) {
     window.addEventListener("folderCreated", handleFolderCreated);
     window.addEventListener("filesMoved", handleFilesMoved);
     window.addEventListener("filesUploaded", handleFilesUploaded);
-    
+
     return () => {
       window.removeEventListener("folderCreated", handleFolderCreated);
       window.removeEventListener("filesMoved", handleFilesMoved);
@@ -371,12 +405,18 @@ export default function EnhancedSidebar({ onUploadClick }) {
       <div className="p-4 border-t border-sidebar-border">
         <Button
           className="w-full bg-panel hover:bg-panel/90 text-panel-foreground"
-          onClick={() => onUploadClick(folderId)}
+          onClick={handleUploadClick} 
         >
           <Upload className="w-4 h-4 mr-2" />
           New Upload
         </Button>
       </div>
+      <FileUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onFileUploaded={handleFileUploaded}
+        currentFolder={uploadTargetFolder} 
+      />
     </div>
   );
 }

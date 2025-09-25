@@ -215,8 +215,6 @@ export default function EnhancedFileList({ searchQuery }) {
         toast.error("Received an unexpected response from the server.");
       }
       
-      console.log("response::", response);
-      console.log("filtered files::", files); 
     } catch (error) {
       console.error("Error loading files:", error);
       toast.error("Error loading files");

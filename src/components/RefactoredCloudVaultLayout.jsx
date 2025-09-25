@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Search, Bell, ChevronRight, Folder, Upload } from "lucide-react";
+import { Search, Bell, ChevronRight, Folder, Upload, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -105,6 +105,14 @@ export default function RefactoredCloudVaultLayout({ children }) {
 
           <div className="flex items-center gap-4">
             {/* Search */}
+               <Button
+                variant="ghost"
+                size="icon"
+ className="w-8 h-8 rounded-full text-foreground/60 hover:text-foreground"
+//               onClick={handleRefreshClick}
+ >
+ <RefreshCcw className="w-4 h-4" />
+ </Button>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
