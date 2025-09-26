@@ -623,17 +623,7 @@ export default function EnhancedSidebar() {
           </div>
 
           <div className="mt-8 space-y-1">
-            <button
-              onClick={() => handleNavigationClick("/shared")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/shared")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>Shared with me</span>
-            </button>
+           
             <button
               onClick={() => handleNavigationClick("/starred")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
@@ -657,9 +647,9 @@ export default function EnhancedSidebar() {
               <span>Trash</span>
             </button>
             <button
-              onClick={() => handleNavigationClick("/profile")}
+              onClick={() => handleNavigationClick("/customerprofile")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/profile")
+                isActive("/customerprofile")
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Search, Bell, ChevronRight, Folder, Upload, RefreshCcw } from "lucide-react";
+import { Search, Bell, ChevronRight, Folder, Upload, RefreshCcw, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -192,19 +192,22 @@ export default function RefactoredCloudVaultLayout({ children }) {
     navigate("/profile");
   };
 
-  // Enhanced search function that searches across all files
-const handleSearchChange = useCallback((e) => {
-  const query = e.target.value;
-  setSearchQuery(query);
-  
-  // Dispatch search event with query for global search
-  window.dispatchEvent(new CustomEvent("globalSearch", {
-    detail: { 
-      query,
-      searchMode: query.trim() !== '' ? 'global' : 'local' // Add search mode
-    }
-  }));
-}, []);
+  // Enhanced search function that dispatches correct events
+  const handleSearchChange = useCallback((e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    // Determine search mode based on query length and presence
+    const searchMode = query.trim() !== '' ? 'global' : 'local';
+    
+    // Dispatch search event with query for global search
+    window.dispatchEvent(new CustomEvent("globalSearch", {
+      detail: { 
+        query: query.trim(),
+        searchMode: searchMode
+      }
+    }));
+  }, []);
 
   // Handle folder creation success
   const handleFolderCreated = useCallback(async () => {
@@ -271,7 +274,7 @@ const handleSearchChange = useCallback((e) => {
               disabled={isRefreshing}
               title="Refresh all content"
             >
-              <RefreshCcw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4" />
             </Button>
 
             {/* Enhanced Search */}
@@ -284,6 +287,13 @@ const handleSearchChange = useCallback((e) => {
                 className="pl-10 w-64 bg-input border-border"
                 title="Search across all your files and folders"
               />
+              {searchQuery.trim() !== '' && (
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    Global
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Notifications */}
@@ -304,59 +314,83 @@ const handleSearchChange = useCallback((e) => {
             <div className="space-y-6">
               {/* Page Header */}
               <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-semibold text-foreground">
-                  {getBreadcrumbPath()[getBreadcrumbPath().length - 1]?.name || "My Files"}
-                </h1>
+                <div>
+                  <h1 className="text-2xl font-semibold text-foreground">
+                    {currentPath === "/" 
+                      ? "My Files" 
+                      : currentPath === "/starred" 
+                      ? "Starred Files"
+                      : currentPath === "/shared"
+                      ? "Shared with me"
+                      : currentPath === "/trash"
+                      ? "Trash"
+                      : currentPath.startsWith("/folder/")
+                      ? folderPath.length > 0 
+                        ? folderPath[folderPath.length - 1]?.name || "Folder"
+                        : "Folder"
+                      : "Files"
+                    }
+                  </h1>
+                  <p className="text-muted-foreground">
+                    {currentPath === "/"
+                      ? "Manage your personal files and folders"
+                      : currentPath === "/starred"
+                      ? "Files you've marked as important"
+                      : currentPath === "/shared"
+                      ? "Files others have shared with you"
+                      : currentPath === "/trash"
+                      ? "Recently deleted files"
+                      : "Browse folder contents"
+                    }
+                  </p>
+                </div>
+
                 <div className="flex items-center gap-2">
+                  {/* New Folder Button */}
                   <Button
                     variant="outline"
-                    size="sm"
                     onClick={() => setIsNewFolderModalOpen(true)}
+                    className="flex items-center gap-2"
                   >
-                    <Folder className="w-4 h-4 mr-2" />
+                    <Folder className="w-4 h-4" />
                     New Folder
                   </Button>
+
+                  {/* Upload Button */}
                   <Button
-                    size="sm"
-                    className="bg-panel hover:bg-panel/90 text-panel-foreground"
                     onClick={() => {
                       setUploadParentId(folderId || null);
                       setIsUploadModalOpen(true);
                     }}
+                    className="flex items-center gap-2"
                   >
-                    <Upload className="w-4 h-4 mr-2" />
+                    <Upload className="w-4 h-4" />
                     Upload
                   </Button>
                 </div>
               </div>
 
-              {/* Enhanced File List */}
-              <EnhancedFileList
-                searchQuery={searchQuery}
-                onRefresh={handleRefreshClick}
-              />
+              {/* File List */}
+              <EnhancedFileList />
             </div>
           )}
         </main>
       </div>
 
-      {/* Modals */}
+      {/* Upload Modal */}
       <FileUploadModal
         isOpen={isUploadModalOpen}
-        onClose={() => {
-          setIsUploadModalOpen(false);
-          setUploadParentId(null);
-        }}
-        currentFolder={{ id: uploadParentId }}
-        onFileUploaded={(file, parentId) => {
-          handleFileUpload(file, parentId);
-        }}
+        onClose={() => setIsUploadModalOpen(false)}
+        onUpload={(file) => handleFileUpload(file, uploadParentId)}
+        parentId={uploadParentId}
       />
+
+      {/* New Folder Modal */}
       <NewFolderModal
         isOpen={isNewFolderModalOpen}
         onClose={() => setIsNewFolderModalOpen(false)}
-        parentId={folderId}
         onFolderCreated={handleFolderCreated}
+        parentId={folderId || null}
       />
     </div>
   );

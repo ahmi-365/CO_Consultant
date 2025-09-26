@@ -82,7 +82,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderHierarchy, setFolderHierarchy] = useState(new Map());
-  const [searchMode, setSearchMode] = useState('local'); 
+  
+  // Fixed search states
+  const [searchMode, setSearchMode] = useState('local');
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
   // Mobile-specific state
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
@@ -217,21 +220,35 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     return path;
   }, [folderHierarchy]);
 
+  // Fixed getFilteredFiles function with proper global search
   const getFilteredFiles = useCallback(() => {
     let filteredItems;
     
-    if (!searchQuery || searchQuery.trim() === '') {
+    // Use globalSearchQuery when in global mode, searchQuery for local mode
+    const activeQuery = searchMode === 'global' ? globalSearchQuery : searchQuery;
+    
+    if (!activeQuery || activeQuery.trim() === '') {
+      // No search query - show current folder items
       filteredItems = files;
     } else {
-      const query = searchQuery.toLowerCase().trim();
-      const searchTarget = query.length > 0 ? allFiles : files;
+      const query = activeQuery.toLowerCase().trim();
       
-      filteredItems = searchTarget.filter((file) => 
-        file.name.toLowerCase().includes(query) ||
-        (file.type && file.type.toLowerCase().includes(query))
-      );
+      if (searchMode === 'global') {
+        // Global search: search across ALL files regardless of current folder
+        filteredItems = allFiles.filter((file) => 
+          file.name.toLowerCase().includes(query) ||
+          (file.type && file.type.toLowerCase().includes(query))
+        );
+      } else {
+        // Local search: search within current folder only
+        filteredItems = files.filter((file) => 
+          file.name.toLowerCase().includes(query) ||
+          (file.type && file.type.toLowerCase().includes(query))
+        );
+      }
     }
     
+    // Sort results: folders first, then by name
     return filteredItems.sort((a, b) => {
       const aIsFolder = a.type === 'folder';
       const bIsFolder = b.type === 'folder';
@@ -241,7 +258,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       
       return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
     });
-  }, [searchQuery, files, allFiles]);
+  }, [searchQuery, globalSearchQuery, files, allFiles, searchMode]);
 
   useEffect(() => {
     loadFiles();
@@ -255,8 +272,16 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       console.log('Refreshing file list...');
       loadFiles();
     };
+    
+    // Fixed global search event handler
     const handleGlobalSearch = (event) => {
-      console.log('Global search triggered:', event.detail?.query);
+      console.log('Global search triggered:', event.detail);
+      const { query, searchMode: mode } = event.detail || {};
+      
+      if (query !== undefined) {
+        setGlobalSearchQuery(query);
+        setSearchMode(mode || 'local');
+      }
     };
 
     window.addEventListener("fileUploaded", handleFileUploaded);
@@ -690,12 +715,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       {/* Header with action buttons */}
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div className="text-sm text-muted-foreground">
-          {searchQuery && searchQuery.trim() !== '' ? (
+          {(searchQuery && searchQuery.trim() !== '') || (globalSearchQuery && globalSearchQuery.trim() !== '') ? (
             <span>
-              Showing {filteredFiles.length} results for "{searchQuery}"
-              {searchQuery.trim() !== '' && filteredFiles.length !== files.length && (
-                <span className="ml-2 text-xs">
-                  (searching across all files)
+              Showing {filteredFiles.length} results for "{searchMode === 'global' ? globalSearchQuery : searchQuery}"
+              {searchMode === 'global' && (
+                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                  Global Search
                 </span>
               )}
             </span>

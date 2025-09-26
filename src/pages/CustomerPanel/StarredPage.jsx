@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Star, Share2, FileText, Archive, Image, Video, File, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -78,6 +79,121 @@ export default function StarredPage() {
     }
   };
 
+  const getFolderPath = (folderId) => {
+    return `/folder/${folderId}`;
+  };
+
+  const getFileLocationPath = (fileId, parentId, filePath) => {
+    // Use parent_id directly, or extract from path as fallback
+    const parentFolderId = parentId || extractParentFolderFromPath(filePath);
+    
+    if (parentFolderId) {
+      return `/folder/${parentFolderId}`;
+    } else {
+      // Fallback to root directory
+      return `/`;
+    }
+  };
+
+  const extractParentFolderFromPath = (filePath) => {
+    if (!filePath) return null;
+    
+    // Extract parent folder ID from path like "/folder1/folder2/file.txt"
+    const pathParts = filePath.split('/').filter(part => part.length > 0);
+    if (pathParts.length > 1) {
+      // Return the last folder in the path (immediate parent)
+      return pathParts[pathParts.length - 2];
+    }
+    return null;
+  };
+
+  const FileRow = ({ file, index }) => {
+    const isFolder = file.type === "folder";
+    const linkPath = isFolder 
+      ? getFolderPath(file.id) 
+      : getFileLocationPath(file.id, file.parent_id, file.path);
+
+    return (
+      <div
+        key={file.id}
+        className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 group overflow-hidden"
+        style={{
+          animationDelay: `${index * 50}ms`,
+          animation: "fadeInUp 0.5s ease-out forwards",
+        }}
+      >
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+
+        <Link to={linkPath} className="block relative px-6 py-4">
+          {/* ✅ Desktop Layout */}
+          <div className="hidden sm:grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm items-center">
+            <div className="col-span-6 lg:col-span-1 flex items-center min-w-0">
+              <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
+              <span className="text-foreground font-medium truncate group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">
+                {file.name}
+              </span>
+            </div>
+            <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium">{file.user_id}</div>
+            <div className="col-span-3 lg:col-span-1 hidden md:block text-muted-foreground">{file.updated_at}</div>
+            <div className="col-span-3 lg:col-span-1 hidden lg:block">
+              <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">{file.size}</span>
+            </div>
+            <div className="col-span-6 lg:col-span-1 flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { 
+                  e.preventDefault();
+                  e.stopPropagation(); 
+                  handleToggleStar(file.id); 
+                }}
+                className="h-9 w-9 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                title="Remove from starred"
+              >
+                <Star className="h-4 w-4 fill-current text-yellow-500" />
+              </Button>
+            </div>
+          </div>
+
+          {/* ✅ Mobile Layout */}
+          <div className="sm:hidden flex flex-col space-y-3">
+            {/* Top Row */}
+            <div className="flex items-center space-x-3">
+              <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
+              <span className="text-foreground font-medium truncate">{file.name}</span>
+            </div>
+
+            {/* Info Row */}
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>By {file.user_id}</span>
+              <span>{file.updated_at}</span>
+              <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">{file.size}</span>
+            </div>
+
+            {/* Actions Row */}
+            <div className="flex justify-end gap-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => { 
+                  e.preventDefault();
+                  e.stopPropagation(); 
+                  handleToggleStar(file.id); 
+                }}
+                className="h-10 w-10 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                title="Remove from starred"
+              >
+                <Star className="h-5 w-5 fill-current text-yellow-500" />
+              </Button>
+            </div>
+          </div>
+        </Link>
+
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-4">
@@ -89,7 +205,6 @@ export default function StarredPage() {
           Loading starred files...
         </div>
       </div>
-
     );
   }
 
@@ -119,9 +234,8 @@ export default function StarredPage() {
             </p>
           </div>
         </div>
-
-
       </div>
+
       {/* Desktop Table Headers */}
       <div className="hidden sm:block bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-700 rounded-xl mb-4 px-6 py-4 border border-gray-200 dark:border-gray-600">
         <div className="grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm font-semibold text-gray-700 dark:text-gray-300">
@@ -139,75 +253,7 @@ export default function StarredPage() {
       {/* File List */}
       <div className="space-y-3">
         {starredFiles.map((file, index) => (
-          <div
-            key={file.id}
-            className="relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5 cursor-pointer group overflow-hidden"
-            style={{
-              animationDelay: `${index * 50}ms`,
-              animation: "fadeInUp 0.5s ease-out forwards",
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-
-            <div className="relative px-6 py-4">
-              {/* ✅ Desktop Layout */}
-              <div className="hidden sm:grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm items-center">
-                <div className="col-span-6 lg:col-span-1 flex items-center min-w-0">
-                  <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
-                  <span className="text-foreground font-medium truncate group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">
-                    {file.name}
-                  </span>
-                </div>
-                <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium">{file.user_id}</div>
-                <div className="col-span-3 lg:col-span-1 hidden md:block text-muted-foreground">{file.updated_at}</div>
-                <div className="col-span-3 lg:col-span-1 hidden lg:block">
-                  <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">{file.size}</span>
-                </div>
-                <div className="col-span-6 lg:col-span-1 flex items-center justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleToggleStar(file.id); }}
-                    className="h-9 w-9 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                  >
-                    <Star className="h-4 w-4 fill-current text-yellow-500" />
-                  </Button>
-
-                </div>
-              </div>
-
-              {/* ✅ Mobile Layout */}
-              <div className="sm:hidden flex flex-col space-y-3">
-                {/* Top Row */}
-                <div className="flex items-center space-x-3">
-                  <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
-                  <span className="text-foreground font-medium truncate">{file.name}</span>
-                </div>
-
-                {/* Info Row */}
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  <span>By {file.user_id}</span>
-                  <span>{file.updated_at}</span>
-                  <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">{file.size}</span>
-                </div>
-
-                {/* Actions Row */}
-                <div className="flex justify-end gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => { e.stopPropagation(); handleToggleStar(file.id); }}
-                    className="h-10 w-10 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                  >
-                    <Star className="h-5 w-5 fill-current text-yellow-500" />
-                  </Button>
-
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute bottom-0 left-0 right-0 h-0.5  transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></div>
-          </div>
+          <FileRow key={file.id} file={file} index={index} />
         ))}
       </div>
 
