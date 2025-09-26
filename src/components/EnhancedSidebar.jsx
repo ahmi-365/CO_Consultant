@@ -14,8 +14,11 @@ import {
   FileText,
   Download,
   Loader2,
+  Menu,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { fileApi } from "../services/FileService";
 import { starService } from "../services/Starredservice";
 import { trashService } from "../services/trashservice";
@@ -31,6 +34,8 @@ export default function EnhancedSidebar() {
   const [allItems, setAllItems] = useState([]);
   const [folders, setFolders] = useState([]);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
+  const [isMobile, setIsMobile] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
@@ -50,6 +55,18 @@ export default function EnhancedSidebar() {
   });
 
   const isActive = (path) => currentPath === path;
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
 
   // Helper function to set loading state for specific actions
   const setActionLoading = (action, itemId, isLoading) => {
@@ -102,6 +119,16 @@ export default function EnhancedSidebar() {
 
   const handleUploadClick = () => {
     setShowUploadModal(true);
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
+  };
+
+  const handleNavigationClick = (path) => {
+    navigate(path);
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
   };
 
   const loadAllItems = async () => {
@@ -169,10 +196,16 @@ export default function EnhancedSidebar() {
 
   const handleFolderClick = (folderId) => {
     navigate(`/folder/${folderId}`);
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
   };
 
   const handleFileClick = (fileId) => {
     console.log("File clicked:", fileId);
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
   };
 
   const handleStarToggle = async (itemId, currentStarStatus) => {
@@ -288,15 +321,15 @@ export default function EnhancedSidebar() {
       <div
         key={file.id}
         className={`flex items-center gap-1 ${isMoving ? 'opacity-50' : ''}`}
-        style={{ marginLeft: `${(level + 1) * 16}px` }}
+        style={{ marginLeft: `${(level + 1) * (isMobile ? 12 : 16)}px` }}
       >
         <div className="w-3 h-3" />
         <button
           onClick={() => handleFileClick(file.id)}
           className="flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50 group"
-          draggable={!isAnyActionLoading}
+          draggable={!isAnyActionLoading && !isMobile}
           onDragStart={(e) => {
-            if (!isAnyActionLoading) {
+            if (!isAnyActionLoading && !isMobile) {
               e.dataTransfer.setData("text/plain", file.id);
             } else {
               e.preventDefault();
@@ -304,76 +337,78 @@ export default function EnhancedSidebar() {
           }}
           disabled={isAnyActionLoading}
         >
-          <FileText className="w-3 h-3 text-muted-foreground" />
+          <FileText className="w-3 h-3 text-muted-foreground flex-shrink-0" />
           <span className="truncate flex-1" title={file.name}>{file.name}</span>
           
           {/* Star indicator with loading state */}
           {isStarring ? (
-            <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />
+            <Loader2 className="w-3 h-3 animate-spin text-yellow-400 flex-shrink-0" />
           ) : (
-            file.is_starred && <Star className="w-3 h-3 text-yellow-400 fill-current" />
+            file.is_starred && <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0" />
           )}
           
-          {/* Action buttons */}
-          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
-            {/* Star button */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0 hover:bg-sidebar-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStarToggle(file.id, file.is_starred);
-              }}
-              disabled={isStarring}
-            >
-              {isStarring ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Star className={`w-3 h-3 ${file.is_starred ? 'text-yellow-400 fill-current' : ''}`} />
-              )}
-            </Button>
-            
-            {/* Download button */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0 hover:bg-sidebar-accent"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDownload(file.id, file.name);
-              }}
-              disabled={isDownloading}
-            >
-              {isDownloading ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Download className="w-3 h-3" />
-              )}
-            </Button>
-            
-            {/* Trash button */}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-6 w-6 p-0 hover:bg-sidebar-accent hover:text-destructive"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleTrashToggle(file.id, file.name, file.is_trashed);
-              }}
-              disabled={isTrashing}
-            >
-              {isTrashing ? (
-                <Loader2 className="w-3 h-3 animate-spin" />
-              ) : (
-                <Trash2 className="w-3 h-3" />
-              )}
-            </Button>
-          </div>
+          {/* Action buttons - Hide on mobile for cleaner UI */}
+          {!isMobile && (
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+              {/* Star button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 hover:bg-sidebar-accent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStarToggle(file.id, file.is_starred);
+                }}
+                disabled={isStarring}
+              >
+                {isStarring ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Star className={`w-3 h-3 ${file.is_starred ? 'text-yellow-400 fill-current' : ''}`} />
+                )}
+              </Button>
+              
+              {/* Download button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 hover:bg-sidebar-accent"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownload(file.id, file.name);
+                }}
+                disabled={isDownloading}
+              >
+                {isDownloading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Download className="w-3 h-3" />
+                )}
+              </Button>
+              
+              {/* Trash button */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-6 w-6 p-0 hover:bg-sidebar-accent hover:text-destructive"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleTrashToggle(file.id, file.name, file.is_trashed);
+                }}
+                disabled={isTrashing}
+              >
+                {isTrashing ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3 h-3" />
+                )}
+              </Button>
+            </div>
+          )}
           
           {/* Status indicators */}
           {isMoving && (
-            <span className="text-xs text-muted-foreground">Moving...</span>
+            <span className="text-xs text-muted-foreground flex-shrink-0">Moving...</span>
           )}
         </button>
       </div>
@@ -394,7 +429,7 @@ export default function EnhancedSidebar() {
         <div className="flex items-center gap-1">
           <button
             onClick={() => toggleFolder(folder.id)}
-            className="p-0.5 hover:bg-sidebar-accent rounded transition-colors"
+            className="p-0.5 hover:bg-sidebar-accent rounded transition-colors flex-shrink-0"
             disabled={isAnyActionLoading}
           >
             {isExpanded ? (
@@ -405,68 +440,70 @@ export default function EnhancedSidebar() {
           </button>
           <button
             onClick={() => handleFolderClick(folder.id)}
-            onDrop={(e) => handleDrop(e, folder.id)}
-            onDragOver={handleDragOver}
+            onDrop={(e) => !isMobile && handleDrop(e, folder.id)}
+            onDragOver={!isMobile ? handleDragOver : undefined}
             className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors group ${
               isCurrentFolder
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
-            style={{ marginLeft: `${level * 16}px` }}
+            style={{ marginLeft: `${level * (isMobile ? 12 : 16)}px` }}
             disabled={isAnyActionLoading}
           >
             {isExpanded ? (
-              <FolderOpen className="w-4 h-4 text-panel" />
+              <FolderOpen className="w-4 h-4 text-panel flex-shrink-0" />
             ) : (
-              <Folder className="w-4 h-4 text-panel" />
+              <Folder className="w-4 h-4 text-panel flex-shrink-0" />
             )}
             <span className="truncate flex-1" title={folder.name}>{folder.name}</span>
             
             {/* Star indicator with loading state */}
             {isStarring ? (
-              <Loader2 className="w-3 h-3 animate-spin text-yellow-400" />
+              <Loader2 className="w-3 h-3 animate-spin text-yellow-400 flex-shrink-0" />
             ) : (
-              folder.is_starred && <Star className="w-3 h-3 text-yellow-400 fill-current" />
+              folder.is_starred && <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0" />
             )}
             
-            {/* Action buttons for folders */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
-              {/* Star button */}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 hover:bg-sidebar-accent"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStarToggle(folder.id, folder.is_starred);
-                }}
-                disabled={isStarring}
-              >
-                {isStarring ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Star className={`w-3 h-3 ${folder.is_starred ? 'text-yellow-400 fill-current' : ''}`} />
-                )}
-              </Button>
-              
-              {/* Trash button */}
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-6 w-6 p-0 hover:bg-sidebar-accent hover:text-destructive"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleTrashToggle(folder.id, folder.name, folder.is_trashed);
-                }}
-                disabled={isTrashing}
-              >
-                {isTrashing ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3 h-3" />
-                )}
-              </Button>
-            </div>
+            {/* Action buttons for folders - Hide on mobile */}
+            {!isMobile && (
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
+                {/* Star button */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 hover:bg-sidebar-accent"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStarToggle(folder.id, folder.is_starred);
+                  }}
+                  disabled={isStarring}
+                >
+                  {isStarring ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Star className={`w-3 h-3 ${folder.is_starred ? 'text-yellow-400 fill-current' : ''}`} />
+                  )}
+                </Button>
+                
+                {/* Trash button */}
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 w-6 p-0 hover:bg-sidebar-accent hover:text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTrashToggle(folder.id, folder.name, folder.is_trashed);
+                  }}
+                  disabled={isTrashing}
+                >
+                  {isTrashing ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3 h-3" />
+                  )}
+                </Button>
+              </div>
+            )}
           </button>
         </div>
 
@@ -481,7 +518,7 @@ export default function EnhancedSidebar() {
             {!hasChildren && !hasFiles && (
               <div
                 className="text-xs text-sidebar-foreground/60 px-2 py-1"
-                style={{ marginLeft: `${(level + 1) * 16}px` }}
+                style={{ marginLeft: `${(level + 1) * (isMobile ? 12 : 16)}px` }}
               >
                 Empty folder
               </div>
@@ -530,8 +567,9 @@ export default function EnhancedSidebar() {
 
   const stats = getTotalItems();
 
-  return (
-    <div className="w-60 bg-sidebar border-r border-sidebar-border flex flex-col">
+  // Sidebar Content Component (shared between desktop and mobile)
+  const SidebarContent = ({ isMobileView = false }) => (
+    <div className={`${isMobileView ? 'h-full' : 'w-60'} bg-sidebar border-r border-sidebar-border flex flex-col`}>
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm">
@@ -552,9 +590,9 @@ export default function EnhancedSidebar() {
       <div className="flex-1 p-4 overflow-y-auto">
         <nav className="space-y-1">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => handleNavigationClick("/filemanager")}
             className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
-              isActive("/")
+              isActive("/filemanager")
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
@@ -586,7 +624,7 @@ export default function EnhancedSidebar() {
 
           <div className="mt-8 space-y-1">
             <button
-              onClick={() => navigate("/shared")}
+              onClick={() => handleNavigationClick("/shared")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/shared")
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -597,7 +635,7 @@ export default function EnhancedSidebar() {
               <span>Shared with me</span>
             </button>
             <button
-              onClick={() => navigate("/starred")}
+              onClick={() => handleNavigationClick("/starred")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/starred")
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -608,7 +646,7 @@ export default function EnhancedSidebar() {
               <span>Starred</span>
             </button>
             <button
-              onClick={() => navigate("/trash")}
+              onClick={() => handleNavigationClick("/trash")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/trash")
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -619,7 +657,7 @@ export default function EnhancedSidebar() {
               <span>Trash</span>
             </button>
             <button
-              onClick={() => navigate("/profile")}
+              onClick={() => handleNavigationClick("/profile")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
                 isActive("/profile")
                   ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
@@ -642,12 +680,49 @@ export default function EnhancedSidebar() {
           New Upload
         </Button>
       </div>
+    </div>
+  );
+
+  // Mobile: Return hamburger button and sheet
+  if (isMobile) {
+    return (
+      <>
+        {/* Mobile Hamburger Button */}
+        <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden fixed top-4 left-4 z-50 bg-background/80 backdrop-blur-sm border shadow-sm"
+            >
+              <Menu className="w-5 h-5" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="w-80 p-0">
+            <SidebarContent isMobileView={true} />
+          </SheetContent>
+        </Sheet>
+
+        <FileUploadModal
+          isOpen={showUploadModal}
+          onClose={() => setShowUploadModal(false)}
+          onFileUploaded={handleFileUploaded}
+          currentFolder={uploadTargetFolder} 
+        />
+      </>
+    );
+  }
+
+  // Desktop: Return normal sidebar
+  return (
+    <>
+      <SidebarContent />
       <FileUploadModal
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onFileUploaded={handleFileUploaded}
         currentFolder={uploadTargetFolder} 
       />
-    </div>
+    </>
   );
 }

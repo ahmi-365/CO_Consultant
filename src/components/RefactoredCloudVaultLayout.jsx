@@ -193,15 +193,18 @@ export default function RefactoredCloudVaultLayout({ children }) {
   };
 
   // Enhanced search function that searches across all files
-  const handleSearchChange = useCallback((e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    
-    // Dispatch search event with query for global search
-    window.dispatchEvent(new CustomEvent("globalSearch", {
-      detail: { query }
-    }));
-  }, []);
+const handleSearchChange = useCallback((e) => {
+  const query = e.target.value;
+  setSearchQuery(query);
+  
+  // Dispatch search event with query for global search
+  window.dispatchEvent(new CustomEvent("globalSearch", {
+    detail: { 
+      query,
+      searchMode: query.trim() !== '' ? 'global' : 'local' // Add search mode
+    }
+  }));
+}, []);
 
   // Handle folder creation success
   const handleFolderCreated = useCallback(async () => {

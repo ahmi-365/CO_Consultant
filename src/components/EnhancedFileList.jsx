@@ -17,6 +17,9 @@ import {
   Upload,
   FolderPlus,
   RefreshCw,
+  Grid,
+  List,
+  ChevronDown,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,8 +44,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
 import MoveFileModal from "./MoveFileModal";
@@ -56,7 +67,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const { folderId } = useParams();
   const navigate = useNavigate();
   const [files, setFiles] = useState([]);
-  const [allFiles, setAllFiles] = useState([]); // Store all files for global search
+  const [allFiles, setAllFiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [moveModalOpen, setMoveModalOpen] = useState(false);
   const [selectedFileForMove, setSelectedFileForMove] = useState(null);
@@ -70,27 +81,45 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
-  const [folderHierarchy, setFolderHierarchy] = useState(new Map()); // Store folder hierarchy
-const [actionLoading, setActionLoading] = useState({
-  starring: {},
-  downloading: {},
-  trashing: {},
-  refreshing: false
-});
+  const [folderHierarchy, setFolderHierarchy] = useState(new Map());
+  const [searchMode, setSearchMode] = useState('local'); 
+
+  // Mobile-specific state
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+  const [isMobile, setIsMobile] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
+  const [selectedItemForActions, setSelectedItemForActions] = useState(null);
+  
+  const [actionLoading, setActionLoading] = useState({
+    starring: {},
+    downloading: {},
+    trashing: {},
+    refreshing: false
+  });
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkIsMobile();
+    window.addEventListener('resize', checkIsMobile);
+    
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
+
   // Load files function with enhanced folder details extraction
   const loadFiles = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fileApi.listFiles(folderId);
       
-      // Handle the response structure you provided
       if (response.status === 'ok' && Array.isArray(response.data)) {
         let filesData = response.data;
         
-        // Store all files for global search
         setAllFiles(filesData);
         
-        // Build folder hierarchy map for breadcrumb building
         const hierarchyMap = new Map();
         filesData.forEach(item => {
           if (item.type === 'folder') {
@@ -104,26 +133,21 @@ const [actionLoading, setActionLoading] = useState({
         });
         setFolderHierarchy(hierarchyMap);
         
-        // If no folderId is provided, show only root folders/files
         if (!folderId) {
           const existingIds = new Set(filesData.map(item => item.id));
           filesData = filesData.filter(item => !existingIds.has(item.parent_id));
         } else {
-          // Filter files for current folder
           filesData = filesData.filter(item => 
             item.parent_id && item.parent_id.toString() === folderId
           );
         }
         
-        // Find current folder info from the hierarchy
         if (folderId && hierarchyMap.has(parseInt(folderId))) {
           const folderInfo = hierarchyMap.get(parseInt(folderId));
           setCurrentFolder(folderInfo);
         } else if (folderId) {
-          // Fallback: try to find folder info from any item that references this folder as parent
           const childItem = response.data.find(item => item.parent_id && item.parent_id.toString() === folderId);
           if (childItem) {
-            // We can infer some folder info, but it's limited
             setCurrentFolder({
               id: parseInt(folderId),
               name: `Folder ${folderId}`,
@@ -137,7 +161,6 @@ const [actionLoading, setActionLoading] = useState({
         
         setFiles(filesData);
         
-        // Dispatch event with folder details for breadcrumb building
         if (folderId && currentFolder) {
           window.dispatchEvent(new CustomEvent("folderDetailsLoaded", {
             detail: { 
@@ -149,7 +172,6 @@ const [actionLoading, setActionLoading] = useState({
         }
         
       } else if (Array.isArray(response)) {
-        // Fallback for when response is directly an array
         let filesData = response;
         setAllFiles(filesData);
         
@@ -178,12 +200,10 @@ const [actionLoading, setActionLoading] = useState({
     }
   }, [folderId, currentFolder]);
 
-  // Build folder path using the hierarchy map
   const buildFolderPath = useCallback((folderId, hierarchy = folderHierarchy) => {
     const path = [];
     let currentId = folderId;
     
-    // Traverse up the hierarchy
     while (currentId && hierarchy.has(currentId)) {
       const folder = hierarchy.get(currentId);
       path.unshift({
@@ -197,7 +217,6 @@ const [actionLoading, setActionLoading] = useState({
     return path;
   }, [folderHierarchy]);
 
-  // Enhanced search that works across all files with folders on top sorting
   const getFilteredFiles = useCallback(() => {
     let filteredItems;
     
@@ -205,8 +224,6 @@ const [actionLoading, setActionLoading] = useState({
       filteredItems = files;
     } else {
       const query = searchQuery.toLowerCase().trim();
-      
-      // If we're searching, search across all files, not just current folder
       const searchTarget = query.length > 0 ? allFiles : files;
       
       filteredItems = searchTarget.filter((file) => 
@@ -215,27 +232,21 @@ const [actionLoading, setActionLoading] = useState({
       );
     }
     
-    // Sort items to always show folders first, then files
-    // Within each group (folders/files), maintain alphabetical order
     return filteredItems.sort((a, b) => {
-      // First, separate folders and files
       const aIsFolder = a.type === 'folder';
       const bIsFolder = b.type === 'folder';
       
-      if (aIsFolder && !bIsFolder) return -1; // Folder comes before file
-      if (!aIsFolder && bIsFolder) return 1;  // File comes after folder
+      if (aIsFolder && !bIsFolder) return -1;
+      if (!aIsFolder && bIsFolder) return 1;
       
-      // If both are the same type (both folders or both files), sort alphabetically by name
       return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
     });
   }, [searchQuery, files, allFiles]);
 
-  // Initial load
   useEffect(() => {
     loadFiles();
   }, [loadFiles]);
 
-  // Event listeners for refresh and other events
   useEffect(() => {
     const handleFileUploaded = () => loadFiles();
     const handleFolderCreated = () => loadFiles();
@@ -245,12 +256,9 @@ const [actionLoading, setActionLoading] = useState({
       loadFiles();
     };
     const handleGlobalSearch = (event) => {
-      // Global search is handled by the parent component updating searchQuery
-      // We just need to make sure our filtering logic handles it
       console.log('Global search triggered:', event.detail?.query);
     };
 
-    // Add all event listeners
     window.addEventListener("fileUploaded", handleFileUploaded);
     window.addEventListener("folderCreated", handleFolderCreated);
     window.addEventListener("filesMoved", handleFilesMoved);
@@ -266,7 +274,6 @@ const [actionLoading, setActionLoading] = useState({
     };
   }, [loadFiles]);
 
-  // Helper function to determine file type from filename or type field
   const getFileTypeFromItem = (item) => {
     if (item.type === 'folder') {
       return 'folder';
@@ -288,7 +295,6 @@ const [actionLoading, setActionLoading] = useState({
     return 'document';
   };
 
-  // Helper function to format file size
   const formatFileSize = (bytes) => {
     if (!bytes) return '0 B';
     
@@ -298,15 +304,16 @@ const [actionLoading, setActionLoading] = useState({
     return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i];
   };
 
-  // Helper function to format date
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown';
     
     const date = new Date(dateString);
+    if (isMobile) {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
 
-  // Get current folder information with enhanced details
   const getCurrentFolder = () => {
     if (!folderId) {
       return {
@@ -337,7 +344,6 @@ const [actionLoading, setActionLoading] = useState({
     };
   };
 
-  // Get filtered files using the enhanced search with folders-first sorting
   const filteredFiles = getFilteredFiles();
 
   const getFileIcon = (type) => {
@@ -360,56 +366,62 @@ const [actionLoading, setActionLoading] = useState({
   const handleItemClick = (item) => {
     if (item.type === 'folder') {
       navigate(`/folder/${item.id}`);
-    } else {
+    } else if (!isMobile) {
       handleDownloadFile(item.id, item.name);
     }
   };
-const handleStarFile = async (fileId) => {
-  setActionLoading(prev => ({
-    ...prev,
-    starring: { ...prev.starring, [fileId]: true }
-  }));
-  
-  try {
-    const response = await starService.toggleStar(fileId);
-    if (response.status === "ok") {
-      toast.success(response.message || "File starred");
-      loadFiles();
+
+  const handleMobileItemClick = (item, e) => {
+    e.stopPropagation();
+    if (item.type === 'folder') {
+      navigate(`/folder/${item.id}`);
     } else {
-      toast.error(response.message || "Failed to star file");
+      setSelectedItemForActions(item);
+      setShowMobileActions(true);
     }
-  } catch (error) {
-    console.error("Error starring file:", error);
-    toast.error("Error starring file");
-  } finally {
+  };
+
+  const handleStarFile = async (fileId) => {
     setActionLoading(prev => ({
       ...prev,
-      starring: { ...prev.starring, [fileId]: false }
+      starring: { ...prev.starring, [fileId]: true }
     }));
-  }
-};
+    
+    try {
+      const response = await starService.toggleStar(fileId);
+      if (response.status === "ok") {
+        toast.success(response.message || "File starred");
+        loadFiles();
+      } else {
+        toast.error(response.message || "Failed to star file");
+      }
+    } catch (error) {
+      console.error("Error starring file:", error);
+      toast.error("Error starring file");
+    } finally {
+      setActionLoading(prev => ({
+        ...prev,
+        starring: { ...prev.starring, [fileId]: false }
+      }));
+    }
+  };
 
-
-const handleDownloadFile = async (fileId, fileName) => {
-  setActionLoading(prev => ({
-    ...prev,
-    downloading: { ...prev.downloading, [fileId]: true }
-  }));
-  
-   try {
+  const handleDownloadFile = async (fileId, fileName) => {
+    setActionLoading(prev => ({
+      ...prev,
+      downloading: { ...prev.downloading, [fileId]: true }
+    }));
+    
+    try {
       const response = await fileApi.getDownloadUrl(fileId);
       
-      // Handle different response formats
       if (response && (response.success || response.download_url || response.url)) {
-        // Extract download URL from different possible response formats
         const downloadUrl = response.download_url || response.url || response.data?.download_url || response.data?.url;
         
         if (downloadUrl) {
-          // Create and trigger download
           const link = document.createElement('a');
           link.href = downloadUrl;
           link.download = fileName;
-          // link.target = '_blank'; 
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
@@ -422,26 +434,36 @@ const handleDownloadFile = async (fileId, fileName) => {
         console.error("Invalid response format:", response);
         toast.error("Failed to get download URL");
       }
-    }  catch (error) {
-    console.error("Error downloading file:", error);
-    toast.error("Error downloading file");
-  } finally {
-    setActionLoading(prev => ({
-      ...prev,
-      downloading: { ...prev.downloading, [fileId]: false }
-    }));
-  }
-};
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      toast.error("Error downloading file");
+    } finally {
+      setActionLoading(prev => ({
+        ...prev,
+        downloading: { ...prev.downloading, [fileId]: false }
+      }));
+    }
+    
+    if (isMobile) {
+      setShowMobileActions(false);
+    }
+  };
 
   const handleMoveFile = (fileId, fileName) => {
     setSelectedFileForMove({ id: fileId, name: fileName });
     setMoveModalOpen(true);
+    if (isMobile) {
+      setShowMobileActions(false);
+    }
   };
 
   const handleRenameItem = (item) => {
     setSelectedItemForRename(item);
     setNewName(item.name);
     setRenameModalOpen(true);
+    if (isMobile) {
+      setShowMobileActions(false);
+    }
   };
 
   const handleRenameSubmit = async () => {
@@ -459,7 +481,6 @@ const handleDownloadFile = async (fileId, fileName) => {
         setSelectedItemForRename(null);
         setNewName("");
         loadFiles();
-        // Trigger sidebar refresh to update folder names there too
         window.dispatchEvent(new CustomEvent("refreshSidebar"));
       } else {
         toast.error("Failed to rename item");
@@ -471,55 +492,62 @@ const handleDownloadFile = async (fileId, fileName) => {
       setRenaming(false);
     }
   };
-const handleRefresh = async () => {
-  setActionLoading(prev => ({ ...prev, refreshing: true }));
-  try {
-    await loadFiles();
-    toast.success("Files refreshed");
-  } catch (error) {
-    toast.error("Error refreshing files");
-  } finally {
-    setActionLoading(prev => ({ ...prev, refreshing: false }));
-  }
-};
-const handleTrashFile = async (fileId) => {
-  setActionLoading((prev) => ({
-    ...prev,
-    trashing: { ...prev.trashing, [fileId]: true },
-  }));
 
-  try {
-    const response = await trashService.moveToTrash(fileId);
-
-    if (response.success) {
-      toast.success(response.message);
-      loadFiles();
-      window.dispatchEvent(new CustomEvent("refreshSidebar"));
-    } else {
-      toast.error(response.message || "Failed to move file to trash");
+  const handleRefresh = async () => {
+    setActionLoading(prev => ({ ...prev, refreshing: true }));
+    try {
+      await loadFiles();
+      toast.success("Files refreshed");
+    } catch (error) {
+      toast.error("Error refreshing files");
+    } finally {
+      setActionLoading(prev => ({ ...prev, refreshing: false }));
     }
-  } catch (error) {
-    console.error("❌ Error moving file to trash:", error);
-    toast.error("Error moving file to trash");
-  } finally {
+  };
+
+  const handleTrashFile = async (fileId) => {
     setActionLoading((prev) => ({
       ...prev,
-      trashing: { ...prev.trashing, [fileId]: false },
+      trashing: { ...prev.trashing, [fileId]: true },
     }));
-  }
-};
 
+    try {
+      const response = await trashService.moveToTrash(fileId);
 
+      if (response.success) {
+        toast.success(response.message);
+        loadFiles();
+        window.dispatchEvent(new CustomEvent("refreshSidebar"));
+      } else {
+        toast.error(response.message || "Failed to move file to trash");
+      }
+    } catch (error) {
+      console.error("❌ Error moving file to trash:", error);
+      toast.error("Error moving file to trash");
+    } finally {
+      setActionLoading((prev) => ({
+        ...prev,
+        trashing: { ...prev.trashing, [fileId]: false },
+      }));
+    }
+    
+    if (isMobile) {
+      setShowMobileActions(false);
+    }
+  };
 
   const handleDragStart = (e, fileId) => {
+    if (isMobile) return; // Disable drag on mobile
     e.dataTransfer.setData("text/plain", fileId);
   };
 
   const handleDragOver = (e) => {
+    if (isMobile) return;
     e.preventDefault();
   };
 
   const handleDrop = async (e, targetFolderId) => {
+    if (isMobile) return;
     e.preventDefault();
     const draggedFileId = e.dataTransfer.getData("text/plain");
     
@@ -575,10 +603,92 @@ const handleTrashFile = async (fileId) => {
     }
   };
 
+  // Mobile Card View Component
+  const MobileCardView = ({ item }) => (
+    <Card 
+      className="mb-3 cursor-pointer hover:shadow-md transition-shadow"
+      onClick={(e) => handleMobileItemClick(item, e)}
+      style={{ opacity: movingStatus[item.id] ? 0.5 : 1 }}
+    >
+      <CardContent className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            {getFileIcon(getFileTypeFromItem(item))}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-sm truncate">
+                  {item.name}
+                </span>
+                {item.is_starred && (
+                  <Star className="w-4 h-4 text-yellow-500 fill-current flex-shrink-0" />
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="text-xs text-muted-foreground">
+                  {formatDate(item.updated_at)}
+                </span>
+                {item.type !== 'folder' && (
+                  <>
+                    <span className="text-xs text-muted-foreground">•</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatFileSize(item.size)}
+                    </span>
+                  </>
+                )}
+              </div>
+              <div className="flex gap-1 mt-2">
+                {item.is_starred && <Badge variant="outline" className="text-xs">Starred</Badge>}
+                {item.is_trashed && <Badge variant="destructive" className="text-xs">Trashed</Badge>}
+                <Badge variant="outline" className="capitalize text-xs">
+                  {item.type}
+                </Badge>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 ml-2">
+            {item.type === 'file' && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDownloadFile(item.id, item.name);
+                }}
+                disabled={actionLoading.downloading[item.id]}
+                className="h-8 w-8 p-0 flex-shrink-0"
+              >
+                {actionLoading.downloading[item.id] ? (
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedItemForActions(item);
+                setShowMobileActions(true);
+              }}
+              className="h-8 w-8 p-0 flex-shrink-0"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        {movingStatus[item.id] && (
+          <div className="mt-2 text-xs text-muted-foreground">Moving...</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-4">
       {/* Header with action buttons */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
         <div className="text-sm text-muted-foreground">
           {searchQuery && searchQuery.trim() !== '' ? (
             <span>
@@ -596,58 +706,262 @@ const handleTrashFile = async (fileId) => {
           )}
         </div>
         
-     <div className="flex justify-end gap-2">
-  <Button
-    onClick={handleRefresh}
-    variant="outline"
-    disabled={actionLoading.refreshing}
-    className="flex items-center gap-2"
-  >
-    {actionLoading.refreshing ? (
-      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
-    ) : (
-      <RefreshCw className="w-4 h-4" />
-    )}
-    Refresh
-  </Button>
-  <Button
-    onClick={() => setShowUploadModal(true)}
-    className="flex items-center gap-2"
-  >
-    <Upload className="w-4 h-4" />
-    Upload Files
-  </Button>
-  <Button
-    variant="outline"
-    onClick={() => setShowNewFolderModal(true)}
-    className="flex items-center gap-2"
-  >
-    <FolderPlus className="w-4 h-4" />
-    New Folder
-  </Button>
-</div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          {/* View mode toggle for larger screens */}
+          {!isMobile && (
+            <div className="flex items-center gap-1 mr-2">
+              <Button
+                variant={viewMode === 'list' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('list')}
+                className="h-8 w-8 p-0"
+              >
+                <List className="w-4 h-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('grid')}
+                className="h-8 w-8 p-0"
+              >
+                <Grid className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+          
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRefresh}
+              variant="outline"
+              disabled={actionLoading.refreshing}
+              className="flex items-center gap-2 text-xs sm:text-sm"
+              size={isMobile ? "sm" : "default"}
+            >
+              {actionLoading.refreshing ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current"></div>
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              <span className="hidden sm:inline">Refresh</span>
+            </Button>
+            <Button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center gap-2 text-xs sm:text-sm"
+              size={isMobile ? "sm" : "default"}
+            >
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Upload Files</span>
+              <span className="sm:hidden">Upload</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setShowNewFolderModal(true)}
+              className="flex items-center gap-2 text-xs sm:text-sm"
+              size={isMobile ? "sm" : "default"}
+            >
+              <FolderPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Folder</span>
+              <span className="sm:hidden">Folder</span>
+            </Button>
+          </div>
+        </div>
       </div>
 
-      <div className="rounded-md border">
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
+      <div className={isMobile ? "" : "rounded-md border"}>
+{loading ? (
+  <div className="flex items-center justify-center h-64">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
+  </div>
+) : (
+  <>
+    {filteredFiles.length === 0 ? (
+      <EmptyState />
+    ) : (
+      <>
+        {/* Mobile always uses card view */}
+        {isMobile ? (
+          <div className="space-y-3">
+            {filteredFiles.map((item) => (
+              <MobileCardView key={item.id} item={item} />
+            ))}
           </div>
         ) : (
+          /* Desktop: Toggle between grid and table view */
           <>
-            {filteredFiles.length === 0 ? (
-              <EmptyState />
+            {viewMode === 'grid' ? (
+              /* Desktop Grid View */
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 p-4">
+                {filteredFiles.map((item) => (
+                  <Card 
+                    key={item.id}
+                    className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                    onClick={() => handleItemClick(item)}
+                    style={{ opacity: movingStatus[item.id] ? 0.5 : 1 }}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex flex-col items-center text-center space-y-3">
+                        {/* Large colored icon */}
+                        <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-muted/50">
+                          {(() => {
+                            const fileType = getFileTypeFromItem(item);
+                            switch (fileType) {
+                              case "document":
+                                return <FileText className="w-8 h-8 text-blue-500" />;
+                              case "image":
+                                return <Image className="w-8 h-8 text-green-500" />;
+                              case "video":
+                                return <Video className="w-8 h-8 text-purple-500" />;
+                              case "zip":
+                                return <Archive className="w-8 h-8 text-orange-500" />;
+                              case "folder":
+                                return <Folder className="w-8 h-8 text-red-500" />;
+                              default:
+                                return <FileText className="w-8 h-8 text-gray-500" />;
+                            }
+                          })()}
+                        </div>
+                        
+                        {/* File name */}
+                        <div className="w-full">
+                          <div className="flex items-center justify-center gap-1 mb-1">
+                            <span className="font-medium text-sm truncate max-w-full" title={item.name}>
+                              {item.name}
+                            </span>
+                            {item.is_starred && (
+                              <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
+                            )}
+                          </div>
+                          
+                          {/* File details */}
+                          <div className="text-xs text-muted-foreground space-y-1">
+                            <div>{formatDate(item.updated_at)}</div>
+                            {item.type !== 'folder' && (
+                              <div>{formatFileSize(item.size)}</div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Badges */}
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {item.is_starred && <Badge variant="outline" className="text-xs">Starred</Badge>}
+                          {item.is_trashed && <Badge variant="destructive" className="text-xs">Trashed</Badge>}
+                          <Badge variant="outline" className="capitalize text-xs">
+                            {item.type}
+                          </Badge>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex items-center gap-1 w-full justify-center">
+                          {item.type === 'file' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownloadFile(item.id, item.name);
+                              }}
+                              disabled={actionLoading.downloading[item.id]}
+                              className="h-8 w-8 p-0"
+                            >
+                              {actionLoading.downloading[item.id] ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
+                            </Button>
+                          )}
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="h-8 w-8 p-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent
+                              align="end"
+                              className="w-48 bg-popover border border-border"
+                            >
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStarFile(item.id);
+                                }}
+                                disabled={actionLoading.starring[item.id]}
+                              >
+                                <Star className="w-4 h-4 mr-2" />
+                                {item.is_starred ? "Unstar" : "Star"}
+                              </DropdownMenuItem>
+
+                              {item.type === 'file' && (
+                                <DropdownMenuItem
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadFile(item.id, item.name);
+                                  }}
+                                  disabled={actionLoading.downloading[item.id]}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download
+                                </DropdownMenuItem>
+                              )}
+
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleTrashFile(item.id);
+                                }}
+                                disabled={actionLoading.trashing[item.id]}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Move to Trash
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleMoveFile(item.id, item.name);
+                                }}
+                              >
+                                <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                Move
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRenameItem(item);
+                                }}
+                              >
+                                <Edit className="w-4 h-4 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
+                        {movingStatus[item.id] && (
+                          <div className="text-xs text-muted-foreground">Moving...</div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             ) : (
+              /* Desktop Table View */
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Last Modified</TableHead>
-                    <TableHead>Size</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="hidden md:table-cell">Last Modified</TableHead>
+                    <TableHead className="hidden sm:table-cell">Size</TableHead>
+                    <TableHead className="hidden lg:table-cell">Type</TableHead>
                     <TableHead className="w-12">Actions</TableHead>
-                        <TableHead className="w-20">Status</TableHead> {/* Add this */}
-
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -664,31 +978,42 @@ const handleTrashFile = async (fileId) => {
                               ? 'cursor-pointer' 
                               : 'cursor-move'
                           }`}
-                          draggable={item.type !== 'folder'}
+                          draggable={item.type !== 'folder' && !isMobile}
                           onDragStart={(e) => item.type !== 'folder' && handleDragStart(e, item.id)}
                           onDragOver={item.type === 'folder' ? handleDragOver : undefined}
                           onDrop={item.type === 'folder' ? (e) => handleDrop(e, item.id) : undefined}
-                          onClick={() => item.type === 'folder' && handleItemClick(item)}
+                          onClick={() => handleItemClick(item)}
                         >
                           {getFileIcon(getFileTypeFromItem(item))}
-                          <span className="font-medium">
-                            {item.name}
-                            {movingStatus[item.id] && (
-                              <span className="ml-2 text-xs text-muted-foreground">Moving...</span>
-                            )}
-                          </span>
-                          {item.is_starred && (
-                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                          )}
+                          <div className="flex flex-col">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">
+                                {item.name}
+                                {movingStatus[item.id] && (
+                                  <span className="ml-2 text-xs text-muted-foreground">Moving...</span>
+                                )}
+                              </span>
+                              {item.is_starred && (
+                                <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              )}
+                            </div>
+                            {/* Mobile-only details */}
+                            <div className="md:hidden text-xs text-muted-foreground mt-1">
+                              {formatDate(item.updated_at)}
+                              {item.type !== 'folder' && (
+                                <span className="ml-2">• {formatFileSize(item.size)}</span>
+                              )}
+                            </div>
+                          </div>
                         </div>
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden md:table-cell text-muted-foreground">
                         {formatDate(item.updated_at)}
                       </TableCell>
-                      <TableCell className="text-muted-foreground">
+                      <TableCell className="hidden sm:table-cell text-muted-foreground">
                         {item.type === 'folder' ? '-' : formatFileSize(item.size)}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <div className="flex gap-1">
                           {item.is_starred && <Badge variant="outline">Starred</Badge>}
                           {item.is_trashed && <Badge variant="destructive">Trashed</Badge>}
@@ -699,21 +1024,21 @@ const handleTrashFile = async (fileId) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                       {item.type === 'file' && (
-  <Button
-    variant="ghost"
-    size="sm"
-    onClick={() => handleDownloadFile(item.id, item.name)}
-    disabled={actionLoading.downloading[item.id]}
-    className="h-8 w-8 p-0"
-  >
-    {actionLoading.downloading[item.id] ? (
-      <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-    ) : (
-      <Download className="w-4 h-4" />
-    )}
-  </Button>
-)}
+                          {item.type === 'file' && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadFile(item.id, item.name)}
+                              disabled={actionLoading.downloading[item.id]}
+                              className="h-8 w-8 p-0"
+                            >
+                              {actionLoading.downloading[item.id] ? (
+                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                              ) : (
+                                <Download className="w-4 h-4" />
+                              )}
+                            </Button>
+                          )}
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -724,39 +1049,41 @@ const handleTrashFile = async (fileId) => {
                               align="end"
                               className="w-48 bg-popover border border-border"
                             >
-                            <DropdownMenuItem 
-  onClick={() => handleStarFile(item.id)}
-  disabled={actionLoading.starring[item.id]}
->
-  <Star className="w-4 h-4 mr-2" />
-  {item.is_starred ? "Unstar" : "Star"}
-</DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleStarFile(item.id)}
+                                disabled={actionLoading.starring[item.id]}
+                              >
+                                <Star className="w-4 h-4 mr-2" />
+                                {item.is_starred ? "Unstar" : "Star"}
+                              </DropdownMenuItem>
 
-{item.type === 'file' && (
-  <DropdownMenuItem
-    onClick={() => handleDownloadFile(item.id, item.name)}
-    disabled={actionLoading.downloading[item.id]}
-  >
-    <Download className="w-4 h-4 mr-2" />
-    Download
-  </DropdownMenuItem>
-)}
+                              {item.type === 'file' && (
+                                <DropdownMenuItem
+                                  onClick={() => handleDownloadFile(item.id, item.name)}
+                                  disabled={actionLoading.downloading[item.id]}
+                                >
+                                  <Download className="w-4 h-4 mr-2" />
+                                  Download
+                                </DropdownMenuItem>
+                              )}
 
-<DropdownMenuItem
-  onClick={() => handleTrashFile(item.id)}
-  disabled={actionLoading.trashing[item.id]}
-  className="text-destructive focus:text-destructive"
->
-  <Trash2 className="w-4 h-4 mr-2" />
-  Move to Trash
-</DropdownMenuItem>
-                               <DropdownMenuItem
+                              <DropdownMenuItem
+                                onClick={() => handleTrashFile(item.id)}
+                                disabled={actionLoading.trashing[item.id]}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Move to Trash
+                              </DropdownMenuItem>
+                              
+                              <DropdownMenuItem
                                 onClick={() => handleMoveFile(item.id, item.name)}
                               >
                                 <ArrowRightLeft className="w-4 h-4 mr-2" />
                                 Move
                               </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleRenameItem(item)}>
+                              
+                              <DropdownMenuItem onClick={() => handleRenameItem(item)}>
                                 <Edit className="w-4 h-4 mr-2" />
                                 Rename
                               </DropdownMenuItem>
@@ -764,28 +1091,6 @@ const handleTrashFile = async (fileId) => {
                           </DropdownMenu>
                         </div>
                       </TableCell>
-                      <TableCell className="w-20">
-  <div className="flex items-center gap-1">
-    {actionLoading.starring[item.id] && (
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-        <span>Starring...</span>
-      </div>
-    )}
-    {actionLoading.downloading[item.id] && (
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-        <span>Downloading...</span>
-      </div>
-    )}
-    {actionLoading.trashing[item.id] && (
-      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-        <span>Deleting...</span>
-      </div>
-    )}
-  </div>
-</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -793,13 +1098,84 @@ const handleTrashFile = async (fileId) => {
             )}
           </>
         )}
+      </>
+    )}
+  </>
+)}
       </div>
 
-      {/* Rename Modal */}
+      {/* Mobile Actions Sheet */}
+      <Sheet open={showMobileActions} onOpenChange={setShowMobileActions}>
+        <SheetContent side="bottom" className="h-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              {selectedItemForActions && getFileIcon(getFileTypeFromItem(selectedItemForActions))}
+              {selectedItemForActions?.name}
+            </SheetTitle>
+            <SheetDescription>
+              Choose an action for this {selectedItemForActions?.type}
+            </SheetDescription>
+          </SheetHeader>
+          
+          <div className="grid grid-cols-2 gap-3 mt-6 pb-6">
+            <Button
+              variant="outline"
+              onClick={() => handleStarFile(selectedItemForActions?.id)}
+              disabled={actionLoading.starring[selectedItemForActions?.id]}
+              className="flex items-center gap-2 h-12"
+            >
+              <Star className="w-4 h-4" />
+              {selectedItemForActions?.is_starred ? "Unstar" : "Star"}
+            </Button>
+
+            {selectedItemForActions?.type === 'file' && (
+              <Button
+                variant="outline"
+                onClick={() => handleDownloadFile(selectedItemForActions?.id, selectedItemForActions?.name)}
+                disabled={actionLoading.downloading[selectedItemForActions?.id]}
+                className="flex items-center gap-2 h-12"
+              >
+                <Download className="w-4 h-4" />
+                Download
+              </Button>
+            )}
+
+            <Button
+              variant="outline"
+              onClick={() => handleMoveFile(selectedItemForActions?.id, selectedItemForActions?.name)}
+              className="flex items-center gap-2 h-12"
+            >
+              <ArrowRightLeft className="w-4 h-4" />
+              Move
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => handleRenameItem(selectedItemForActions)}
+              className="flex items-center gap-2 h-12"
+            >
+              <Edit className="w-4 h-4" />
+              Rename
+            </Button>
+
+            <Button
+              variant="destructive"
+              onClick={() => handleTrashFile(selectedItemForActions?.id)}
+              disabled={actionLoading.trashing[selectedItemForActions?.id]}
+              className="flex items-center gap-2 h-12 col-span-2"
+            >
+              <Trash2 className="w-4 h-4" />
+              Move to Trash
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Rename Modal - Mobile optimized */}
       <Dialog open={renameModalOpen} onOpenChange={setRenameModalOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg">
               Rename {selectedItemForRename?.type === 'folder' ? 'Folder' : 'File'}
             </DialogTitle>
             <DialogDescription>
@@ -812,13 +1188,22 @@ const handleTrashFile = async (fileId) => {
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Enter new name..."
               onKeyPress={(e) => e.key === 'Enter' && handleRenameSubmit()}
+              className="text-base" // Better for mobile
             />
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRenameModalOpen(false)}>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setRenameModalOpen(false)}
+              className="w-full sm:w-auto"
+            >
               Cancel
             </Button>
-            <Button onClick={handleRenameSubmit} disabled={renaming}>
+            <Button 
+              onClick={handleRenameSubmit} 
+              disabled={renaming}
+              className="w-full sm:w-auto"
+            >
               {renaming ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>

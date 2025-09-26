@@ -41,6 +41,7 @@ export default function TrashPage() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+  const [emptyTrashLoading, setEmptyTrashLoading] = useState(false);
 
   useEffect(() => {
     loadTrashedFiles();
@@ -83,20 +84,27 @@ export default function TrashPage() {
     }
   };
 
+  // ✅ Updated to use bulkPermanentDelete for single file deletion
   const handlePermanentDelete = async (fileId) => {
     if (
       !window.confirm("Are you sure you want to permanently delete this file?")
     )
       return;
+    
     try {
-      const response = await trashService.bulkPermanentDelete(fileId);
-      if (response.success) {
+      // Use bulkPermanentDelete with single file ID
+      const response = await trashService.bulkPermanentDelete([fileId]);
+      
+      if (response.success || response.original?.status === "ok") {
         loadTrashedFiles();
-        toast.success("File permanently deleted");
+        const successMessage = response.original?.message || response.message || "File permanently deleted";
+        toast.success(successMessage);
       } else {
-        toast.error("Failed to delete file");
+        const errorMessage = response.original?.message || response.error || "Failed to delete file";
+        toast.error(errorMessage);
       }
-    } catch {
+    } catch (error) {
+      console.error("Error deleting file:", error);
       toast.error("Error deleting file");
     }
   };
@@ -160,6 +168,39 @@ export default function TrashPage() {
       toast.error("Error deleting files");
     } finally {
       setBulkDeleteLoading(false);
+    }
+  };
+
+  // ✅ Updated Empty Trash to use bulkPermanentDelete
+  const handleEmptyTrash = async () => {
+    if (!window.confirm("Empty the trash? This cannot be undone.")) {
+      return;
+    }
+
+    if (trashedFiles.length === 0) {
+      toast.info("Trash is already empty");
+      return;
+    }
+
+    setEmptyTrashLoading(true);
+    try {
+      // Get all file IDs and use bulkPermanentDelete
+      const allFileIds = trashedFiles.map(file => file.id);
+      const response = await trashService.bulkPermanentDelete(allFileIds);
+
+      if (response.success || response.original?.status === "ok") {
+        loadTrashedFiles(); // Refresh the list
+        const successMessage = response.original?.message || response.message || "Trash emptied successfully";
+        toast.success(successMessage);
+      } else {
+        const errorMessage = response.original?.message || response.error || "Failed to empty trash";
+        toast.error(errorMessage);
+      }
+    } catch (error) {
+      console.error("Error emptying trash:", error);
+      toast.error("Error emptying trash");
+    } finally {
+      setEmptyTrashLoading(false);
     }
   };
 
@@ -287,20 +328,16 @@ export default function TrashPage() {
                   >
                     Select Files
                   </Button>
+                  {/* ✅ Updated Empty Trash button */}
                   <Button
-                    onClick={() => {
-                      if (window.confirm("Empty the trash? This cannot be undone.")) {
-                        trashedFiles.forEach((f) => trashService.permanentDelete(f.id));
-                        setTrashedFiles([]);
-                        toast.success("Trash emptied successfully");
-                      }
-                    }}
+                    onClick={handleEmptyTrash}
+                    disabled={emptyTrashLoading}
                     variant="destructive"
                     size="sm"
                     className="rounded-full px-6"
                   >
                     <Trash2 className="w-4 h-4 mr-2" /> 
-                    Empty Trash
+                    {emptyTrashLoading ? "Emptying..." : "Empty Trash"}
                   </Button>
                 </>
               )
