@@ -16,6 +16,7 @@ import {
   Loader2,
   Menu,
   X,
+  LogOut,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -288,6 +289,20 @@ export default function EnhancedSidebar() {
       setActionLoading('trash', itemId, false);
     }
   };
+  const handleLogout = () => {
+  // clear all local storage
+  localStorage.clear();
+
+  // optional: agar sirf user related key clear karni ho
+  // localStorage.removeItem("user");
+
+  navigate("/login"); 
+  toast.success("Logged out successfully");
+
+  if (isMobile) {
+    setIsMobileSidebarOpen(false);
+  }
+};
 
   const handleDrop = async (e, folderId) => {
     e.preventDefault();
@@ -661,13 +676,21 @@ export default function EnhancedSidebar() {
         </nav>
       </div>
 
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 mb-2 border-t border-sidebar-border">
         <Button
-          className="w-full bg-panel hover:bg-panel/90 text-panel-foreground"
+          className="w-full bg-panel mb-2 hover:bg-panel/90 text-panel-foreground"
           onClick={handleUploadClick} 
         >
           <Upload className="w-4 h-4 mr-2" />
           New Upload
+        </Button>
+  
+ <Button
+          className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+          onClick={handleLogout}
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Logout
         </Button>
       </div>
     </div>
