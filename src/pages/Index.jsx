@@ -23,9 +23,10 @@ const Index = () => {
         <section id="why-choose-us">
           <WhyChooseUsSection />
         </section>
-        <ProcessSection />
         <DataAnalyticsSection />
-        {/* <ProjectsSection /> */}
+        <ProjectsSection />
+        {/* <ProcessSection /> */}
+
         <ContactSection />
         <CTASection />
       </main>
