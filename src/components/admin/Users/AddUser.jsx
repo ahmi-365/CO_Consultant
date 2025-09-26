@@ -1,338 +1,445 @@
+// src/components/forms/UserForm.jsx
 "use client";
 
 import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from "@/components/ui/select";
-import { User, Mail, Plus, Loader2, AlertCircle } from "lucide-react";
+import { User, Mail, Plus, Loader2, AlertCircle, Folder, File, FolderOpen, X, Shield } from "lucide-react";
+import { FolderSelectionModal } from '../../FolderSelectionModal'; 
 
-// Role service to fetch roles from API
+// roleService remains unchanged
 const roleService = {
-  async getAll() {
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/roles`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      });
+    async getAll() {
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/roles`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    Accept: "application/json",
+                },
+            });
 
-      const result = await res.json();
+            const result = await res.json();
 
-      if (!res.ok) {
-        return { success: false, message: result.message || "Failed to fetch roles" };
-      }
+            if (!res.ok) {
+                return { success: false, message: result.message || "Failed to fetch roles" };
+            }
 
-      return { success: true, data: result };
-    } catch (err) {
-      console.error("❌ Get roles error:", err);
-      return { success: false, message: "Something went wrong" };
-    }
-  },
+            return { success: true, data: result };
+        } catch (err) {
+            console.error("❌ Get roles error:", err);
+            return { success: false, message: "Something went wrong" };
+        }
+    },
 };
 
+// Data structure for selectedFolders now includes permission info:
+// [{ id: 1, name: 'folder A', type: 'folder', permissions: ['read', 'write'] }]
 export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add" }) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [roles, setRoles] = useState([]);
-  const [rolesLoading, setRolesLoading] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [formData, setFormData] = useState({
-    id: "",
-    name: "",
-    email: "",
-    password: "",
-    role: "",
-  });
+    const [isOpen, setIsOpen] = useState(false);
+    const [roles, setRoles] = useState([]);
+    const [rolesLoading, setRolesLoading] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
+    const [fieldErrors, setFieldErrors] = useState({});
+    const [showFolderModal, setShowFolderModal] = useState(false);
+    // State now holds full item objects, which includes permission data
+    const [selectedFolders, setSelectedFolders] = useState([]); 
+    const [formData, setFormData] = useState({
+        id: "",
+        name: "",
+        email: "",
+        password: "",
+        role: "",
+        folders: [], // Will be array of IDs for API submission
+    });
 
-  useEffect(() => {
-    if (isOpen) {
-      if (mode === "edit" && initialData) {
-        setFormData({ ...initialData, password: "" });
-      } else if (mode === "add") {
-        resetForm();
-      }
-    }
-  }, [isOpen, mode, initialData]);
+    useEffect(() => {
+        if (isOpen) {
+            if (mode === "edit" && initialData) {
+                setFormData({ ...initialData, password: "" });
+                // Assuming initialData.folders are already correctly structured
+                // This structure must be consistent with what handleFolderSelection returns
+                setSelectedFolders(initialData.folders || []);
+            } else if (mode === "add") {
+                resetForm();
+            }
+        }
+    }, [isOpen, mode, initialData]);
 
-  useEffect(() => {
-    if (isOpen && roles.length === 0) {
-      fetchRoles();
-    }
-  }, [isOpen]);
+    useEffect(() => {
+        if (isOpen && roles.length === 0) {
+            fetchRoles();
+        }
+    }, [isOpen, roles.length]); 
 
-  const fetchRoles = async () => {
-    setRolesLoading(true);
-    try {
-      const res = await roleService.getAll();
-      if (res.success) {
-        let rolesData = [];
-        if (Array.isArray(res.data)) {
-          rolesData = res.data;
-        } else if (res.data?.data && Array.isArray(res.data.data)) {
-          rolesData = res.data.data;
-        } else if (res.data?.status === "success" && Array.isArray(res.data.data)) {
-          rolesData = res.data.data;
+    const fetchRoles = async () => {
+        setRolesLoading(true);
+        try {
+            const res = await roleService.getAll();
+            if (res.success) {
+                let rolesData = [];
+                if (Array.isArray(res.data)) {
+                    rolesData = res.data;
+                } else if (res.data?.data && Array.isArray(res.data.data)) {
+                    rolesData = res.data.data;
+                } else if (res.data?.status === "success" && Array.isArray(res.data.data)) {
+                    rolesData = res.data.data;
+                }
+
+                setRoles(rolesData);
+            } else {
+                console.error("Failed to fetch roles:", res.message);
+                setSubmitError(`Failed to load roles: ${res.message}`);
+            }
+        } catch (error) {
+            console.error("Failed to fetch roles:", error);
+            setSubmitError("Failed to load roles. Check console for details.");
+        } finally {
+            setRolesLoading(false);
+        }
+    };
+
+    /**
+     * Handles selection data from FolderSelectionModal.
+     * The modal now returns an object with selected items (and their associated permissions).
+     * Format: { selectedItems: [{ id, name, type, permissions: [...] }], permissions: [...] }
+     * We'll assume the final structure from the modal is an array of items, each containing its permissions.
+     */
+    const handleFolderSelection = (selectionData) => {
+        // The selectionData is the final payload from the modal (selectedItems + Permissions)
+        const finalItems = selectionData.map(item => ({
+            id: item.id,
+            name: item.name,
+            type: item.type,
+            // Permissions are now expected to be attached to the item object itself or accessed via a lookup
+            permissions: item.permissions || selectionData.permissions || [], 
+        }));
+        
+        // This sets the full item objects in the local state
+        setSelectedFolders(finalItems);
+        // Do NOT update formData here, it needs to be processed in handleSubmit
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+
+        setSubmitError(null);
+        setFieldErrors({});
+
+        if (!formData.name.trim() || !formData.email.trim() || !formData.role.trim() || (mode === "add" && !formData.password)) {
+            setSubmitError("Please fill in all required fields");
+            return;
         }
 
-        setRoles(rolesData);
-      } else {
-        console.error("Failed to fetch roles:", res.message);
-        alert(`⚠️ Failed to load roles: ${res.message}`);
-      }
-    } catch (error) {
-      console.error("Failed to fetch roles:", error);
-      alert("⚠️ Failed to load roles");
-    } finally {
-      setRolesLoading(false);
-    }
-  };
+        try {
+            // Transform selectedFolders into the final API payload format:
+            // { itemId: [permission1, permission2], ... }
+            const folderPermissionsPayload = selectedFolders.reduce((acc, item) => {
+                acc[item.id] = item.permissions;
+                return acc;
+            }, {});
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+            const submitData = {
+                ...formData,
+                // Replace the simple 'folders' array of IDs with the structured payload
+                folders: folderPermissionsPayload,
+                // Also remove the old 'folders' field from formData if it's there
+                // The backend expects an object mapping item IDs to permissions
+                
+                // Add the specific user_type key you mentioned in the example data, if needed
+                // user_type: formData.user_type || 'user', 
+            };
 
-    setSubmitError(null);
-    setFieldErrors({});
+            const result = await onSubmit(submitData);
 
-    if (!formData.name.trim() || !formData.email.trim() || !formData.role.trim()) {
-      setSubmitError("Please fill in all required fields");
-      return;
-    }
+            if (result && result.success === true) {
+                setIsOpen(false);
+                resetForm();
+            } else if (result && result.success === false) {
+                if (result.errors) {
+                    setFieldErrors(result.errors);
+                }
+                setSubmitError(result.message || "Failed to save user. Please try again.");
+            } else {
+                setSubmitError("Failed to save user. Please try again.");
+            }
+        } catch (error) {
+            console.error("Submit error:", error);
+            const message = error.response?.data?.message || error.message || "An unexpected error occurred. Please try again.";
+            const errors = error.response?.data?.errors || {};
+            setFieldErrors(errors);
+            setSubmitError(message);
+        }
+    };
 
-    try {
-      const result = await onSubmit(formData);
+    const resetForm = () => {
+        setFormData({
+            id: "",
+            name: "",
+            email: "",
+            password: "",
+            role: "",
+            folders: [],
+        });
+        setSelectedFolders([]);
+        setSubmitError(null);
+        setFieldErrors({});
+    };
 
-      if (result && result.success === true) {
+    const handleClose = () => {
         setIsOpen(false);
         resetForm();
-      } else if (result && result.success === false) {
-        if (result.errors) {
-          setFieldErrors(result.errors);
-        }
-        setSubmitError(result.message || "Failed to save user. Please try again.");
-      } else {
-        setSubmitError("Failed to save user. Please try again.");
-      }
-    } catch (error) {
-      console.error("Submit error:", error);
-      if (error.response?.data) {
-        const errorData = error.response.data;
-        if (errorData.errors) {
-          setFieldErrors(errorData.errors);
-        }
-        setSubmitError(errorData.message || "Failed to save user. Please try again.");
-      } else if (error.message) {
-        setSubmitError(error.message);
-      } else {
-        setSubmitError("An unexpected error occurred. Please try again.");
-      }
-    }
-  };
+    };
 
-  const resetForm = () => {
-    setFormData({
-      id: "",
-      name: "",
-      email: "",
-      password: "",
-      role: "",
-    });
-    setSubmitError(null);
-    setFieldErrors({});
-  };
+    const dialogKey = `${mode}-${initialData?.id || "new"}`;
 
-  const handleClose = () => {
-    setIsOpen(false);
-    resetForm();
-  };
+    return (
+        <>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogTrigger asChild>
+                    {mode === "edit" ? (
+                        <Button variant="ghost" size="sm" >
+                            Edit
+                        </Button>
+                    ) : (
+                        <Button>
+                            <Plus className="h-4 w-4 mr-2" /> Add User
+                        </Button>
+                    )}
+                </DialogTrigger>
 
-  const dialogKey = `${mode}-${initialData?.id || "new"}`;
+                <DialogContent key={dialogKey} className="max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <User className="h-5 w-5" />
+                            {mode === "edit" ? "Edit User" : "Add New User"}
+                        </DialogTitle>
+                    </DialogHeader>
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {mode === "edit" ? (
-          <Button variant="ghost" size="sm" >
-            Edit
-          </Button>
-        ) : (
-          <Button>
-            <Plus className="h-4 w-4 mr-2" /> Add User
-          </Button>
-        )}
-      </DialogTrigger>
+                    <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
+                        {submitError && (
+                            <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
+                                <AlertCircle className="h-4 w-4" />
+                                {submitError}
+                            </div>
+                        )}
 
-      <DialogContent key={dialogKey} className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <User className="h-5 w-5" />
-            {mode === "edit" ? "Edit User" : "Add New User"}
-          </DialogTitle>
-        </DialogHeader>
+                        <div className="grid grid-cols-3 gap-6">
+                            <div className="space-y-2">
+                                <Label htmlFor="name">Full Name *</Label>
+                                <Input
+                                    id="name"
+                                    placeholder="Enter full name"
+                                    value={formData.name}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({ ...prev, name: e.target.value }))
+                                    }
+                                    required
+                                    className={fieldErrors.name ? "border-red-500" : ""}
+                                    autoComplete="new-name"
+                                />
+                                {fieldErrors.name && (
+                                    <p className="text-xs text-red-500">{fieldErrors.name[0]}</p>
+                                )}
+                            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6" autoComplete="off">
-          {/* Error Display */}
-          {submitError && (
-            <div className="flex items-center gap-2 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md">
-              <AlertCircle className="h-4 w-4" />
-              {submitError}
-            </div>
-          )}
+                            <div className="space-y-2 col-span-2">
+                                <Label htmlFor="email">Email Address *</Label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="Enter email address"
+                                        className={`pl-10 ${fieldErrors.email ? "border-red-500" : ""}`}
+                                        value={formData.email}
+                                        onChange={(e) =>
+                                            setFormData((prev) => ({ ...prev, email: e.target.value }))
+                                        }
+                                        required
+                                        autoComplete="new-email"
+                                    />
+                                </div>
+                                {fieldErrors.email && (
+                                    <p className="text-xs text-red-500">{fieldErrors.email[0]}</p>
+                                )}
+                            </div>
 
-          <div className="grid grid-cols-3 gap-6">
-            {/* Name */}
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name *</Label>
-              <Input
-                id="name"
-                placeholder="Enter full name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                required
-                className={fieldErrors.name ? "border-red-500" : ""}
-                autoComplete="new-name"
-              />
-              {fieldErrors.name && (
-                <p className="text-xs text-red-500">{fieldErrors.name[0]}</p>
-              )}
-            </div>
+                            <div className="space-y-2 col-span-2">
+                                <Label htmlFor="role">Role *</Label>
+                                <Select
+                                    value={formData.role}
+                                    onValueChange={(value) =>
+                                        setFormData((prev) => ({ ...prev, role: value }))
+                                    }
+                                    disabled={rolesLoading}
+                                >
+                                    <SelectTrigger className={fieldErrors.role ? "border-red-500" : ""}>
+                                        <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {rolesLoading ? (
+                                            <SelectItem value="loading" disabled>
+                                                <div className="flex items-center">
+                                                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                                    Loading roles...
+                                                </div>
+                                            </SelectItem>
+                                        ) : roles.length > 0 ? (
+                                            roles.map((role) => (
+                                                <SelectItem key={role.id} value={role.name.toLowerCase()}>
+                                                    {role.name}
+                                                </SelectItem>
+                                            ))
+                                        ) : (
+                                            <SelectItem value="no-roles" disabled>
+                                                No roles available
+                                            </SelectItem>
+                                        )}
+                                    </SelectContent>
+                                </Select>
+                                {fieldErrors.role && (
+                                    <p className="text-xs text-red-500">{fieldErrors.role[0]}</p>
+                                )}
+                                {!rolesLoading && roles.length === 0 && (
+                                    <p className="text-xs text-muted-foreground text-red-500">
+                                        Unable to load roles. Please try refreshing the page.
+                                    </p>
+                                )}
+                            </div>
 
-            {/* Email */}
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="email">Email Address *</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter email address"
-                  className={`pl-10 ${fieldErrors.email ? "border-red-500" : ""}`}
-                  value={formData.email}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, email: e.target.value }))
-                  }
-                  required
-                  autoComplete="new-email"
-                />
-              </div>
-              {fieldErrors.email && (
-                <p className="text-xs text-red-500">{fieldErrors.email[0]}</p>
-              )}
-            </div>
+                            {/* Folder Selection (FIXED DISPLAY) */}
+                            <div className="space-y-2 col-span-3">
+                                <Label>Folders & Files (Optional)</Label>
+                                <div
+                                    className="border rounded-md w-full p-1 min-h-[40px] flex flex-wrap items-center gap-1.5 transition-shadow"
+                                >
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        onClick={() => setShowFolderModal(true)}
+                                        className={`h-auto px-2 py-0.5 text-sm justify-start text-muted-foreground hover:bg-transparent hover:text-primary ${selectedFolders.length > 0 ? 'order-last' : ''}`}
+                                    >
+                                        <FolderOpen className="h-4 w-4 mr-2" />
+                                        {selectedFolders.length === 0
+                                            ? "Select Folders & Files"
+                                            : `(Edit Selection: ${selectedFolders.length} item${selectedFolders.length === 1 ? '' : 's'})`
+                                        }
+                                    </Button>
 
-            {/* Role */}
-            <div className="space-y-2 col-span-2">
-              <Label htmlFor="role">Role *</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) =>
-                  setFormData((prev) => ({ ...prev, role: value }))
-                }
-                disabled={rolesLoading}
-              >
-                <SelectTrigger className={fieldErrors.role ? "border-red-500" : ""}>
-                  <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {rolesLoading ? (
-                    <SelectItem value="loading" disabled>
-                      <div className="flex items-center">
-                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        Loading roles...
-                      </div>
-                    </SelectItem>
-                  ) : roles.length > 0 ? (
-                    roles.map((role) => (
-                      <SelectItem key={role.id} value={role.name.toLowerCase()}>
-                        {role.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-roles" disabled>
-                      No roles available
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-              {fieldErrors.role && (
-                <p className="text-xs text-red-500">{fieldErrors.role[0]}</p>
-              )}
-              {!rolesLoading && roles.length === 0 && (
-                <p className="text-xs text-muted-foreground text-red-500">
-                  Unable to load roles. Please try refreshing the page.
-                </p>
-              )}
-            </div>
+                                    {/* Integrated Selected Items (Tags) - FIXED to show item name and permissions */}
+                                    {selectedFolders.map((item) => (
+                                        <div
+                                            key={item.id}
+                                            className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs border border-muted-foreground/20"
+                                        >
+                                            {item.type === 'folder' ? (
+                                                <Folder className="h-3 w-3 text-blue-600" />
+                                            ) : (
+                                                <File className="h-3 w-3 text-gray-600" />
+                                            )}
+                                            <span className="max-w-32 truncate font-medium" title={item.name}>{item.name}</span>
+                                            
+                                            {/* Permissions Indicator */}
+                                            {item.permissions && item.permissions.length > 0 && (
+                                                <span className="flex items-center gap-1 text-green-700 bg-green-100 px-1 rounded-full ml-1">
+                                                    <Shield className="h-3 w-3" />
+                                                    ({item.permissions.length})
+                                                </span>
+                                            )}
 
-            {/* Password */}
-            <div className="space-y-2 col-span-3">
-              <Label htmlFor="password">
-                Password {mode === "add" ? "*" : ""}
-              </Label>
-              <Input
-                id="password"
-                type="password"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, password: e.target.value }))
-                }
-                required={mode === "add"}
-                className={fieldErrors.password ? "border-red-500" : ""}
-                autoComplete="new-password"
-              />
-              {fieldErrors.password && (
-                <p className="text-xs text-red-500">{fieldErrors.password[0]}</p>
-              )}
-              {mode === "add" ? (
-                <p className="text-xs text-muted-foreground">
-                  Set an initial password for the new user
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Leave empty to keep current password
-                </p>
-              )}
-            </div>
-          </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const updatedItems = selectedFolders.filter(f => f.id !== item.id);
+                                                    setSelectedFolders(updatedItems);
+                                                    // Note: We don't need to update formData here, only in handleSubmit
+                                                }}
+                                                className="ml-0.5 hover:text-red-600 p-0.5 rounded-full hover:bg-white/50 transition-colors"
+                                            >
+                                                <X className="h-3 w-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
 
-          {/* Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)}
-              className="flex-1"
-            >
-              {isLoading
-                ? mode === "edit"
-                  ? "Updating..."
-                  : "Creating..."
-                : mode === "edit"
-                ? "Update User"
-                : "Create User"}
-            </Button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
+                            {/* Password */}
+                            <div className="space-y-2 col-span-3">
+                                <Label htmlFor="password">
+                                    Password {mode === "add" ? "*" : ""}
+                                </Label>
+                                <Input
+                                    id="password"
+                                    type="password"
+                                    value={formData.password}
+                                    onChange={(e) =>
+                                        setFormData((prev) => ({ ...prev, password: e.target.value }))
+                                    }
+                                    required={mode === "add"}
+                                    className={fieldErrors.password ? "border-red-500" : ""}
+                                    autoComplete="new-password"
+                                />
+                                {fieldErrors.password && (
+                                    <p className="text-xs text-red-500">{fieldErrors.password[0]}</p>
+                                )}
+                                {mode === "add" ? (
+                                    <p className="text-xs text-muted-foreground">
+                                        Set an initial password for the new user
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                        Leave empty to keep current password
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Buttons */}
+                        <div className="flex gap-3 pt-4">
+                            <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
+                                Cancel
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)}
+                                className="flex-1"
+                            >
+                                {isLoading
+                                    ? mode === "edit"
+                                        ? "Updating..."
+                                        : "Creating..."
+                                    : mode === "edit"
+                                    ? "Update User"
+                                    : "Create User"}
+                            </Button>
+                        </div>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            {/* Folder Selection Modal (Now handles and returns rich data) */}
+            <FolderSelectionModal
+                isOpen={showFolderModal}
+                onClose={() => setShowFolderModal(false)}
+                onSelect={handleFolderSelection}
+                selectedItems={selectedFolders}
+            />
+        </>
+    );
 }

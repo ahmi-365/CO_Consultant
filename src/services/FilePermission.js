@@ -1,5 +1,6 @@
+const BASE_URL = import.meta.env.VITE_API_URL; 
+
 export const permissionsApi = {
-  // Get file permissions - returns array of permission objects
   async getFilePermissions(file_id) {
    console.log("Fetching permissions for file_id:", file_id);
     const response = await fetch(`${BASE_URL}/files/permissions/list/${file_id}`, {
@@ -82,4 +83,34 @@ console.log("Fetched permissions data:", data);
     // Ensure we return an array format as per API docs
     return Array.isArray(data) ? data : [];
   },
+async getAllPermissions() {
+  console.log("Fetching all permissions...");
+
+  const response = await fetch(`${BASE_URL}/files/permissions/list-all`, {
+    headers: {
+      "Authorization": `Bearer ${localStorage.getItem("token")}`,
+      "Content-Type": "application/json",
+    },
+  });
+
+  console.log("Response status:", response.status);
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    console.error("Error fetching all permissions:", errorData);
+    throw new Error(errorData.message || "Failed to fetch all permissions");
+  }
+
+  console.log("Response OK, parsing JSON...");
+  const data = await response.json();
+  console.log("Fetched all permissions data:", data);
+
+  // ✅ Fix: Access nested array
+  if (data && Array.isArray(data.permissions)) {
+    return data.permissions;
+  }
+
+  return [];
+},
+
 };
