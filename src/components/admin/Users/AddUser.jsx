@@ -71,8 +71,9 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
     useEffect(() => {
         if (isOpen) {
             if (mode === "edit" && initialData) {
-                setFormData({ ...initialData, password: "" });
-                // Assuming initialData.folders are already correctly structured
+                // Spread initialData into formData state. This is why user_type might appear.
+const { user_type, ...userData } = initialData;
+   setFormData({ ...userData, password: "" });                // Assuming initialData.folders are already correctly structured
                 // This structure must be consistent with what handleFolderSelection returns
                 setSelectedFolders(initialData.folders || []);
             } else if (mode === "add") {
@@ -154,17 +155,21 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
                 return acc;
             }, {});
 
-            const submitData = {
-                ...formData,
-                // Replace the simple 'folders' array of IDs with the structured payload
-                folders: folderPermissionsPayload,
-                // Also remove the old 'folders' field from formData if it's there
-                // The backend expects an object mapping item IDs to permissions
-                
-                // Add the specific user_type key you mentioned in the example data, if needed
-                // user_type: formData.user_type || 'user', 
-            };
+            // Use destructuring to explicitly exclude 'id', 'folders' (the old array), and 'user_type'
+            // from the formData, which might contain it if it came from initialData.
+const submitData = {
+  name: formData.name,
+  email: formData.email,
+  role: formData.role,
+  folders: folderPermissionsPayload,
+};
 
+// Only add password if it exists
+if (formData.password && formData.password.trim()) {
+  submitData.password = formData.password;
+}
+       
+            
             const result = await onSubmit(submitData);
 
             if (result && result.success === true) {
@@ -425,8 +430,8 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
                                         ? "Updating..."
                                         : "Creating..."
                                     : mode === "edit"
-                                    ? "Update User"
-                                    : "Create User"}
+                                        ? "Update User"
+                                        : "Create User"}
                             </Button>
                         </div>
                     </form>

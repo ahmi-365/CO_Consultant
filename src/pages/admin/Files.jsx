@@ -37,7 +37,6 @@ import FilePreviewDialog from "@/components/admin/Files/FilePreviewDialog";
 import DragDropZone from "@/components/admin/Files/DragDropZone";
 import FileUploadModal from "@/components/FileUploadModal"; // Import your existing modal
 import { fileApi, getCachedFiles } from "@/services/FileService";
-import { searchService } from "@/services/SearchService";
 import { useToast } from "@/hooks/use-toast";
 import SearchUser from "../../components/admin/Files/SearchUser";
 import MoveFileDialog from '@/components/MoveFileDialog';
@@ -47,10 +46,7 @@ export default function FileManagement() {
   const [currentPath, setCurrentPath] = useState([]);
   const [selectedItem, setSelectedItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [isGlobalSearch, setIsGlobalSearch] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [indexing, setIndexing] = useState(false);
   const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false); // For your FileUploadModal
   const [newFolderName, setNewFolderName] = useState("");
@@ -67,33 +63,15 @@ export default function FileManagement() {
   const [isDeleting, setIsDeleting] = useState({});
   const [isDownloading, setIsDownloading] = useState({});
   const [isRenaming, setIsRenaming] = useState({});
-  const [isSearching, setIsSearching] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
-const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
-const [itemToMove, setItemToMove] = useState(null);
+  const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
+  const [itemToMove, setItemToMove] = useState(null);
 
   const { toast } = useToast();
 
   useEffect(() => {
     loadFiles();
   }, [currentPath, selectedUser]);
-  
-  useEffect(() => {
-    initializeSearch();
-  }, []);
-  
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (searchTerm.trim()) {
-        handleSearch();
-      } else {
-        setIsGlobalSearch(false);
-        setSearchResults([]);
-      }
-    }, 300); // Debounce search by 300ms
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
 
   // Load available folders for move dialog
   useEffect(() => {
@@ -128,15 +106,33 @@ const loadFiles = async (opts = {}) => {
       options,
     });
 
-    const data = await fileApi.listFiles(currentParentId, params, options);
-    console.log("✅ API Response raw:", data);
+    const response = await fileApi.listFiles(currentParentId, params, options);
+    console.log("✅ API Response raw:", response);
+
+    // Extract data from response - handle both direct array and object with data property
+    let data;
+    if (Array.isArray(response)) {
+      data = response;
+    } else if (response && Array.isArray(response.data)) {
+      data = response.data;
+    } else {
+      console.error("❌ Unexpected response format:", response);
+      data = [];
+    }
 
     // ✅ Filter to only show files/folders from current parent
-    const safeData = Array.isArray(data)
-      ? data.filter((f) => f.parent_id === currentParentId || (currentParentId === null && f.parent_id === 1))
-      : [];
+    const safeData = data.filter((f) => {
+      if (currentParentId === null) {
+        // At root level, show items with parent_id === 1 or null (depending on your API)
+        return f.parent_id === 1 || f.parent_id === null;
+      } else {
+        // In subfolder, show items with matching parent_id
+        return f.parent_id === currentParentId;
+      }
+    });
 
     console.log("📊 Safe Data (files count):", safeData.length);
+    console.log("📊 Filtered files:", safeData);
 
     setFiles(safeData);
   } catch (error) {
@@ -152,71 +148,6 @@ const loadFiles = async (opts = {}) => {
     setLoading(false);
   }
 };
-  const initializeSearch = async () => {
-    setIndexing(true);
-    try {
-      await searchService.indexAllFiles();
-    } catch (error) {
-      console.warn("Failed to initialize search index:", error);
-    } finally {
-      setIndexing(false);
-    }
-  };
-
-  const handleSearch = async () => {
-    if (!searchTerm.trim()) {
-      setIsGlobalSearch(false);
-      setSearchResults([]);
-      return;
-    }
-
-    setIsSearching(true);
-    try {
-      if (indexing) {
-        await new Promise((resolve) => setTimeout(resolve, 100));
-        return handleSearch();
-      }
-
-      let results = searchService.search(searchTerm);
-
-      // Apply user filter to search results if user is selected
-      if (selectedUser) {
-        results = results.filter(item => item.created_by === selectedUser);
-      }
-
-      setSearchResults(results);
-      setIsGlobalSearch(true);
-    } catch (error) {
-      console.warn("Search failed:", error);
-      toast({
-        title: "Search Error",
-        description: "Failed to search files. Using local folder search.",
-        variant: "destructive",
-      });
-      setIsGlobalSearch(false);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleSearchResultSelect = (result) => {
-    // Navigate to parent folder if needed
-    if (result.parent_path && result.parent_path !== "/") {
-      // This would require path parsing to set correct breadcrumb
-      // For now, we'll just show a message
-      toast({
-        title: "File Found",
-        description: `File located at: ${result.path}`,
-      });
-    }
-
-    setSelectedItem(result);
-
-    // If it's a file, you could trigger download or preview
-    if (result.type === "file") {
-      handlePreview(result);
-    }
-  };
 
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
@@ -272,10 +203,6 @@ const loadFiles = async (opts = {}) => {
   const handleFileUploaded = async (uploadedFile) => {
     // Refresh the files list
     await loadFiles({ force: true });
-    
-    // Refresh search index
-    searchService.clearIndex();
-    await searchService.indexAllFiles(true);
   };
 
   const handleFileDrop = async (files, targetFolderId) => {
@@ -367,10 +294,6 @@ const loadFiles = async (opts = {}) => {
       });
       loadFiles({ force: true });
 
-      // Refresh search index
-      searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-
       if (selectedItem?.id === id) {
         setSelectedItem(null);
       }
@@ -440,13 +363,9 @@ const handleMove = async (item) => {
       setItemToMove(null);
       setMoveDestination("");
 
-      // wait for files to reload before indexing
+      // wait for files to reload
       await loadFiles({ force: true });
 
-      console.log("🔍 Refreshing search index...");
-      await searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-      console.log("🔍 Index refresh done");
     } catch (error) {
       console.error("🚨 Move failed:", error);
 
@@ -473,10 +392,6 @@ const handleMove = async (item) => {
       await fileApi.renameItem(id, newName);
       loadFiles({ force: true });
 
-      // Refresh search index
-      searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-
       toast({
         title: "Success",
         description: "Item renamed successfully",
@@ -493,8 +408,6 @@ const handleMove = async (item) => {
   };
     const handleMoveSuccess = async (movedItem, destination) => {
   await loadFiles({ force: true });
-  searchService.clearIndex();
-  await searchService.indexAllFiles(true);
 };
 
   const handleManagePermissions = (item) => {
@@ -532,10 +445,6 @@ const handleMove = async (item) => {
       await fileApi.syncFiles();
       loadFiles({ force: true });
 
-      // Refresh search index after sync
-      searchService.clearIndex();
-      await searchService.indexAllFiles(true);
-
       toast({
         title: "Success",
         description: "Files synchronized successfully",
@@ -551,17 +460,13 @@ const handleMove = async (item) => {
     }
   };
 
-  const displayItems = isGlobalSearch
-    ? searchResults.filter(
-        (item) => !selectedUser || item.created_by === selectedUser
-      )
-    : files.filter((file) => {
-        const matchesSearch = file.name
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-        const matchesUser = !selectedUser || file.created_by === selectedUser;
-        return matchesSearch && matchesUser;
-      });
+  // Filter files for current folder search only
+  const displayItems = files.filter((file) => {
+    const matchesSearch = file.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+    return matchesSearch;
+  });
 
   // Get current folder for FileUploadModal
   const currentFolder = currentPath.length > 0 
@@ -677,12 +582,7 @@ const handleMove = async (item) => {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <CardTitle className="flex items-center gap-2 text-foreground">
                       <HardDrive className="h-5 w-5 text-primary" />
-                      {isGlobalSearch
-                        ? "Global Search Results"
-                        : "Files & Folders"}
-                      {(indexing || isSearching) && (
-                        <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      )}
+                      Files & Folders
                     </CardTitle>
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
@@ -694,34 +594,20 @@ const handleMove = async (item) => {
                         />
                       </div>
 
-                      {/* Search Input */}
+                      {/* Search Input - Current folder only */}
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
-                          placeholder={
-                            indexing
-                              ? "Indexing files..."
-                              : isSearching
-                              ? "Searching..."
-                              : "Search all files and folders..."
-                          }
+                          placeholder="Search in current folder..."
                           className="pl-9 w-full border-border bg-background"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          disabled={indexing}
                         />
-                        {isSearching && (
-                          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-                        )}
-                        {isGlobalSearch && !isSearching && (
+                        {searchTerm && (
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              setSearchTerm("");
-                              setIsGlobalSearch(false);
-                              setSearchResults([]);
-                            }}
+                            onClick={() => setSearchTerm("")}
                             className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                           >
                             <X className="h-3 w-3" />
@@ -733,12 +619,10 @@ const handleMove = async (item) => {
                 </CardHeader>
                 <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-6">
                   <div className="space-y-3">
-                    {loading || indexing ? (
+                    {loading ? (
                       <div className="text-center py-12">
                         <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
-                        <p className="text-muted-foreground">
-                          {indexing ? "Loading files..." : "Loading files..."}
-                        </p>
+                        <p className="text-muted-foreground">Loading files...</p>
                       </div>
                     ) : displayItems.length === 0 ? (
                       <div className="text-center py-12">
@@ -757,11 +641,6 @@ const handleMove = async (item) => {
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {displayItems.map((item) => (
                           <div key={item.id} className="relative">
-                            {isGlobalSearch && "path" in item && (
-                              <div className="text-xs text-muted-foreground mb-1 pl-2">
-                                <span>📁 {item.path}</span>
-                              </div>
-                            )}
                             <DragDropZone
                               onFileDrop={handleFileDrop}
                               folderId={item.id}
@@ -770,11 +649,7 @@ const handleMove = async (item) => {
                             >
                               <FileItem
                                 item={item}
-                                onSelect={
-                                  isGlobalSearch
-                                    ? handleSearchResultSelect
-                                    : handleFileSelect
-                                }
+                                onSelect={handleFileSelect}
                                 onDelete={handleDelete}
                                 onMove={handleMove}
                                 onDownload={handleDownload}

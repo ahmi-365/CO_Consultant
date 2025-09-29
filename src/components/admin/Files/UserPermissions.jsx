@@ -77,7 +77,7 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
   const [permissions, setPermissions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [addingUser, setAddingUser] = useState(false); // ye "Add User Access" button ke liye hai
-
+const [removingAll, setRemovingAll] = useState(false);
   const [showUsersDialog, setShowUsersDialog] = useState(false);
   const [showAddUserDialog, setShowAddUserDialog] = useState(false);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
@@ -257,8 +257,8 @@ export default function UserPermissions({ selectedItem, onPermissionChange, open
     }
   };
 
-  // Enhanced handleAddUserAccess with proper loading state
-// This is a direct modification of your existing function
+// Replace your existing handleAddUserAccess function with this:
+
 const handleAddUserAccess = async (userId, permissions) => {
   if (!selectedItem) return;
 
@@ -266,49 +266,60 @@ const handleAddUserAccess = async (userId, permissions) => {
   console.log("Starting to add user access - loading state:", true);
 
   try {
+    // Small delay for better UX
     await new Promise(resolve => setTimeout(resolve, 300));
 
     // Check if permissions array is not empty
-    if (permissions.length > 0) {
-      const permission = permissions[0]; // Get only the first permission
-      console.log(`Assigning single permission: ${permission}`);
-
-      const token = localStorage.getItem("token");
-
-      const response = await fetch(
-        "https://co-consultant.majesticsofts.com/api/files/permissions/assign",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            file_id: parseInt(selectedItem.id),
-            user_id: userId,
-            permission: permission, // Send only the single permission
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Failed to assign ${permission}`);
-      }
-
-      toast({
-        title: "Success",
-        description: `User access with '${permission}' permission added successfully! 🎉`,
-      });
-    } else {
+    if (permissions.length === 0) {
       toast({
         title: "Info",
         description: "No permissions selected to add.",
         variant: "default",
       });
+      setAddingUser(false);
+      return;
     }
 
+    console.log("Sending permissions request:", {
+      file_id: parseInt(selectedItem.id),
+      user_id: userId,
+      permissions: permissions // Send the full array
+    });
+
+    const token = localStorage.getItem("token");
+
+    const response = await fetch(
+      "https://co-consultant.majesticsofts.com/api/files/permissions/assign",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          file_id: parseInt(selectedItem.id),
+          user_id: userId,
+          permissions: permissions, // ✅ Send all permissions as array
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error("API Error:", errorData);
+      throw new Error(errorData.message || `Failed to assign permissions`);
+    }
+
+    const responseData = await response.json();
+    console.log("Success response:", responseData);
+
+    toast({
+      title: "Success",
+      description: `User access with ${permissions.length} permission${permissions.length !== 1 ? 's' : ''} added successfully! 🎉`,
+    });
+
+    // Reload permissions and close dialog
     await loadPermissions();
     onPermissionChange?.();
     setShowAddUserDialog(false);
@@ -325,96 +336,104 @@ const handleAddUserAccess = async (userId, permissions) => {
     setAddingUser(false);
   }
 };
+// ✅ Single ya multiple permissions remove
+const handleRemovePermission = async (userId, permission) => {
+  if (!selectedItem) return;
 
-  const handleRemovePermission = async (userId, permission) => {
-    if (!selectedItem) return;
-
-    try {
-      // Use direct fetch call for consistency
-      const token = localStorage.getItem('token');
-      const response = await fetch('https://co-consultant.majesticsofts.com/api/files/permissions/remove', {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await fetch(
+      'https://co-consultant.majesticsofts.com/api/files/permissions/remove',
+      {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
         body: JSON.stringify({
           file_id: parseInt(selectedItem.id),
           user_id: userId,
-          permission: permission
+          permissions: [permission], // 👈 array me single permission
         }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to remove permission');
       }
+    );
 
-      toast({
-        title: "Success",
-        description: "Permission removed successfully",
-      });
-
-      loadPermissions();
-      onPermissionChange?.();
-    } catch (error) {
-      console.error('Remove permission error:', error);
-      toast({
-        title: "Error",
-        description: `Failed to remove permission: ${error.message}`,
-        variant: "destructive",
-      });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to remove permission');
     }
-  };
 
-  const handleRemoveAllUserPermissions = async (userId, userPermissions) => {
-    if (!selectedItem) return;
+    toast({
+      title: "Success",
+      description: "Permission removed successfully",
+    });
 
-    setRemovingAll(true); // Start loading
-    try {
-      for (const permission of userPermissions) {
-        const token = localStorage.getItem('token');
-        const response = await fetch('https://co-consultant.majesticsofts.com/api/files/permissions/remove', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-          },
-          body: JSON.stringify({
-            file_id: parseInt(selectedItem.id),
-            user_id: userId,
-            permission: permission.permission
-          }),
-        });
+    loadPermissions();
+    onPermissionChange?.();
+  } catch (error) {
+    console.error('Remove permission error:', error);
+    toast({
+      title: "Error",
+      description: `Failed to remove permission: ${error.message}`,
+      variant: "destructive",
+    });
+  }
+};
 
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.message || `Failed to remove ${permission.permission} permission`);
-        }
 
-        await new Promise(resolve => setTimeout(resolve, 100));
+// ✅ Multiple delete = remove all user permissions
+const handleRemoveAllUserPermissions = async (userId, userPermissions) => {
+  if (!selectedItem) return;
+
+  setRemovingAll(true);
+  try {
+    const allPermissions = userPermissions.map(p => p.permission); 
+    console.log("Removing all:", allPermissions);
+
+    const token = localStorage.getItem('token');
+
+    const response = await fetch(
+      'https://co-consultant.majesticsofts.com/api/files/permissions/remove',
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          file_id: parseInt(selectedItem.id),
+          user_id: userId,
+          permissions: allPermissions, // 👈 array bhejna
+        }),
       }
+    );
 
-      toast({
-        title: "Success",
-        description: "All user permissions removed successfully",
-      });
-
-      loadPermissions();
-      onPermissionChange?.();
-    } catch (error) {
-      console.error('Remove user permissions error:', error);
-      toast({
-        title: "Error",
-        description: `Failed to remove user permissions: ${error.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setRemovingAll(false); // Stop loading
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Failed to remove user permissions");
     }
-  };
+
+    toast({
+      title: "Success",
+      description: "All user permissions removed successfully",
+    });
+
+    loadPermissions();
+    onPermissionChange?.();
+  } catch (error) {
+    console.error('Remove user permissions error:', error);
+    toast({
+      title: "Error",
+      description: `Failed to remove user permissions: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    setRemovingAll(false);
+  }
+};
+
 
 
   const handleUserClick = (userGroup) => {
@@ -666,15 +685,19 @@ const handleAddUserAccess = async (userId, permissions) => {
                 >
                   Close
                 </Button>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setShowUserDetailsDialog(false);
-                    handleRemoveAllUserPermissions(selectedUserDetails.user_id, selectedUserDetails.permissions || []);
-                  }}
-                >
-                  Remove All Access
-                </Button>
+              <Button
+  variant="destructive"
+  onClick={async () => {
+    await handleRemoveAllUserPermissions(
+      selectedUserDetails.user_id,
+      selectedUserDetails.permissions || []
+    );
+    setShowUserDetailsDialog(false); // 👈 modal baad me band karo
+  }}
+>
+  Remove All Access
+</Button>
+
               </div>
             </div>
           )}

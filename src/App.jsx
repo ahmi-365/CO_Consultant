@@ -25,6 +25,7 @@ import { AuthGuard, RoleBasedRedirect } from "./pages/Auths/ProtectedRoute";
 import CloudVaultLayout from "./components/CloudVaultLayout";
 import CPFileManagement from "./pages/CustomerPanel/CPFiles";
 import EnhancedFileList from "./components/EnhancedFileList";
+import CPDashboard from "./pages/CustomerPanel/CPDashboard";
 
 
 const queryClient = new QueryClient();
@@ -161,6 +162,16 @@ const App = () => (
             }
           >
             <Route index element={<StarredPage />} />
+          </Route>
+          <Route
+            path="/dashboard"
+            element={
+              <AuthGuard>
+                <CustomerLayout />
+              </AuthGuard>
+            }
+          >
+            <Route index element={<CPDashboard />} />
           </Route>
           
         

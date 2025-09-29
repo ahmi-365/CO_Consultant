@@ -17,6 +17,7 @@ import {
   Menu,
   X,
   LogOut,
+  LayoutDashboard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -605,6 +606,17 @@ export default function EnhancedSidebar() {
       <div className="flex-1 p-4 overflow-y-auto">
         <nav className="space-y-1">
           <button
+            onClick={() => handleNavigationClick("/dashboard")}
+            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
+              isActive("/dashboard")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+            }`}
+          >
+            <LayoutDashboard className="w-4 h-4" />
+            <span className="text-sm">Dashboard</span>
+          </button>
+          <button
             onClick={() => handleNavigationClick("/filemanager")}
             className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
               isActive("/filemanager")
@@ -616,25 +628,23 @@ export default function EnhancedSidebar() {
             <span className="text-sm">Home</span>
           </button>
 
-          <div className="mt-6">
-            <div className="px-3 py-1 text-xs font-medium text-sidebar-foreground/60 uppercase tracking-wide">
-              My Files
-            </div>
+          <div className="mt-2">
+           
+<div className="mt-2 space-y-1 max-h-64 overflow-y-auto overflow-x-hidden">
+  {isLoading ? (
+    <div className="px-3 py-2 text-sm text-sidebar-foreground/60 flex items-center gap-2">
+      <Loader2 className="w-4 h-4 animate-spin" />
+      Loading folders...
+    </div>
+  ) : folders.length === 0 ? (
+    <div className="px-3 py-2 text-sm text-sidebar-foreground/60">
+      No folders found
+    </div>
+  ) : (
+    folders.map((folder) => renderFolder(folder))
+  )}
+</div>
 
-            <div className="mt-2 space-y-1">
-              {isLoading ? (
-                <div className="px-3 py-2 text-sm text-sidebar-foreground/60 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Loading folders...
-                </div>
-              ) : folders.length === 0 ? (
-                <div className="px-3 py-2 text-sm text-sidebar-foreground/60">
-                  No folders found
-                </div>
-              ) : (
-                folders.map((folder) => renderFolder(folder))
-              )}
-            </div>
           </div>
 
           <div className="mt-8 space-y-1">
