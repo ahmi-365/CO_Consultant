@@ -585,20 +585,21 @@ export default function EnhancedSidebar() {
 
   // Sidebar Content Component (shared between desktop and mobile)
   // replace only your SidebarContent = ({ isMobileView = false }) => ( ... ) part
+ // inside SidebarContent
 const SidebarContent = ({ isMobileView = false }) => (
   <div
     className={`
-      ${isMobileView ? "h-full" : "fixed left-0 top-0 h-screen w-60"}
+      ${isMobileView ? "h-full w-full" : "fixed left-0 top-0 h-screen w-60"}
       bg-sidebar border-r border-sidebar-border flex flex-col
     `}
   >
     {/* header */}
-    <div className="p-3 border-b border-sidebar-border">
+    <div className={`p-3 border-b border-sidebar-border ${isMobileView ? "px-4" : ""}`}>
       <div className="flex items-center gap-2">
         <div className="w-8 h-8 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm">
           CV
         </div>
-        <span className="font-semibold text-sidebar-foreground">CloudVault</span>
+        <span className="font-semibold text-sidebar-foreground text-base">CloudVault</span>
         {isLoading && <Loader2 className="w-4 h-4 animate-spin text-sidebar-foreground/60" />}
       </div>
       <div className="text-xs text-sidebar-foreground/60 mt-1">
@@ -606,27 +607,29 @@ const SidebarContent = ({ isMobileView = false }) => (
       </div>
     </div>
 
-    {/* important: min-h-0 here so inner overflow-y-auto works */}
+    {/* main body */}
     <div className="flex-1 flex flex-col min-h-0">
-      {/* sticky top (Dashboard + Home) - stays fixed */}
+      {/* top fixed nav */}
       <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10">
         <nav className="space-y-1 p-2">
           <button
             onClick={() => handleNavigationClick("/dashboard")}
-            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/dashboard")
-              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
+              isActive("/dashboard")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
           >
-            <BarChart3  className="w-4 h-4" />
+            <BarChart3 className="w-4 h-4" />
             <span className="text-sm">Dashboard</span>
           </button>
 
           <button
             onClick={() => handleNavigationClick("/filemanager")}
-            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/filemanager")
-              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
+              isActive("/filemanager")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
           >
             <Home className="w-4 h-4" />
@@ -635,8 +638,8 @@ const SidebarContent = ({ isMobileView = false }) => (
         </nav>
       </div>
 
-      {/* scrollable area: folders + the 3 buttons placed INSIDE this area so they scroll with folders */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-1">
+      {/* scrollable area */}
+      <div className="flex-1 overflow-y-auto px-2 py-2">
         <nav className="space-y-1">
           <div className="space-y-1">
             {isLoading ? (
@@ -651,14 +654,14 @@ const SidebarContent = ({ isMobileView = false }) => (
             )}
           </div>
 
-          {/* === moved here so it scrolls with the folders ===
-               removed 'sticky' so these buttons will scroll away */}
+          {/* other nav items */}
           <div className="mt-4 border-t border-sidebar-border pt-2 space-y-1">
             <button
               onClick={() => handleNavigationClick("/starred")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
+                isActive("/starred")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <Star className="w-4 h-4" />
@@ -667,9 +670,10 @@ const SidebarContent = ({ isMobileView = false }) => (
 
             <button
               onClick={() => handleNavigationClick("/trash")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/trash")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
+                isActive("/trash")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <Trash2 className="w-4 h-4" />
@@ -678,9 +682,10 @@ const SidebarContent = ({ isMobileView = false }) => (
 
             <button
               onClick={() => handleNavigationClick("/customerprofile")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/customerprofile")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
+                isActive("/customerprofile")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <User className="w-4 h-4" />
@@ -690,21 +695,22 @@ const SidebarContent = ({ isMobileView = false }) => (
         </nav>
       </div>
 
-      {/* keep Upload / Logout at the very bottom (outside scroll) if you want them always visible */}
+      {/* bottom upload/logout */}
       <div className="p-3 border-t border-sidebar-border bg-sidebar">
-        <Button className="w-full bg-panel mb-2 hover:bg-panel/90 text-panel-foreground" onClick={handleUploadClick}>
+        <Button
+          className="w-full bg-panel mb-2 hover:bg-panel/90 text-panel-foreground"
+          onClick={handleUploadClick}
+        >
           <Upload className="w-4 h-4 mr-2" />
           New Upload
         </Button>
-        {/* <Button className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleLogout}>
-          <LogOut className="w-4 h-4 mr-2" />
-          Logout
-        </Button> */}
       </div>
     </div>
   </div>
 );
 
+
+  // Mobile: Return hamburger button and sheet
   // Mobile: Return hamburger button and sheet
   if (isMobile) {
     return (
@@ -715,12 +721,12 @@ const SidebarContent = ({ isMobileView = false }) => (
             <Button
               variant="ghost"
               size="sm"
-              className="md:hidden fixed top-4 left-4 z-50 bg-background/80 backdrop-blur-sm border shadow-sm"
+              className="md:hidden fixed top-3 left-3 z-50 bg-background/80 backdrop-blur-sm border shadow-sm"
             >
               <Menu className="w-5 h-5" />
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-80 p-0">
+          <SheetContent side="left" className="w-[85%] max-w-xs p-0">
             <SidebarContent isMobileView={true} />
           </SheetContent>
         </Sheet>
@@ -734,6 +740,7 @@ const SidebarContent = ({ isMobileView = false }) => (
       </>
     );
   }
+
 
   // Desktop: Return normal sidebar
   return (

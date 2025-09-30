@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Search, Bell, ChevronRight, Folder, Upload, RefreshCcw, RefreshCw } from "lucide-react";
+import { Search, Bell, ChevronRight, Folder, Upload, RefreshCcw, RefreshCw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,6 +11,13 @@ import NewFolderModal from "./NewFolderModal";
 import NotificationDropdown from "./NotificationDropdown";
 import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -20,10 +27,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 
+
 export default function RefactoredCloudVaultLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { folderId } = useParams();
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadParentId, setUploadParentId] = useState(null);
@@ -252,10 +262,27 @@ export default function RefactoredCloudVaultLayout({ children }) {
       <EnhancedSidebar onUploadClick={handleSidebarUploadClick} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col ml-60">
+      <div className="flex-1 flex flex-col md:ml-60">
         {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            {/* Mobile Hamburger Button */}
+            <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden bg-background/80 backdrop-blur-sm border shadow-sm"
+                >
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-[85%] max-w-xs p-0">
+                <EnhancedSidebar onUploadClick={handleSidebarUploadClick} isMobileView={true} />
+              </SheetContent>
+            </Sheet>
+
+
             {/* Enhanced Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
               {isLoadingPath && currentPath.startsWith("/folder/") ? (
@@ -270,10 +297,10 @@ export default function RefactoredCloudVaultLayout({ children }) {
                     <button
                       onClick={() => navigate(crumb.path)}
                       className={`hover:text-foreground transition-colors max-w-[150px] truncate ${index === getBreadcrumbPath().length - 1
-                          ? "text-foreground font-medium"
-                          : ""
+                        ? "text-foreground font-medium"
+                        : ""
                         }`}
-                      title={crumb.name} // Show full name on hover
+                      title={crumb.name}
                     >
                       {crumb.name}
                     </button>
@@ -288,7 +315,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
             <Button
               variant="ghost"
               size="icon"
-              className={`w-8 h-8 rounded-full text-foreground/60 hover:text-foreground ${isRefreshing ? 'animate-spin' : ''
+              className={`w-8 h-8 rounded-full text-foreground/60 hover:text-foreground ${isRefreshing ? "animate-spin" : ""
                 }`}
               onClick={handleRefreshClick}
               disabled={isRefreshing}
@@ -298,7 +325,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
             </Button>
 
             {/* Enhanced Search */}
-            <div className="relative">
+            <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search all files..."
@@ -307,7 +334,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
                 className="pl-10 w-64 bg-input border-border"
                 title="Search across all your files and folders"
               />
-              {searchQuery.trim() !== '' && (
+              {searchQuery.trim() !== "" && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                     Global
@@ -321,7 +348,6 @@ export default function RefactoredCloudVaultLayout({ children }) {
 
             {/* User Avatar */}
             <DropdownMenu>
-              {/* Avatar as trigger */}
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
                   <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
@@ -329,20 +355,22 @@ export default function RefactoredCloudVaultLayout({ children }) {
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-
-              {/* Dropdown Content */}
               <DropdownMenuContent align="end" className="w-40">
                 <DropdownMenuItem onClick={handleProfileClick}>
                   Profile
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-600 focus:text-red-600"
+                >
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </header>
+
 
         {/* Page Content */}
         <main className="flex-1 p-6">
@@ -429,5 +457,6 @@ export default function RefactoredCloudVaultLayout({ children }) {
         parentId={folderId || null}
       />
     </div>
+
   );
 }
