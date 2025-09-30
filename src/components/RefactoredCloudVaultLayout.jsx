@@ -11,6 +11,14 @@ import NewFolderModal from "./NewFolderModal";
 import NotificationDropdown from "./NotificationDropdown";
 import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+
 
 export default function RefactoredCloudVaultLayout({ children }) {
   const navigate = useNavigate();
@@ -22,7 +30,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   // New states for breadcrumb management
   const [folderPath, setFolderPath] = useState([]);
   const [isLoadingPath, setIsLoadingPath] = useState(false);
@@ -35,13 +43,13 @@ export default function RefactoredCloudVaultLayout({ children }) {
     try {
       const response = await fileApi.listFiles();
       let items = [];
-      
+
       if (response.status === 'ok' && Array.isArray(response.data)) {
         items = response.data;
       } else if (Array.isArray(response)) {
         items = response;
       }
-      
+
       setAllItems(items);
       return items;
     } catch (error) {
@@ -61,7 +69,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
     try {
       // Load all items if not already loaded
       let items = allItems.length > 0 ? allItems : await loadAllItems();
-      
+
       // Create a map of folder ID to folder info
       const folderMap = new Map();
       items.forEach(item => {
@@ -77,7 +85,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
       // Build path by traversing up the folder hierarchy
       const path = [];
       let currentId = parseInt(currentFolderId);
-      
+
       while (currentId && folderMap.has(currentId)) {
         const folder = folderMap.get(currentId);
         path.unshift({
@@ -85,14 +93,14 @@ export default function RefactoredCloudVaultLayout({ children }) {
           name: folder.name,
           path: `/folder/${folder.id}`
         });
-        
+
         // Move to parent folder
         currentId = folder.parentId;
-        
+
         // Prevent infinite loops
         if (path.length > 10) break;
       }
-      
+
       setFolderPath(path);
     } catch (error) {
       console.error("Error building folder path:", error);
@@ -115,6 +123,20 @@ export default function RefactoredCloudVaultLayout({ children }) {
   useEffect(() => {
     loadAllItems();
   }, [loadAllItems]);
+  const handleLogout = () => {
+    // clear all local storage
+    localStorage.clear();
+
+    // optional: agar sirf user related key clear karni ho
+    // localStorage.removeItem("user");
+
+    navigate("/login");
+    toast.success("Logged out successfully");
+
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
+  };
 
   const getBreadcrumbPath = () => {
     switch (currentPath) {
@@ -140,20 +162,20 @@ export default function RefactoredCloudVaultLayout({ children }) {
   // Enhanced refresh function that triggers both sidebar and file list reload
   const handleRefreshClick = useCallback(async () => {
     setIsRefreshing(true);
-    
+
     try {
       // Reload all items first
       await loadAllItems();
-      
+
       // Dispatch custom events for both sidebar and file list to refresh
       window.dispatchEvent(new CustomEvent("refreshSidebar"));
       window.dispatchEvent(new CustomEvent("refreshFileList"));
-      
+
       // If we're in a folder view, refresh the folder path as well
       if (currentPath.startsWith("/folder/") && folderId) {
         await buildFolderPath(folderId);
       }
-      
+
       toast.success("Content refreshed successfully");
     } catch (error) {
       console.error("Error refreshing content:", error);
@@ -189,20 +211,20 @@ export default function RefactoredCloudVaultLayout({ children }) {
   };
 
   const handleProfileClick = () => {
-    navigate("/profile");
+    navigate("/customerprofile");
   };
 
   // Enhanced search function that dispatches correct events
   const handleSearchChange = useCallback((e) => {
     const query = e.target.value;
     setSearchQuery(query);
-    
+
     // Determine search mode based on query length and presence
     const searchMode = query.trim() !== '' ? 'global' : 'local';
-    
+
     // Dispatch search event with query for global search
     window.dispatchEvent(new CustomEvent("globalSearch", {
-      detail: { 
+      detail: {
         query: query.trim(),
         searchMode: searchMode
       }
@@ -213,11 +235,11 @@ export default function RefactoredCloudVaultLayout({ children }) {
   const handleFolderCreated = useCallback(async () => {
     // Reload all items for breadcrumb updates
     await loadAllItems();
-    
+
     // Refresh both sidebar and file list
     window.dispatchEvent(new CustomEvent("refreshSidebar"));
     window.dispatchEvent(new CustomEvent("refreshFileList"));
-    
+
     // Refresh folder path if we're in a folder
     if (currentPath.startsWith("/folder/") && folderId) {
       buildFolderPath(folderId);
@@ -230,7 +252,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
       <EnhancedSidebar onUploadClick={handleSidebarUploadClick} />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-60">
         {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -247,11 +269,10 @@ export default function RefactoredCloudVaultLayout({ children }) {
                     {index > 0 && <ChevronRight className="w-4 h-4" />}
                     <button
                       onClick={() => navigate(crumb.path)}
-                      className={`hover:text-foreground transition-colors max-w-[150px] truncate ${
-                        index === getBreadcrumbPath().length - 1
+                      className={`hover:text-foreground transition-colors max-w-[150px] truncate ${index === getBreadcrumbPath().length - 1
                           ? "text-foreground font-medium"
                           : ""
-                      }`}
+                        }`}
                       title={crumb.name} // Show full name on hover
                     >
                       {crumb.name}
@@ -267,9 +288,8 @@ export default function RefactoredCloudVaultLayout({ children }) {
             <Button
               variant="ghost"
               size="icon"
-              className={`w-8 h-8 rounded-full text-foreground/60 hover:text-foreground ${
-                isRefreshing ? 'animate-spin' : ''
-              }`}
+              className={`w-8 h-8 rounded-full text-foreground/60 hover:text-foreground ${isRefreshing ? 'animate-spin' : ''
+                }`}
               onClick={handleRefreshClick}
               disabled={isRefreshing}
               title="Refresh all content"
@@ -300,11 +320,27 @@ export default function RefactoredCloudVaultLayout({ children }) {
             <NotificationDropdown />
 
             {/* User Avatar */}
-            <Avatar className="cursor-pointer" onClick={handleProfileClick}>
-              <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
-                U
-              </AvatarFallback>
-            </Avatar>
+            <DropdownMenu>
+              {/* Avatar as trigger */}
+              <DropdownMenuTrigger asChild>
+                <Avatar className="cursor-pointer">
+                  <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
+                    U
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+
+              {/* Dropdown Content */}
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuItem onClick={handleProfileClick}>
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600">
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
@@ -316,31 +352,31 @@ export default function RefactoredCloudVaultLayout({ children }) {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-semibold text-foreground">
-                    {currentPath === "/filemanager" 
-                      ? "My Files" 
-                      : currentPath === "/starred" 
-                      ? "Starred Files"
-                      : currentPath === "/shared"
-                      ? "Shared with me"
-                      : currentPath === "/trash"
-                      ? "Trash"
-                      : currentPath.startsWith("/folder/")
-                      ? folderPath.length > 0 
-                        ? folderPath[folderPath.length - 1]?.name || "Folder"
-                        : "Folder"
-                      : "Files"
+                    {currentPath === "/filemanager"
+                      ? "My Files"
+                      : currentPath === "/starred"
+                        ? "Starred Files"
+                        : currentPath === "/shared"
+                          ? "Shared with me"
+                          : currentPath === "/trash"
+                            ? "Trash"
+                            : currentPath.startsWith("/folder/")
+                              ? folderPath.length > 0
+                                ? folderPath[folderPath.length - 1]?.name || "Folder"
+                                : "Folder"
+                              : "Files"
                     }
                   </h1>
                   <p className="text-muted-foreground">
                     {currentPath === "/"
                       ? "Manage your personal files and folders"
                       : currentPath === "/starred"
-                      ? "Files you've marked as important"
-                      : currentPath === "/shared"
-                      ? "Files others have shared with you"
-                      : currentPath === "/trash"
-                      ? "Recently deleted files"
-                      : "Browse folder contents"
+                        ? "Files you've marked as important"
+                        : currentPath === "/shared"
+                          ? "Files others have shared with you"
+                          : currentPath === "/trash"
+                            ? "Recently deleted files"
+                            : "Browse folder contents"
                     }
                   </p>
                 </div>

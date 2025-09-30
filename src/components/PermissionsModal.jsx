@@ -76,70 +76,90 @@ export function PermissionsModal({ isOpen, onClose, selectedItems = [], onSavePe
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-xl max-h-[90vh] flex flex-col">
-                <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                        <Shield className="h-5 w-5 text-blue-600" />
-                        Select Permissions
-                    </DialogTitle>
-                </DialogHeader>
+  <DialogContent className="max-w-xl max-h-[90vh] flex flex-col">
+    <DialogHeader>
+      <DialogTitle className="flex items-center gap-2">
+        <Shield className="h-5 w-5 text-blue-600" />
+        Select Permissions
+      </DialogTitle>
+    </DialogHeader>
 
-                <div className="mb-4 text-sm text-muted-foreground">
-                    Selecting permissions to apply to **{selectedItems.length}** selected item(s).
-                </div>
+    <div className="mb-4 text-sm text-muted-foreground">
+      Selecting permissions to apply to <strong>{selectedItems.length}</strong> selected item(s).
+    </div>
 
-                <div className="flex-1 overflow-y-auto border rounded-lg p-4 space-y-4">
-                    
-                    {loading ? (
-                        <div className="flex items-center justify-center p-8 h-full">
-                            <Loader2 className="h-6 w-6 animate-spin mr-2" />
-                            Loading permissions...
-                        </div>
-                    ) : error ? (
-                        <div className="flex items-center justify-center p-8 h-full text-red-600">
-                            <AlertCircle className="h-5 w-5 mr-2" />
-                            {error}
-                        </div>
-                    ) : permissions.length === 0 ? (
-                        <div className="flex items-center justify-center p-8 h-full text-muted-foreground">
-                            No available permissions found.
-                        </div>
-                    ) : (
-                        <div className="divide-y">
-                            {permissions.map((p) => (
-                                <div key={p.key} className="flex items-center justify-between py-3">
-                                    
-                                    <div className="flex items-center gap-3">
-                                        <User className="h-4 w-4 text-gray-500" />
-                                        <div>
-                                            <div className="font-medium">{p.name}</div>
-                                        </div>
-                                    </div>
-                                    
-                                    <Checkbox
-                                        checked={selectedPermissions.includes(p.key)}
-                                        onCheckedChange={() => handlePermissionToggle(p.key)}
-                                        className="shrink-0"
-                                    />
-                                </div>
-                            ))}
-                        </div>
-                    )}
+    <div className="flex-1 overflow-y-auto border rounded-lg p-4 space-y-4">
+      {loading ? (
+        <div className="flex items-center justify-center p-8 h-full">
+          <Loader2 className="h-6 w-6 animate-spin mr-2" />
+          Loading permissions...
+        </div>
+      ) : error ? (
+        <div className="flex items-center justify-center p-8 h-full text-red-600">
+          <AlertCircle className="h-5 w-5 mr-2" />
+          {error}
+        </div>
+      ) : permissions.length === 0 ? (
+        <div className="flex items-center justify-center p-8 h-full text-muted-foreground">
+          No available permissions found.
+        </div>
+      ) : (
+        <div className="divide-y">
+          {/* ✅ Select All Option */}
+          <div className="flex items-center justify-between py-3">
+            <div className="flex items-center gap-3">
+              <Shield className="h-4 w-4 text-blue-600" />
+              <div className="font-medium">
+                {selectedPermissions.length === permissions.length
+                  ? "Deselect All"
+                  : "Select All"}
+              </div>
+            </div>
+            <Checkbox
+              checked={selectedPermissions.length === permissions.length}
+              onCheckedChange={() => {
+                if (selectedPermissions.length === permissions.length) {
+                  setSelectedPermissions([]); // Deselect All
+                } else {
+                  setSelectedPermissions(permissions.map((p) => p.key)); // Select All
+                }
+              }}
+              className="shrink-0"
+            />
+          </div>
+
+          {/* ✅ Individual Permissions */}
+          {permissions.map((p) => (
+            <div key={p.key} className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <User className="h-4 w-4 text-gray-500" />
+                <div>
+                  <div className="font-medium">{p.name}</div>
                 </div>
-                
-                <DialogFooter className="mt-4">
-                    <Button variant="outline" onClick={onClose} disabled={loading}>
-                        Cancel
-                    </Button>
-                    <Button 
-                        onClick={handleConfirmSelection} 
-                        disabled={isConfirmDisabled}
-                    >
-                        <Save className="h-4 w-4 mr-2" />
-                        Apply Permissions
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+              </div>
+
+              <Checkbox
+                checked={selectedPermissions.includes(p.key)}
+                onCheckedChange={() => handlePermissionToggle(p.key)}
+                className="shrink-0"
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    <DialogFooter className="mt-4">
+      <Button variant="outline" onClick={onClose} disabled={loading}>
+        Cancel
+      </Button>
+      <Button onClick={handleConfirmSelection} disabled={isConfirmDisabled}>
+        <Save className="h-4 w-4 mr-2" />
+        Apply Permissions
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
+
     );
 }

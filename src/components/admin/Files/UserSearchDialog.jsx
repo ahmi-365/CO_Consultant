@@ -215,41 +215,68 @@ export default function UserSearchDialog({
 
           {/* Permissions */}
           {selectedUser && (
-            <div>
-              <Label className="text-sm font-medium mb-3 block">
-                Select Permissions for {selectedUser.name}
-              </Label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-md bg-card">
-                {availablePermissions.map((permission) => (
-                  <div
-                    key={permission}
-                    className={`flex items-center space-x-2 p-2 rounded-md border bg-background transition-all ${
-                      isLoading ? 'opacity-50 pointer-events-none' : 'hover:bg-muted/50'
-                    }`}
-                  >
-                    <Checkbox
-                      id={permission}
-                      checked={selectedPermissions.includes(permission)}
-                      onCheckedChange={() => !isLoading && handlePermissionToggle(permission)}
-                      disabled={isLoading}
-                    />
-                    <Label
-                      htmlFor={permission}
-                      className="text-xs font-medium cursor-pointer leading-none flex-1"
-                    >
-                      {permission}
-                    </Label>
-                  </div>
-                ))}
-              </div>
-              
-              {selectedPermissions.length > 0 && (
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {selectedPermissions.length} permission{selectedPermissions.length !== 1 ? 's' : ''} selected
-                </div>
-              )}
-            </div>
-          )}
+  <div>
+    <Label className="text-sm font-medium mb-3 block">
+      Select Permissions for {selectedUser.name}
+    </Label>
+
+    {/* Select All / Deselect All Button */}
+    <div className="mb-2 flex gap-2">
+      <button
+        type="button"
+        className="px-3 py-1 text-xs rounded-md border bg-background hover:bg-muted/50 transition-all"
+        disabled={isLoading}
+        onClick={() => {
+          if (selectedPermissions.length === availablePermissions.length) {
+            // Deselect All
+            setSelectedPermissions([]);
+          } else {
+            // Select All
+            setSelectedPermissions([...availablePermissions]);
+          }
+        }}
+      >
+        {selectedPermissions.length === availablePermissions.length
+          ? "Deselect All"
+          : "Select All"}
+      </button>
+    </div>
+
+    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 max-h-64 overflow-y-auto p-2 border rounded-md bg-card">
+      {availablePermissions.map((permission) => (
+        <div
+          key={permission}
+          className={`flex items-center space-x-2 p-2 rounded-md border bg-background transition-all ${
+            isLoading ? "opacity-50 pointer-events-none" : "hover:bg-muted/50"
+          }`}
+        >
+          <Checkbox
+            id={permission}
+            checked={selectedPermissions.includes(permission)}
+            onCheckedChange={() =>
+              !isLoading && handlePermissionToggle(permission)
+            }
+            disabled={isLoading}
+          />
+          <Label
+            htmlFor={permission}
+            className="text-xs font-medium cursor-pointer leading-none flex-1"
+          >
+            {permission}
+          </Label>
+        </div>
+      ))}
+    </div>
+
+    {selectedPermissions.length > 0 && (
+      <div className="mt-2 text-xs text-muted-foreground">
+        {selectedPermissions.length} permission
+        {selectedPermissions.length !== 1 ? "s" : ""} selected
+      </div>
+    )}
+  </div>
+)}
+
         </div>
 
         <DialogFooter className="gap-2">

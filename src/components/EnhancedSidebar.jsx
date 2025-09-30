@@ -18,6 +18,7 @@ import {
   X,
   LogOut,
   LayoutDashboard,
+  BarChart3,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -38,7 +39,7 @@ export default function EnhancedSidebar() {
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  
+
   // Loading states
   const [isLoading, setIsLoading] = useState(true);
   const [loadingActions, setLoadingActions] = useState({
@@ -63,10 +64,10 @@ export default function EnhancedSidebar() {
     const checkIsMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
+
     checkIsMobile();
     window.addEventListener('resize', checkIsMobile);
-    
+
     return () => window.removeEventListener('resize', checkIsMobile);
   }, []);
 
@@ -233,11 +234,11 @@ export default function EnhancedSidebar() {
     setActionLoading('download', fileId, true);
     try {
       const response = await fileApi.getDownloadUrl(fileId);
-      
+
       // Handle different response formats
       if (response && (response.success || response.download_url || response.url)) {
         const downloadUrl = response.download_url || response.url || response.data?.download_url || response.data?.url;
-        
+
         if (downloadUrl) {
           const link = document.createElement('a');
           link.href = downloadUrl;
@@ -276,7 +277,7 @@ export default function EnhancedSidebar() {
           toast.success(`${itemName} moved to trash`);
         }
       }
-      
+
       if (response.success) {
         await loadAllItems();
         window.dispatchEvent(new CustomEvent("refreshFileList"));
@@ -291,19 +292,19 @@ export default function EnhancedSidebar() {
     }
   };
   const handleLogout = () => {
-  // clear all local storage
-  localStorage.clear();
+    // clear all local storage
+    localStorage.clear();
 
-  // optional: agar sirf user related key clear karni ho
-  // localStorage.removeItem("user");
+    // optional: agar sirf user related key clear karni ho
+    // localStorage.removeItem("user");
 
-  navigate("/login"); 
-  toast.success("Logged out successfully");
+    navigate("/login");
+    toast.success("Logged out successfully");
 
-  if (isMobile) {
-    setIsMobileSidebarOpen(false);
-  }
-};
+    if (isMobile) {
+      setIsMobileSidebarOpen(false);
+    }
+  };
 
   const handleDrop = async (e, folderId) => {
     e.preventDefault();
@@ -355,14 +356,14 @@ export default function EnhancedSidebar() {
         >
           <FileText className="w-3 h-3 text-muted-foreground flex-shrink-0" />
           <span className="truncate flex-1" title={file.name}>{file.name}</span>
-          
+
           {/* Star indicator with loading state */}
           {isStarring ? (
             <Loader2 className="w-3 h-3 animate-spin text-yellow-400 flex-shrink-0" />
           ) : (
             file.is_starred && <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0" />
           )}
-          
+
           {/* Action buttons - Hide on mobile for cleaner UI */}
           {!isMobile && (
             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
@@ -383,7 +384,7 @@ export default function EnhancedSidebar() {
                   <Star className={`w-3 h-3 ${file.is_starred ? 'text-yellow-400 fill-current' : ''}`} />
                 )}
               </Button>
-              
+
               {/* Download button */}
               <Button
                 size="sm"
@@ -401,7 +402,7 @@ export default function EnhancedSidebar() {
                   <Download className="w-3 h-3" />
                 )}
               </Button>
-              
+
               {/* Trash button */}
               <Button
                 size="sm"
@@ -421,7 +422,7 @@ export default function EnhancedSidebar() {
               </Button>
             </div>
           )}
-          
+
           {/* Status indicators */}
           {isMoving && (
             <span className="text-xs text-muted-foreground flex-shrink-0">Moving...</span>
@@ -458,11 +459,10 @@ export default function EnhancedSidebar() {
             onClick={() => handleFolderClick(folder.id)}
             onDrop={(e) => !isMobile && handleDrop(e, folder.id)}
             onDragOver={!isMobile ? handleDragOver : undefined}
-            className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors group ${
-              isCurrentFolder
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors group ${isCurrentFolder
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
             style={{ marginLeft: `${level * (isMobile ? 12 : 16)}px` }}
             disabled={isAnyActionLoading}
           >
@@ -472,14 +472,14 @@ export default function EnhancedSidebar() {
               <Folder className="w-4 h-4 text-panel flex-shrink-0" />
             )}
             <span className="truncate flex-1" title={folder.name}>{folder.name}</span>
-            
+
             {/* Star indicator with loading state */}
             {isStarring ? (
               <Loader2 className="w-3 h-3 animate-spin text-yellow-400 flex-shrink-0" />
             ) : (
               folder.is_starred && <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0" />
             )}
-            
+
             {/* Action buttons for folders - Hide on mobile */}
             {!isMobile && (
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100">
@@ -500,7 +500,7 @@ export default function EnhancedSidebar() {
                     <Star className={`w-3 h-3 ${folder.is_starred ? 'text-yellow-400 fill-current' : ''}`} />
                   )}
                 </Button>
-                
+
                 {/* Trash button */}
                 <Button
                   size="sm"
@@ -584,99 +584,103 @@ export default function EnhancedSidebar() {
   const stats = getTotalItems();
 
   // Sidebar Content Component (shared between desktop and mobile)
-  const SidebarContent = ({ isMobileView = false }) => (
-    <div className={`${isMobileView ? 'h-full' : 'w-60'} bg-sidebar border-r border-sidebar-border flex flex-col`}>
-      <div className="p-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm">
-            CV
-          </div>
-          <span className="font-semibold text-sidebar-foreground">
-            CloudVault
-          </span>
-          {isLoading && (
-            <Loader2 className="w-4 h-4 animate-spin text-sidebar-foreground/60" />
-          )}
+  // replace only your SidebarContent = ({ isMobileView = false }) => ( ... ) part
+const SidebarContent = ({ isMobileView = false }) => (
+  <div
+    className={`
+      ${isMobileView ? "h-full" : "fixed left-0 top-0 h-screen w-60"}
+      bg-sidebar border-r border-sidebar-border flex flex-col
+    `}
+  >
+    {/* header */}
+    <div className="p-3 border-b border-sidebar-border">
+      <div className="flex items-center gap-2">
+        <div className="w-8 h-8 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm">
+          CV
         </div>
-        <div className="text-xs text-sidebar-foreground/60 mt-1">
-          {isLoading ? "Loading..." : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
-        </div>
+        <span className="font-semibold text-sidebar-foreground">CloudVault</span>
+        {isLoading && <Loader2 className="w-4 h-4 animate-spin text-sidebar-foreground/60" />}
       </div>
+      <div className="text-xs text-sidebar-foreground/60 mt-1">
+        {isLoading ? "Loading..." : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
+      </div>
+    </div>
 
-      <div className="flex-1 p-4 overflow-y-auto">
-        <nav className="space-y-1">
+    {/* important: min-h-0 here so inner overflow-y-auto works */}
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* sticky top (Dashboard + Home) - stays fixed */}
+      <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10">
+        <nav className="space-y-1 p-2">
           <button
             onClick={() => handleNavigationClick("/dashboard")}
-            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
-              isActive("/dashboard")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/dashboard")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
+            <BarChart3  className="w-4 h-4" />
             <span className="text-sm">Dashboard</span>
           </button>
+
           <button
             onClick={() => handleNavigationClick("/filemanager")}
-            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
-              isActive("/filemanager")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+            className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/filemanager")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
             }`}
           >
             <Home className="w-4 h-4" />
             <span className="text-sm">Home</span>
           </button>
+        </nav>
+      </div>
 
-          <div className="mt-2">
-           
-<div className="mt-2 space-y-1 max-h-64 overflow-y-auto overflow-x-hidden">
-  {isLoading ? (
-    <div className="px-3 py-2 text-sm text-sidebar-foreground/60 flex items-center gap-2">
-      <Loader2 className="w-4 h-4 animate-spin" />
-      Loading folders...
-    </div>
-  ) : folders.length === 0 ? (
-    <div className="px-3 py-2 text-sm text-sidebar-foreground/60">
-      No folders found
-    </div>
-  ) : (
-    folders.map((folder) => renderFolder(folder))
-  )}
-</div>
-
+      {/* scrollable area: folders + the 3 buttons placed INSIDE this area so they scroll with folders */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-1">
+        <nav className="space-y-1">
+          <div className="space-y-1">
+            {isLoading ? (
+              <div className="px-2 py-1 text-sm text-sidebar-foreground/60 flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading folders...
+              </div>
+            ) : folders.length === 0 ? (
+              <div className="px-2 py-1 text-sm text-sidebar-foreground/60">No folders found</div>
+            ) : (
+              folders.map((folder) => renderFolder(folder))
+            )}
           </div>
 
-          <div className="mt-8 space-y-1">
-           
+          {/* === moved here so it scrolls with the folders ===
+               removed 'sticky' so these buttons will scroll away */}
+          <div className="mt-4 border-t border-sidebar-border pt-2 space-y-1">
             <button
               onClick={() => handleNavigationClick("/starred")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/starred")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <Star className="w-4 h-4" />
               <span>Starred</span>
             </button>
+
             <button
               onClick={() => handleNavigationClick("/trash")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/trash")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/trash")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <Trash2 className="w-4 h-4" />
               <span>Trash</span>
             </button>
+
             <button
               onClick={() => handleNavigationClick("/customerprofile")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                isActive("/customerprofile")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/customerprofile")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
               <User className="w-4 h-4" />
@@ -686,25 +690,20 @@ export default function EnhancedSidebar() {
         </nav>
       </div>
 
-      <div className="p-4 mb-2 border-t border-sidebar-border">
-        <Button
-          className="w-full bg-panel mb-2 hover:bg-panel/90 text-panel-foreground"
-          onClick={handleUploadClick} 
-        >
+      {/* keep Upload / Logout at the very bottom (outside scroll) if you want them always visible */}
+      <div className="p-3 border-t border-sidebar-border bg-sidebar">
+        <Button className="w-full bg-panel mb-2 hover:bg-panel/90 text-panel-foreground" onClick={handleUploadClick}>
           <Upload className="w-4 h-4 mr-2" />
           New Upload
         </Button>
-  
- <Button
-          className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground"
-          onClick={handleLogout}
-        >
+        {/* <Button className="w-full bg-destructive hover:bg-destructive/90 text-destructive-foreground" onClick={handleLogout}>
           <LogOut className="w-4 h-4 mr-2" />
           Logout
-        </Button>
+        </Button> */}
       </div>
     </div>
-  );
+  </div>
+);
 
   // Mobile: Return hamburger button and sheet
   if (isMobile) {
@@ -730,7 +729,7 @@ export default function EnhancedSidebar() {
           isOpen={showUploadModal}
           onClose={() => setShowUploadModal(false)}
           onFileUploaded={handleFileUploaded}
-          currentFolder={uploadTargetFolder} 
+          currentFolder={uploadTargetFolder}
         />
       </>
     );
@@ -744,7 +743,7 @@ export default function EnhancedSidebar() {
         isOpen={showUploadModal}
         onClose={() => setShowUploadModal(false)}
         onFileUploaded={handleFileUploaded}
-        currentFolder={uploadTargetFolder} 
+        currentFolder={uploadTargetFolder}
       />
     </>
   );
