@@ -127,13 +127,13 @@ export default function RefactoredCloudVaultLayout({ children }) {
       case "/profile":
         return [{ name: "Profile", path: "/profile" }];
       case "/":
-        return [{ name: "My Files", path: "/" }];
+        return [{ name: "My Files", path: "/filemanager" }];
       default:
         if (currentPath.startsWith("/folder/")) {
-          const basePath = [{ name: "My Files", path: "/" }];
+          const basePath = [{ name: "My Files", path: "/filemanager" }];
           return [...basePath, ...folderPath];
         }
-        return [{ name: "My Files", path: "/" }];
+        return [{ name: "My Files", path: "/filemanager" }];
     }
   };
 
@@ -316,7 +316,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-semibold text-foreground">
-                    {currentPath === "/" 
+                    {currentPath === "/filemanager" 
                       ? "My Files" 
                       : currentPath === "/starred" 
                       ? "Starred Files"

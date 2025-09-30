@@ -11,8 +11,8 @@
       "permanent": false
     },
     {
-      "source": "/api/*",
-      "destination": "https://co-consultant.vercel.app/api/:splat",
+      "source": "/api/(.*)",
+      "destination": "https://co-consultant.vercel.app/api/$1",
       "permanent": false
     }
   ]

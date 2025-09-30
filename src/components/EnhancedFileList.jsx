@@ -82,11 +82,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
   const [folderHierarchy, setFolderHierarchy] = useState(new Map());
-  
-  // Fixed search states
-  const [searchMode, setSearchMode] = useState('local');
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
 
+// ADD THESE TWO LINES:
+const [activeSearchQuery, setActiveSearchQuery] = useState('');
+const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
   // Mobile-specific state
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
   const [isMobile, setIsMobile] = useState(false);
@@ -113,11 +112,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   }, []);
 
   // Load files function with enhanced folder details extraction
-  const loadFiles = useCallback(async () => {
+const loadFiles = useCallback(async (searchQuery = '') => {
     try {
       setLoading(true);
-      const response = await fileApi.listFiles(folderId);
-      
+        const params = {};
+    if (searchQuery && searchQuery.trim()) {
+      params.search = searchQuery.trim();
+    }
+  const response = await fileApi.listFiles(
+      searchQuery ? null : folderId,  
+      params
+    );      
       if (response.status === 'ok' && Array.isArray(response.data)) {
         let filesData = response.data;
         
@@ -221,44 +226,6 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   }, [folderHierarchy]);
 
   // Fixed getFilteredFiles function with proper global search
-  const getFilteredFiles = useCallback(() => {
-    let filteredItems;
-    
-    // Use globalSearchQuery when in global mode, searchQuery for local mode
-    const activeQuery = searchMode === 'global' ? globalSearchQuery : searchQuery;
-    
-    if (!activeQuery || activeQuery.trim() === '') {
-      // No search query - show current folder items
-      filteredItems = files;
-    } else {
-      const query = activeQuery.toLowerCase().trim();
-      
-      if (searchMode === 'global') {
-        // Global search: search across ALL files regardless of current folder
-        filteredItems = allFiles.filter((file) => 
-          file.name.toLowerCase().includes(query) ||
-          (file.type && file.type.toLowerCase().includes(query))
-        );
-      } else {
-        // Local search: search within current folder only
-        filteredItems = files.filter((file) => 
-          file.name.toLowerCase().includes(query) ||
-          (file.type && file.type.toLowerCase().includes(query))
-        );
-      }
-    }
-    
-    // Sort results: folders first, then by name
-    return filteredItems.sort((a, b) => {
-      const aIsFolder = a.type === 'folder';
-      const bIsFolder = b.type === 'folder';
-      
-      if (aIsFolder && !bIsFolder) return -1;
-      if (!aIsFolder && bIsFolder) return 1;
-      
-      return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-    });
-  }, [searchQuery, globalSearchQuery, files, allFiles, searchMode]);
 
   useEffect(() => {
     loadFiles();
@@ -274,15 +241,25 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     };
     
     // Fixed global search event handler
-    const handleGlobalSearch = (event) => {
-      console.log('Global search triggered:', event.detail);
-      const { query, searchMode: mode } = event.detail || {};
-      
-      if (query !== undefined) {
-        setGlobalSearchQuery(query);
-        setSearchMode(mode || 'local');
-      }
-    };
+ const handleGlobalSearch = (event) => {
+  console.log('Global search triggered:', event.detail);
+  const { query } = event.detail || {};
+  
+  // Clear existing timer
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
+  
+  // Set active search query immediately for UI update
+  setActiveSearchQuery(query || '');
+  
+  // Debounce the actual API call
+  const timer = setTimeout(() => {
+    loadFiles(query || '');
+  }, 500);
+  
+  setSearchDebounceTimer(timer);
+};
 
     window.addEventListener("fileUploaded", handleFileUploaded);
     window.addEventListener("folderCreated", handleFolderCreated);
@@ -369,7 +346,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     };
   };
 
-  const filteredFiles = getFilteredFiles();
+const filteredFiles = files;  
 
   const getFileIcon = (type) => {
     switch (type) {
@@ -714,22 +691,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     <div className="space-y-4">
       {/* Header with action buttons */}
       <div className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-center">
-        <div className="text-sm text-muted-foreground">
-          {(searchQuery && searchQuery.trim() !== '') || (globalSearchQuery && globalSearchQuery.trim() !== '') ? (
-            <span>
-              Showing {filteredFiles.length} results for "{searchMode === 'global' ? globalSearchQuery : searchQuery}"
-              {searchMode === 'global' && (
-                <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                  Global Search
-                </span>
-              )}
-            </span>
-          ) : (
-            <span>
-              {files.length} items in {getCurrentFolder().name}
-            </span>
-          )}
-        </div>
+    <div className="text-sm text-muted-foreground">
+  {activeSearchQuery && activeSearchQuery.trim() !== '' ? (
+    <span>
+      Showing {filteredFiles.length} results for "{activeSearchQuery}"
+      <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+        Global Search
+      </span>
+    </span>
+  ) : (
+    <span>
+      {files.length} items in {getCurrentFolder().name}
+    </span>
+  )}
+</div>
         
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           {/* View mode toggle for larger screens */}

@@ -96,8 +96,9 @@ const fileCache = new FileCache();
 export const fileApi = {
 async listFiles(parent_id, params = {}, options = {}) {
   const queryParams = new URLSearchParams();
-  if (parent_id) queryParams.append('parent_id', parent_id);
-  if (params.id) queryParams.append('id', params.id);
+if (parent_id && !params.search) {
+  queryParams.append('parent_id', parent_id);
+}  if (params.id) queryParams.append('id', params.id);
   if (params.search) queryParams.append('search', params.search);
   if (params.user_id) queryParams.append('user_id', params.user_id);
 

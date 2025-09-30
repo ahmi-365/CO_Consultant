@@ -66,13 +66,35 @@ export default function FileManagement() {
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [itemToMove, setItemToMove] = useState(null);
-
+const [searchDebounceTimer, setSearchDebounceTimer] = useState(null); // ← ADD THIS LINE
   const { toast } = useToast();
 
   useEffect(() => {
     loadFiles();
   }, [currentPath, selectedUser]);
+useEffect(() => {
+  // Clear existing timer
+  if (searchDebounceTimer) {
+    clearTimeout(searchDebounceTimer);
+  }
 
+  // Set new timer for search
+  const timer = setTimeout(() => {
+    if (searchTerm.trim()) {
+      loadFiles({ search: searchTerm.trim() });
+    } else {
+      // If search is cleared, reload normally
+      loadFiles();
+    }
+  }, 500); // 500ms debounce
+
+  setSearchDebounceTimer(timer);
+
+  // Cleanup
+  return () => {
+    if (timer) clearTimeout(timer);
+  };
+}, [searchTerm]);
   // Load available folders for move dialog
   useEffect(() => {
     if (isMoveDialogOpen) {
@@ -91,13 +113,14 @@ const loadFiles = async (opts = {}) => {
     console.log("📂 Current Parent ID:", currentParentId);
 
     // Always pass the correct parent_id
-    const params = {
-      ...(selectedUser ? { user_id: selectedUser } : {}),
-    };
+const params = {
+  ...(selectedUser ? { user_id: selectedUser } : {}),
+  ...(opts.search ? { search: opts.search } : {}),  // ← ADD THIS LINE
+};
 
-    const options = {
-      force: opts.force || !!selectedUser,
-    };
+const options = {
+  force: opts.force || !!selectedUser || !!opts.search,  // ← ADD || !!opts.search
+};
 
     console.log("⚙️ API options:", options);
     console.log("📡 Calling fileApi.listFiles with:", {
@@ -121,12 +144,12 @@ const loadFiles = async (opts = {}) => {
     }
 
     // ✅ Filter to only show files/folders from current parent
-    const safeData = data.filter((f) => {
+const safeData = opts.search 
+  ? data  // ← When searching, show all results (no filtering)
+  : data.filter((f) => {  // ← Normal folder filtering when not searching
       if (currentParentId === null) {
-        // At root level, show items with parent_id === 1 or null (depending on your API)
         return f.parent_id === 1 || f.parent_id === null;
       } else {
-        // In subfolder, show items with matching parent_id
         return f.parent_id === currentParentId;
       }
     });
@@ -461,12 +484,7 @@ const handleMove = async (item) => {
   };
 
   // Filter files for current folder search only
-  const displayItems = files.filter((file) => {
-    const matchesSearch = file.name
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase());
-    return matchesSearch;
-  });
+const displayItems = files;  // ← Just display what API returns
 
   // Get current folder for FileUploadModal
   const currentFolder = currentPath.length > 0 
@@ -598,7 +616,7 @@ const handleMove = async (item) => {
                       <div className="relative w-full sm:w-64">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                         <Input
-                          placeholder="Search in current folder..."
+placeholder={searchTerm ? "Searching..." : "Search files..."}
                           className="pl-9 w-full border-border bg-background"
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}

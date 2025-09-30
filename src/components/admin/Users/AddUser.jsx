@@ -64,17 +64,25 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
         name: "",
         email: "",
         password: "",
-        role: "",
+        role: "", // This needs to be the role name string (e.g., "admin")
         folders: [], // Will be array of IDs for API submission
     });
 
+    /**
+     * Effect 1: Handles initial data population on open (mode="edit") or reset (mode="add").
+     */
     useEffect(() => {
         if (isOpen) {
             if (mode === "edit" && initialData) {
-                // Spread initialData into formData state. This is why user_type might appear.
-const { user_type, ...userData } = initialData;
-   setFormData({ ...userData, password: "" });                // Assuming initialData.folders are already correctly structured
-                // This structure must be consistent with what handleFolderSelection returns
+                // Determine the role value and convert to lowercase for the select component.
+                // It handles if initialData.role is an object { name: 'Admin' } or a string 'Admin'.
+                const initialRole = initialData.role;
+                const roleValue = initialRole?.name 
+                    ? initialRole.name.toLowerCase() 
+                    : (typeof initialRole === 'string' ? initialRole.toLowerCase() : "");
+
+                const { user_type, role, ...userData } = initialData; // Destructure `role` explicitly
+                setFormData({ ...userData, password: "", role: roleValue }); 
                 setSelectedFolders(initialData.folders || []);
             } else if (mode === "add") {
                 resetForm();
@@ -82,11 +90,34 @@ const { user_type, ...userData } = initialData;
         }
     }, [isOpen, mode, initialData]);
 
+    /**
+     * Effect 2: Fetches roles when the dialog opens and roles haven't been loaded.
+     */
     useEffect(() => {
         if (isOpen && roles.length === 0) {
             fetchRoles();
         }
     }, [isOpen, roles.length]); 
+
+    /**
+     * Effect 3 (FIX): Ensures role is correctly set after roles are fetched asynchronously.
+     * This is necessary because 'initialData' might load before 'roles' are loaded.
+     */
+    useEffect(() => {
+        if (mode === "edit" && isOpen && roles.length > 0 && initialData) {
+            const initialRoleName = initialData.role?.name || initialData.role; 
+
+            if (initialRoleName) {
+                // Find the role in the fetched list that matches the initial data's role name
+                const roleToSet = roles.find(r => r.name.toLowerCase() === initialRoleName.toLowerCase())?.name.toLowerCase();
+
+                // Only update if the value is different to avoid unnecessary re-renders
+                if (roleToSet && formData.role !== roleToSet) {
+                    setFormData(prev => ({ ...prev, role: roleToSet }));
+                }
+            }
+        }
+}, [roles, mode, isOpen, initialData]);
 
     const fetchRoles = async () => {
         setRolesLoading(true);
@@ -117,9 +148,6 @@ const { user_type, ...userData } = initialData;
 
     /**
      * Handles selection data from FolderSelectionModal.
-     * The modal now returns an object with selected items (and their associated permissions).
-     * Format: { selectedItems: [{ id, name, type, permissions: [...] }], permissions: [...] }
-     * We'll assume the final structure from the modal is an array of items, each containing its permissions.
      */
     const handleFolderSelection = (selectionData) => {
         // The selectionData is the final payload from the modal (selectedItems + Permissions)
@@ -142,6 +170,7 @@ const { user_type, ...userData } = initialData;
         setSubmitError(null);
         setFieldErrors({});
 
+        // Basic form validation
         if (!formData.name.trim() || !formData.email.trim() || !formData.role.trim() || (mode === "add" && !formData.password)) {
             setSubmitError("Please fill in all required fields");
             return;
@@ -155,20 +184,23 @@ const { user_type, ...userData } = initialData;
                 return acc;
             }, {});
 
-            // Use destructuring to explicitly exclude 'id', 'folders' (the old array), and 'user_type'
-            // from the formData, which might contain it if it came from initialData.
-const submitData = {
-  name: formData.name,
-  email: formData.email,
-  role: formData.role,
-  folders: folderPermissionsPayload,
+         const submitData = {
+    name: formData.name,
+    email: formData.email,
+    role: formData.role,
+    folders: folderPermissionsPayload,
 };
 
-// Only add password if it exists
-if (formData.password && formData.password.trim()) {
-  submitData.password = formData.password;
+// Add id if in edit mode
+if (mode === "edit" && formData.id) {
+    submitData.id = formData.id;
 }
-       
+
+            // Only add password if it exists
+            if (formData.password && formData.password.trim()) {
+                submitData.password = formData.password;
+            }
+        
             
             const result = await onSubmit(submitData);
 
@@ -287,16 +319,16 @@ if (formData.password && formData.password.trim()) {
 
                             <div className="space-y-2 col-span-2">
                                 <Label htmlFor="role">Role *</Label>
-                                <Select
-                                    value={formData.role}
-                                    onValueChange={(value) =>
-                                        setFormData((prev) => ({ ...prev, role: value }))
-                                    }
-                                    disabled={rolesLoading}
-                                >
-                                    <SelectTrigger className={fieldErrors.role ? "border-red-500" : ""}>
-                                        <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
-                                    </SelectTrigger>
+                              <Select
+    value={formData.role}
+    onValueChange={(value) =>
+        setFormData((prev) => ({ ...prev, role: value }))
+    }
+    disabled={rolesLoading}
+>
+    <SelectTrigger className={fieldErrors.role ? "border-red-500" : ""}>
+        <SelectValue placeholder={rolesLoading ? "Loading roles..." : "Select role"} />
+    </SelectTrigger>
                                     <SelectContent>
                                         {rolesLoading ? (
                                             <SelectItem value="loading" disabled>
@@ -318,71 +350,73 @@ if (formData.password && formData.password.trim()) {
                                         )}
                                     </SelectContent>
                                 </Select>
-                                {fieldErrors.role && (
-                                    <p className="text-xs text-red-500">{fieldErrors.role[0]}</p>
-                                )}
-                                {!rolesLoading && roles.length === 0 && (
-                                    <p className="text-xs text-muted-foreground text-red-500">
-                                        Unable to load roles. Please try refreshing the page.
-                                    </p>
-                                )}
+{fieldErrors.role && (
+    <p className="text-xs text-red-500">{fieldErrors.role[0]}</p>
+)}
+{!rolesLoading && roles.length === 0 && (
+    <p className="text-xs text-muted-foreground text-red-500">
+        Unable to load roles. Please try refreshing the page.
+    </p>
+)}
                             </div>
 
-                            {/* Folder Selection (FIXED DISPLAY) */}
-                            <div className="space-y-2 col-span-3">
-                                <Label>Folders & Files (Optional)</Label>
-                                <div
-                                    className="border rounded-md w-full p-1 min-h-[40px] flex flex-wrap items-center gap-1.5 transition-shadow"
-                                >
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        onClick={() => setShowFolderModal(true)}
-                                        className={`h-auto px-2 py-0.5 text-sm justify-start text-muted-foreground hover:bg-transparent hover:text-primary ${selectedFolders.length > 0 ? 'order-last' : ''}`}
+                            {/* Folder Selection (CONDITIONAL DISPLAY) - Hidden in edit mode */}
+                            {mode !== "edit" && (
+                                <div className="space-y-2 col-span-3">
+                                    <Label>Folders & Files (Optional)</Label>
+                                    <div
+                                        className="border rounded-md w-full p-1 min-h-[40px] flex flex-wrap items-center gap-1.5 transition-shadow"
                                     >
-                                        <FolderOpen className="h-4 w-4 mr-2" />
-                                        {selectedFolders.length === 0
-                                            ? "Select Folders & Files"
-                                            : `(Edit Selection: ${selectedFolders.length} item${selectedFolders.length === 1 ? '' : 's'})`
-                                        }
-                                    </Button>
-
-                                    {/* Integrated Selected Items (Tags) - FIXED to show item name and permissions */}
-                                    {selectedFolders.map((item) => (
-                                        <div
-                                            key={item.id}
-                                            className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs border border-muted-foreground/20"
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            onClick={() => setShowFolderModal(true)}
+                                            className={`h-auto px-2 py-0.5 text-sm justify-start text-muted-foreground hover:bg-transparent hover:text-primary ${selectedFolders.length > 0 ? 'order-last' : ''}`}
                                         >
-                                            {item.type === 'folder' ? (
-                                                <Folder className="h-3 w-3 text-blue-600" />
-                                            ) : (
-                                                <File className="h-3 w-3 text-gray-600" />
-                                            )}
-                                            <span className="max-w-32 truncate font-medium" title={item.name}>{item.name}</span>
-                                            
-                                            {/* Permissions Indicator */}
-                                            {item.permissions && item.permissions.length > 0 && (
-                                                <span className="flex items-center gap-1 text-green-700 bg-green-100 px-1 rounded-full ml-1">
-                                                    <Shield className="h-3 w-3" />
-                                                    ({item.permissions.length})
-                                                </span>
-                                            )}
+                                            <FolderOpen className="h-4 w-4 mr-2" />
+                                            {selectedFolders.length === 0
+                                                ? "Select Folders & Files"
+                                                : `(Edit Selection: ${selectedFolders.length} item${selectedFolders.length === 1 ? '' : 's'})`
+                                            }
+                                        </Button>
 
-                                            <button
-                                                type="button"
-                                                onClick={() => {
-                                                    const updatedItems = selectedFolders.filter(f => f.id !== item.id);
-                                                    setSelectedFolders(updatedItems);
-                                                    // Note: We don't need to update formData here, only in handleSubmit
-                                                }}
-                                                className="ml-0.5 hover:text-red-600 p-0.5 rounded-full hover:bg-white/50 transition-colors"
+                                        {/* Integrated Selected Items (Tags) - FIXED to show item name and permissions */}
+                                        {selectedFolders.map((item) => (
+                                            <div
+                                                key={item.id}
+                                                className="flex items-center gap-1 bg-muted px-2 py-0.5 rounded-full text-xs border border-muted-foreground/20"
                                             >
-                                                <X className="h-3 w-3" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                                {item.type === 'folder' ? (
+                                                    <Folder className="h-3 w-3 text-blue-600" />
+                                                ) : (
+                                                    <File className="h-3 w-3 text-gray-600" />
+                                                )}
+                                                <span className="max-w-32 truncate font-medium" title={item.name}>{item.name}</span>
+                                                
+                                                {/* Permissions Indicator */}
+                                                {item.permissions && item.permissions.length > 0 && (
+                                                    <span className="flex items-center gap-1 text-green-700 bg-green-100 px-1 rounded-full ml-1">
+                                                        <Shield className="h-3 w-3" />
+                                                        ({item.permissions.length})
+                                                    </span>
+                                                )}
+
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const updatedItems = selectedFolders.filter(f => f.id !== item.id);
+                                                        setSelectedFolders(updatedItems);
+                                                        // Note: We don't need to update formData here, only in handleSubmit
+                                                    }}
+                                                    className="ml-0.5 hover:text-red-600 p-0.5 rounded-full hover:bg-white/50 transition-colors"
+                                                >
+                                                    <X className="h-3 w-3" />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {/* Password */}
                             <div className="space-y-2 col-span-3">
@@ -438,13 +472,15 @@ if (formData.password && formData.password.trim()) {
                 </DialogContent>
             </Dialog>
 
-            {/* Folder Selection Modal (Now handles and returns rich data) */}
-            <FolderSelectionModal
-                isOpen={showFolderModal}
-                onClose={() => setShowFolderModal(false)}
-                onSelect={handleFolderSelection}
-                selectedItems={selectedFolders}
-            />
+            {/* Folder Selection Modal (Conditionally rendered) */}
+            {mode !== "edit" && (
+                <FolderSelectionModal
+                    isOpen={showFolderModal}
+                    onClose={() => setShowFolderModal(false)}
+                    onSelect={handleFolderSelection}
+                    selectedItems={selectedFolders}
+                />
+            )}
         </>
     );
 }
