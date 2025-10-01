@@ -14,6 +14,7 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState("all"); // single dropdown only
   const { toast } = useToast();
   const queryClient = useQueryClient();
+const [updatingUserId, setUpdatingUserId] = useState(null);
 
   // Fetch all users
   const { data, isLoading, isError, error } = useQuery({
@@ -97,26 +98,53 @@ const Users = () => {
     }
   };
 
-  // Update user
-  const updateUserMutation = useMutation({
-    mutationFn: async (data) => await userService.update(data.id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({ title: "Success", description: "User updated successfully" });
-    },
-    onError: (error) => {
-      console.error("Update user error:", error);
-      const errorMessage =
-        error?.response?.data?.message || error?.message || "Failed to update user";
-      toast({ title: "Error", description: errorMessage, variant: "destructive" });
-    },
-  });
 
-  const handleUpdateUser = (userData) => {
-    if (userData.id) {
-      updateUserMutation.mutate(userData);
+
+const handleUpdateUser = async (userData) => {
+  if (!userData.id) {
+    return { success: false, message: "User ID is required" };
+  }
+  
+  // Set loading state
+  setUpdatingUserId(userData.id);
+  
+  try {
+    const result = await userService.update(userData.id, userData);
+    
+    if (result && result.success !== false) {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ 
+        title: "Success", 
+        description: "User updated successfully" 
+      });
+      return { success: true };
+    } else {
+      return {
+        success: false,
+        message: result?.message || "Failed to update user",
+        errors: result?.errors || {},
+      };
     }
-  };
+  } catch (error) {
+    console.error("Update user error:", error);
+    
+    if (error?.response?.data) {
+      return {
+        success: false,
+        message: error.response.data.message || "Failed to update user",
+        errors: error.response.data.errors || {},
+      };
+    }
+    
+    return {
+      success: false,
+      message: error?.message || "Failed to update user",
+    };
+  } finally {
+    // Clear loading state
+    setUpdatingUserId(null);
+  }
+};
 
   // Helpers
   const getUserRole = (user) => {
@@ -206,6 +234,8 @@ const Users = () => {
         roleFilter={roleFilter}
         setRoleFilter={setRoleFilter}
         filteredUsers={filteredUsers}
+        handleUpdateUser={handleUpdateUser} 
+        updatingUserId={updatingUserId}
       />
     </div>
   );

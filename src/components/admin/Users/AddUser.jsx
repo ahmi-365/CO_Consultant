@@ -203,18 +203,16 @@ if (mode === "edit" && formData.id) {
         
             
             const result = await onSubmit(submitData);
+if (result?.success === true || result?.id) {
+  setIsOpen(false);
+  resetForm();
+} else {
+  if (result?.errors) {
+    setFieldErrors(result.errors);
+  }
+  setSubmitError(result?.message || "Failed to save user. Please try again.");
+}
 
-            if (result && result.success === true) {
-                setIsOpen(false);
-                resetForm();
-            } else if (result && result.success === false) {
-                if (result.errors) {
-                    setFieldErrors(result.errors);
-                }
-                setSubmitError(result.message || "Failed to save user. Please try again.");
-            } else {
-                setSubmitError("Failed to save user. Please try again.");
-            }
         } catch (error) {
             console.error("Submit error:", error);
             const message = error.response?.data?.message || error.message || "An unexpected error occurred. Please try again.";
@@ -454,19 +452,19 @@ if (mode === "edit" && formData.id) {
                             <Button type="button" variant="outline" onClick={handleClose} className="flex-1">
                                 Cancel
                             </Button>
-                            <Button
-                                type="submit"
-                                disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)}
-                                className="flex-1"
-                            >
-                                {isLoading
-                                    ? mode === "edit"
-                                        ? "Updating..."
-                                        : "Creating..."
-                                    : mode === "edit"
-                                        ? "Update User"
-                                        : "Create User"}
-                            </Button>
+                           <Button
+  type="submit"
+  disabled={isLoading || rolesLoading || (roles.length === 0 && !rolesLoading)}
+  className="flex-1"
+>
+  {isLoading
+    ? mode === "edit"
+      ? "Updating..."
+      : "Creating..."
+    : mode === "edit"
+      ? "Update User"
+      : "Create User"}
+</Button>
                         </div>
                     </form>
                 </DialogContent>

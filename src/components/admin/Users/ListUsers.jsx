@@ -42,13 +42,11 @@ export const UserListComponent = ({
   users,
   searchTerm,
   setSearchTerm,
-  statusFilter,
-  setStatusFilter,
   roleFilter,
   setRoleFilter,
-  userTypeFilter,
-  setUserTypeFilter,
   filteredUsers,
+updatingUserId,
+  handleUpdateUser,
 }) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -56,7 +54,7 @@ export const UserListComponent = ({
   const [selectedUser, setSelectedUser] = useState(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  // Mutation for deleting a user
+  // Mutation for deleting a user (kept as is, correctly using invalidateQueries)
   const deleteUserMutation = useMutation({
     mutationFn: async (id) => {
       return await userService.delete(id);
@@ -79,22 +77,6 @@ export const UserListComponent = ({
     },
   });
 
-  const handleUpdateUser = async (id, data) => {
-    const res = await userService.update(id, data);
-    if (res.success) {
-      toast({
-        title: "User Updated",
-        description: `${data.name} updated successfully`,
-      });
-      fetchUsers();
-    } else {
-      toast({
-        title: "❌ Update Failed",
-        description: res.message,
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleDeleteUser = (userId) => {
     deleteUserMutation.mutate(userId);
@@ -319,8 +301,10 @@ export const UserListComponent = ({
                                   password: "",
                                   role: user.roles?.[0]?.name || "user",
                                 }}
+                                // ✅ USE THE PROP HERE
                                 onSubmit={(updatedUser) =>
-                                  handleUpdateUser(updatedUser.id, {
+                                  handleUpdateUser({
+                                    id: updatedUser.id,
                                     name: updatedUser.name,
                                     email: updatedUser.email,
                                     password: updatedUser.password || undefined,
@@ -440,33 +424,35 @@ export const UserListComponent = ({
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              <UserForm
-                                mode="edit"
-                                initialData={{
-                                  id: user.id,
-                                  name: user.name,
-                                  email: user.email,
-                                  password: "",
-                                  role: user.roles?.[0]?.name || "user",
-                                }}
-                                onSubmit={(updatedUser) =>
-                                  handleUpdateUser(updatedUser.id, {
-                                    name: updatedUser.name,
-                                    email: updatedUser.email,
-                                    password: updatedUser.password || undefined,
-                                    role: updatedUser.role,
-                                  })
-                                }
-                                trigger={
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full justify-start"
-                                  >
-                                    Edit User
-                                  </Button>
-                                }
-                              />
+                            <UserForm
+  mode="edit"
+  initialData={{
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    password: "",
+    role: user.roles?.[0]?.name || "user",
+  }}
+  onSubmit={(updatedUser) =>
+    handleUpdateUser({
+      id: updatedUser.id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      password: updatedUser.password || undefined,
+      role: updatedUser.role,
+    })
+  }
+  isLoading={updatingUserId === user.id} // Add this line
+  trigger={
+    <Button
+      variant="ghost"
+      size="sm"
+      className="w-full justify-start"
+    >
+      Edit User
+    </Button>
+  }
+/>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>
@@ -511,7 +497,6 @@ export const UserListComponent = ({
             )}
           </div>
         </CardContent>
-
       </Card>
 
       {/* ✅ User Details Modal */}
@@ -523,7 +508,3 @@ export const UserListComponent = ({
     </>
   );
 };
-
-function fetchUsers() {
-  throw new Error("Function not implemented.");
-}
