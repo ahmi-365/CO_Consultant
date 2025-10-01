@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { Search, Bell, ChevronRight, Folder, Upload, RefreshCcw, RefreshCw, Menu } from "lucide-react";
+import { Search, ChevronRight, Folder, Upload, RefreshCw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -12,20 +12,8 @@ import NotificationDropdown from "./NotificationDropdown";
 import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
 
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
 
 export default function RefactoredCloudVaultLayout({ children }) {
@@ -34,17 +22,16 @@ export default function RefactoredCloudVaultLayout({ children }) {
   const { folderId } = useParams();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
-
+  // LIFTED SEARCH STATE: This state now controls both search inputs
+  const [searchTerm, setSearchTerm] = useState("");
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadParentId, setUploadParentId] = useState(null);
   const [isNewFolderModalOpen, setIsNewFolderModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // New states for breadcrumb management
   const [folderPath, setFolderPath] = useState([]);
   const [isLoadingPath, setIsLoadingPath] = useState(false);
-  const [allItems, setAllItems] = useState([]); // Store all items for breadcrumb building
+  const [allItems, setAllItems] = useState([]);
 
   const currentPath = location.pathname;
 
@@ -77,10 +64,8 @@ export default function RefactoredCloudVaultLayout({ children }) {
 
     setIsLoadingPath(true);
     try {
-      // Load all items if not already loaded
       let items = allItems.length > 0 ? allItems : await loadAllItems();
 
-      // Create a map of folder ID to folder info
       const folderMap = new Map();
       items.forEach(item => {
         if (item.type === 'folder') {
@@ -92,7 +77,6 @@ export default function RefactoredCloudVaultLayout({ children }) {
         }
       });
 
-      // Build path by traversing up the folder hierarchy
       const path = [];
       let currentId = parseInt(currentFolderId);
 
@@ -104,10 +88,8 @@ export default function RefactoredCloudVaultLayout({ children }) {
           path: `/folder/${folder.id}`
         });
 
-        // Move to parent folder
         currentId = folder.parentId;
 
-        // Prevent infinite loops
         if (path.length > 10) break;
       }
 
@@ -133,17 +115,13 @@ export default function RefactoredCloudVaultLayout({ children }) {
   useEffect(() => {
     loadAllItems();
   }, [loadAllItems]);
+
   const handleLogout = () => {
-    // clear all local storage
     localStorage.clear();
-
-    // optional: agar sirf user related key clear karni ho
-    // localStorage.removeItem("user");
-
     navigate("/login");
     toast.success("Logged out successfully");
 
-    if (isMobile) {
+    if (isMobileSidebarOpen) { 
       setIsMobileSidebarOpen(false);
     }
   };
@@ -158,7 +136,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
         return [{ name: "Trash", path: "/trash" }];
       case "/profile":
         return [{ name: "Profile", path: "/profile" }];
-      case "/":
+      case "/filemanager":
         return [{ name: "My Files", path: "/filemanager" }];
       default:
         if (currentPath.startsWith("/folder/")) {
@@ -169,19 +147,15 @@ export default function RefactoredCloudVaultLayout({ children }) {
     }
   };
 
-  // Enhanced refresh function that triggers both sidebar and file list reload
   const handleRefreshClick = useCallback(async () => {
     setIsRefreshing(true);
 
     try {
-      // Reload all items first
       await loadAllItems();
 
-      // Dispatch custom events for both sidebar and file list to refresh
       window.dispatchEvent(new CustomEvent("refreshSidebar"));
       window.dispatchEvent(new CustomEvent("refreshFileList"));
 
-      // If we're in a folder view, refresh the folder path as well
       if (currentPath.startsWith("/folder/") && folderId) {
         await buildFolderPath(folderId);
       }
@@ -200,9 +174,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
       const response = await fileApi.uploadFile(file, parentId);
       if (response.success) {
         toast.success("File uploaded successfully");
-        // Reload all items for breadcrumb updates
         await loadAllItems();
-        // Trigger refresh of both sidebar and file list
         window.dispatchEvent(new CustomEvent("fileUploaded"));
         window.dispatchEvent(new CustomEvent("refreshSidebar"));
         window.dispatchEvent(new CustomEvent("refreshFileList"));
@@ -224,15 +196,14 @@ export default function RefactoredCloudVaultLayout({ children }) {
     navigate("/customerprofile");
   };
 
-  // Enhanced search function that dispatches correct events
+  // FIX: Stable handler for ALL search inputs
   const handleSearchChange = useCallback((e) => {
     const query = e.target.value;
-    setSearchQuery(query);
+    setSearchTerm(query); // Set the centralized state
 
-    // Determine search mode based on query length and presence
+    // Dispatch event for file list filtering/global search
     const searchMode = query.trim() !== '' ? 'global' : 'local';
 
-    // Dispatch search event with query for global search
     window.dispatchEvent(new CustomEvent("globalSearch", {
       detail: {
         query: query.trim(),
@@ -243,14 +214,11 @@ export default function RefactoredCloudVaultLayout({ children }) {
 
   // Handle folder creation success
   const handleFolderCreated = useCallback(async () => {
-    // Reload all items for breadcrumb updates
     await loadAllItems();
 
-    // Refresh both sidebar and file list
     window.dispatchEvent(new CustomEvent("refreshSidebar"));
     window.dispatchEvent(new CustomEvent("refreshFileList"));
 
-    // Refresh folder path if we're in a folder
     if (currentPath.startsWith("/folder/") && folderId) {
       buildFolderPath(folderId);
     }
@@ -258,15 +226,19 @@ export default function RefactoredCloudVaultLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-      <EnhancedSidebar onUploadClick={handleSidebarUploadClick} />
+      {/* Sidebar - PASSING SEARCH PROPS */}
+      <EnhancedSidebar
+        onUploadClick={handleSidebarUploadClick}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+      />
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col md:ml-60">
         {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Mobile Hamburger Button */}
+            {/* Mobile Sidebar Trigger - ALSO PASSING SEARCH PROPS */}
             <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
               <SheetTrigger asChild>
                 <Button
@@ -278,10 +250,14 @@ export default function RefactoredCloudVaultLayout({ children }) {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="w-[85%] max-w-xs p-0">
-                <EnhancedSidebar onUploadClick={handleSidebarUploadClick} isMobileView={true} />
+                <EnhancedSidebar
+                  onUploadClick={handleSidebarUploadClick}
+                  isMobileView={true}
+                  searchTerm={searchTerm}
+                  setSearchTerm={setSearchTerm}
+                />
               </SheetContent>
             </Sheet>
-
 
             {/* Enhanced Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -297,8 +273,8 @@ export default function RefactoredCloudVaultLayout({ children }) {
                     <button
                       onClick={() => navigate(crumb.path)}
                       className={`hover:text-foreground transition-colors max-w-[150px] truncate ${index === getBreadcrumbPath().length - 1
-                        ? "text-foreground font-medium"
-                        : ""
+                          ? "text-foreground font-medium"
+                          : ""
                         }`}
                       title={crumb.name}
                     >
@@ -324,17 +300,17 @@ export default function RefactoredCloudVaultLayout({ children }) {
               <RefreshCw className="w-4 h-4" />
             </Button>
 
-            {/* Enhanced Search */}
+            {/* Enhanced Search - USING CENTRALIZED STATE */}
             <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search all files..."
-                value={searchQuery}
-                onChange={handleSearchChange}
+                value={searchTerm} // Use the centralized state
+                onChange={handleSearchChange} // Use the stable handler
                 className="pl-10 w-64 bg-input border-border"
                 title="Search across all your files and folders"
               />
-              {searchQuery.trim() !== "" && (
+              {searchTerm.trim() !== "" && (
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                   <div className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
                     Global
