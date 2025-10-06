@@ -28,28 +28,28 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   const location = useLocation();
   const { folderId } = useParams();
   const currentPath = location.pathname;
-  
+
   // Search state - CONTROLLED input value
   const [searchValue, setSearchValue] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
-  
+
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [allItems, setAllItems] = useState([]);
   const [folders, setFolders] = useState([]);
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Debounce timer ref
   const searchTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
-useEffect(() => {
-  // Focus on input when search results change or when the search value is changed
-  if (searchValue && document.activeElement !== searchInputRef.current) {
-    searchInputRef.current?.focus();
-  }
-}, [searchResults, searchValue]); // Trigger whenever search results or searchValue changes
+  useEffect(() => {
+    // Focus on input when search results change or when the search value is changed
+    if (searchValue && document.activeElement !== searchInputRef.current) {
+      searchInputRef.current?.focus();
+    }
+  }, [searchResults, searchValue]); // Trigger whenever search results or searchValue changes
 
   const [uploadTargetFolder, setUploadTargetFolder] = useState({
     id: null,
@@ -133,29 +133,29 @@ useEffect(() => {
     }
   }, []);
 
-const handleSearchChange = useCallback((e) => {
-  const value = e.target.value;
-  setSearchValue(value); // Update displayed value immediately
+  const handleSearchChange = useCallback((e) => {
+    const value = e.target.value;
+    setSearchValue(value); // Update displayed value immediately
 
-  // Clear previous timeout
-  if (searchTimeoutRef.current) {
-    clearTimeout(searchTimeoutRef.current);
-  }
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
 
-  if (!value || value.trim() === "") {
-    setSearchResults([]);
-    setIsSearching(false);
-    return;
-  }
+    if (!value || value.trim() === "") {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
+    }
 
-  // Show searching state immediately
-  setIsSearching(true);
+    // Show searching state immediately
+    setIsSearching(true);
 
-  // Debounce the actual API call
-  searchTimeoutRef.current = setTimeout(() => {
-    performBackendSearch(value);
-  }, 500);
-}, [performBackendSearch]);
+    // Debounce the actual API call
+    searchTimeoutRef.current = setTimeout(() => {
+      performBackendSearch(value);
+    }, 500);
+  }, [performBackendSearch]);
 
   const handleClearSearch = useCallback(() => {
     setSearchValue("");
@@ -343,11 +343,10 @@ const handleSearchChange = useCallback((e) => {
           </button>
           <button
             onClick={() => handleFolderClick(folder.id)}
-            className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors group ${
-              isCurrentFolder
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors group ${isCurrentFolder
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
             style={{ marginLeft: `${level * (isMobile || isMobileView ? 12 : 16)}px` }}
           >
             {isExpanded ? (
@@ -438,11 +437,10 @@ const handleSearchChange = useCallback((e) => {
           <nav className="space-y-1 p-2">
             <button
               onClick={() => handleNavigationClick("/dashboard")}
-              className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
-                isActive("/dashboard")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
+              className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/dashboard")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                }`}
             >
               <BarChart3 className="w-4 h-4" />
               <span className="text-sm">Dashboard</span>
@@ -450,41 +448,40 @@ const handleSearchChange = useCallback((e) => {
 
             <button
               onClick={() => handleNavigationClick("/filemanager")}
-              className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${
-                isActive("/filemanager")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-              }`}
+              className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/filemanager")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                }`}
             >
               <Home className="w-4 h-4" />
               <span className="text-sm">Home</span>
             </button>
           </nav>
 
-        <div className="px-2 pb-2">
-    <div className="relative">
-      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sidebar-foreground/60" />
-      <Input
-        ref={searchInputRef}
-        type="text"
-        placeholder="Search files and folders..."
-        value={searchValue}
-        onChange={handleSearchChange}
-        className="pl-9 pr-8 py-1.5 h-9 w-full bg-sidebar-input border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/60 focus:ring-1 focus:ring-sidebar-accent focus:border-sidebar-accent"
-      />
-      {searchValue && !isSearching && (
-        <button
-          onClick={handleClearSearch}
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent rounded"
-        >
-          <X className="w-3 h-3 text-sidebar-foreground/60" />
-        </button>
-      )}
-      {isSearching && (
-        <Loader2 className="absolute right-2 top-1/3 w-3 h-3 animate-spin text-sidebar-foreground/60" />
-      )}
-    </div>
-  </div>
+          <div className="px-2 pb-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sidebar-foreground/60" />
+              <Input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search files and folders..."
+                value={searchValue}
+                onChange={handleSearchChange}
+                className="pl-9 pr-8 py-1.5 h-9 w-full bg-sidebar-input border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/60 focus:ring-1 focus:ring-sidebar-accent focus:border-sidebar-accent"
+              />
+              {searchValue && !isSearching && (
+                <button
+                  onClick={handleClearSearch}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent rounded"
+                >
+                  <X className="w-3 h-3 text-sidebar-foreground/60" />
+                </button>
+              )}
+              {isSearching && (
+                <Loader2 className="absolute right-2 top-1/3 w-3 h-3 animate-spin text-sidebar-foreground/60" />
+              )}
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -529,11 +526,10 @@ const handleSearchChange = useCallback((e) => {
             <div className="mt-4 border-t border-sidebar-border pt-2 space-y-1">
               <button
                 onClick={() => handleNavigationClick("/starred")}
-                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                  isActive("/starred")
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
               >
                 <Star className="w-4 h-4" />
                 <span>Starred</span>
@@ -541,11 +537,10 @@ const handleSearchChange = useCallback((e) => {
 
               <button
                 onClick={() => handleNavigationClick("/trash")}
-                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                  isActive("/trash")
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/trash")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Trash</span>
@@ -553,11 +548,10 @@ const handleSearchChange = useCallback((e) => {
 
               <button
                 onClick={() => handleNavigationClick("/customerprofile")}
-                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${
-                  isActive("/customerprofile")
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
+                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/customerprofile")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
               >
                 <User className="w-4 h-4" />
                 <span>Profile</span>
@@ -589,19 +583,111 @@ const handleSearchChange = useCallback((e) => {
 
   const isCurrentlyMobile = isMobile || isMobileView;
 
-  if (isCurrentlyMobile) {
-    return (
-      <>
-        <SidebarContent isMobileViewProp={true} />
-        <FileUploadModal
-          isOpen={showUploadModal}
-          onClose={() => setShowUploadModal(false)}
-          onFileUploaded={handleFileUploaded}
-          currentFolder={uploadTargetFolder}
-        />
-      </>
-    );
-  }
+ if (isCurrentlyMobile) {
+  return (
+    <>
+      {/* ✅ Mobile Sidebar (icon-only) */}
+      <div className="fixed top-0 left-0 h-full w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 space-y-6 z-50">
+        {/* 🧭 CV Logo / Avatar (Top) */}
+        <div className="w-9 h-9 bg-panel rounded-full flex items-center justify-center text-panel-foreground font-bold text-sm mb-4">
+          CV
+        </div>
+
+        {/* 📊 Dashboard */}
+        <button
+          onClick={() => handleNavigationClick("/dashboard")}
+          className={`p-2 rounded-md transition-colors ${
+            isActive("/dashboard")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+          }`}
+        >
+          <BarChart3 className="w-5 h-5" />
+        </button>
+
+        {/* 🏠 Home */}
+        <button
+          onClick={() => handleNavigationClick("/filemanager")}
+          className={`p-2 rounded-md transition-colors ${
+            isActive("/filemanager")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+          }`}
+        >
+          <Home className="w-5 h-5" />
+        </button>
+
+        {/* ⭐ Starred */}
+        <button
+          onClick={() => handleNavigationClick("/starred")}
+          className={`p-2 rounded-md transition-colors ${
+            isActive("/starred")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+          }`}
+        >
+          <Star className="w-5 h-5" />
+        </button>
+
+        {/* 🗑️ Trash */}
+        <button
+          onClick={() => handleNavigationClick("/trash")}
+          className={`p-2 rounded-md transition-colors ${
+            isActive("/trash")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+          }`}
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
+
+        {/* 👤 Profile */}
+        <button
+          onClick={() => handleNavigationClick("/customerprofile")}
+          className={`p-2 rounded-md transition-colors ${
+            isActive("/customerprofile")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+          }`}
+        >
+          <User className="w-5 h-5" />
+        </button>
+
+        {/* 🧭 Spacer pushes below icons down */}
+        <div className="flex-1" />
+
+        {/* ⬇️ Bottom Section */}
+        <div className="flex flex-col items-center space-y-4 mt-auto">
+          {/* 📤 Upload */}
+          <button
+            onClick={() => setShowUploadModal(true)}
+            className="p-2 rounded-md transition-colors bg-panel text-panel-foreground hover:bg-panel/90"
+          >
+            <Upload className="w-5 h-5" />
+          </button>
+
+          {/* 🚪 Logout */}
+          <button
+            onClick={handleLogout}
+            className="p-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent/50"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+
+      {/* ✅ Upload Modal (same as desktop) */}
+      <FileUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onFileUploaded={handleFileUploaded}
+        currentFolder={uploadTargetFolder}
+      />
+    </>
+  );
+}
+
+
 
   return (
     <>

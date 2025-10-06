@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { Star, Share2, FileText, Archive, Image, Video, File, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { starService } from "../../services/Starredservice"; // Your API service
+import { starService } from "../../services/Starredservice";
 
 const getFileIcon = (type) => {
-  const iconClass = "w-5 h-5 mr-3 transition-colors duration-200";
+  const iconClass = "w-5 h-5 transition-colors duration-200";
   switch (type) {
     case "document":
       return <FileText className={`${iconClass} text-blue-500`} />;
@@ -84,13 +84,11 @@ export default function StarredPage() {
   };
 
   const getFileLocationPath = (fileId, parentId, filePath) => {
-    // Use parent_id directly, or extract from path as fallback
     const parentFolderId = parentId || extractParentFolderFromPath(filePath);
     
     if (parentFolderId) {
       return `/folder/${parentFolderId}`;
     } else {
-      // Fallback to root directory
       return `/`;
     }
   };
@@ -98,10 +96,8 @@ export default function StarredPage() {
   const extractParentFolderFromPath = (filePath) => {
     if (!filePath) return null;
     
-    // Extract parent folder ID from path like "/folder1/folder2/file.txt"
     const pathParts = filePath.split('/').filter(part => part.length > 0);
     if (pathParts.length > 1) {
-      // Return the last folder in the path (immediate parent)
       return pathParts[pathParts.length - 2];
     }
     return null;
@@ -124,11 +120,11 @@ export default function StarredPage() {
       >
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-        <Link to={linkPath} className="block relative px-6 py-4">
-          {/* ✅ Desktop Layout */}
-          <div className="hidden sm:grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm items-center">
+        <Link to={linkPath} className="block relative">
+          {/* Desktop Layout - Unchanged */}
+          <div className="hidden sm:grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm items-center px-6 py-4">
             <div className="col-span-6 lg:col-span-1 flex items-center min-w-0">
-              <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
+              <div className="flex-shrink-0 mr-3">{getFileIcon(file.type)}</div>
               <span className="text-foreground font-medium truncate group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors duration-200">
                 {file.name}
               </span>
@@ -155,36 +151,47 @@ export default function StarredPage() {
             </div>
           </div>
 
-          {/* ✅ Mobile Layout */}
-          <div className="sm:hidden flex flex-col space-y-3">
-            {/* Top Row */}
-            <div className="flex items-center space-x-3">
-              <div className="flex-shrink-0">{getFileIcon(file.type)}</div>
-              <span className="text-foreground font-medium truncate">{file.name}</span>
-            </div>
+          {/* Mobile Layout - Fixed */}
+          <div className="sm:hidden p-4">
+            <div className="flex items-start gap-3">
+              {/* Icon and File Info */}
+              <div className="flex-shrink-0 mt-0.5">
+                {getFileIcon(file.type)}
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="text-foreground font-medium text-sm mb-2 break-words">
+                  {file.name}
+                </div>
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div>By {file.user_id}</div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span>{file.updated_at}</span>
+                    <span>•</span>
+                    <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded">
+                      {file.size}
+                    </span>
+                  </div>
+                </div>
+              </div>
 
-            {/* Info Row */}
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>By {file.user_id}</span>
-              <span>{file.updated_at}</span>
-              <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">{file.size}</span>
-            </div>
-
-            {/* Actions Row */}
-            <div className="flex justify-end gap-3">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => { 
-                  e.preventDefault();
-                  e.stopPropagation(); 
-                  handleToggleStar(file.id); 
-                }}
-                className="h-10 w-10 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                title="Remove from starred"
-              >
-                <Star className="h-5 w-5 fill-current text-yellow-500" />
-              </Button>
+              {/* Star Button */}
+              <div className="flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => { 
+                    e.preventDefault();
+                    e.stopPropagation(); 
+                    handleToggleStar(file.id); 
+                  }}
+                  className="h-9 w-9 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  title="Remove from starred"
+                >
+                  <Star className="h-4 w-4 fill-current text-yellow-500" />
+                </Button>
+              </div>
             </div>
           </div>
         </Link>
@@ -197,10 +204,7 @@ export default function StarredPage() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-16 space-y-4">
-        {/* Single ring loader */}
         <div className="w-10 h-10 border-4 border-muted-foreground/30 border-t-muted-foreground rounded-full animate-spin"></div>
-
-        {/* Loader text */}
         <div className="text-center text-muted-foreground font-medium tracking-wide">
           Loading starred files...
         </div>

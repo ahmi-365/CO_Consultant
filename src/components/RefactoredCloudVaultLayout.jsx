@@ -234,12 +234,12 @@ export default function RefactoredCloudVaultLayout({ children }) {
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col md:ml-60">
+      <div className="flex-1 flex flex-col md:ml-60 ml-16 transition-all duration-300">
         {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             {/* Mobile Sidebar Trigger - ALSO PASSING SEARCH PROPS */}
-            <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
+            {/* <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
               <SheetTrigger asChild>
                 <Button
                   variant="ghost"
@@ -257,7 +257,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
                   setSearchTerm={setSearchTerm}
                 />
               </SheetContent>
-            </Sheet>
+            </Sheet> */}
 
             {/* Enhanced Breadcrumb */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
