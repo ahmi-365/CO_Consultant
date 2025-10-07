@@ -1,35 +1,136 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Download, FileText, Users, Activity, TrendingUp, BarChart3 } from "lucide-react";
+import { Calendar as CalendarIcon, Download, FileText, Users, Activity, TrendingUp, BarChart3, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 const reportTypes = [
-  { id: "user-activity", name: "User Activity Report", description: "Detailed user engagement and file access logs", icon: Activity },
-  { id: "storage-usage", name: "Storage Usage Report", description: "Storage consumption by users and file types", icon: BarChart3 },
-  { id: "file-access", name: "File Access Report", description: "File downloads, views, and modifications", icon: FileText },
-  { id: "team-overview", name: "Team Overview Report", description: "Comprehensive team performance metrics", icon: Users },
+  { id: "user_activity", name: "User Activity Report", description: "Detailed user engagement and file access logs", icon: Activity },
+  { id: "storage_usage", name: "Storage Usage Report", description: "Storage consumption by users and file types", icon: BarChart3 },
+  { id: "file_history", name: "File History Report", description: "File downloads, views, and modifications", icon: FileText },
 ];
 
-const recentReports = [
-  { name: "Monthly User Activity - November 2024", type: "User Activity", generated: "2 hours ago", size: "2.4 MB", status: "Ready" },
-  { name: "Storage Usage Analysis - Q4 2024", type: "Storage Usage", generated: "1 day ago", size: "1.8 MB", status: "Ready" },
-  { name: "File Access Summary - Week 45", type: "File Access", generated: "3 days ago", size: "950 KB", status: "Ready" },
-  { name: "Team Performance - October 2024", type: "Team Overview", generated: "1 week ago", size: "3.2 MB", status: "Archived" },
-];
+const reportsService = {
+  async getReports() {
+    const token = localStorage.getItem('token');
+    const url = `${API_URL}/reports`;
+
+    if (!token) {
+      throw new Error("No auth token found");
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      }
+
+      const result = await response.json().catch(() => null);
+      return result?.data || result;
+
+    } catch (err) {
+      console.error('Reports fetch error:', err);
+      throw err;
+    }
+  },
+
+  async generateReport(payload) {
+    const token = localStorage.getItem('token');
+    const url = `${API_URL}/reports/generate`;
+
+    if (!token) {
+      throw new Error("No auth token found");
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Request failed with status ${response.status}`);
+      }
+
+      const result = await response.json().catch(() => null);
+      return result?.data || result;
+
+    } catch (err) {
+      console.error('Report generation error:', err);
+      throw err;
+    }
+  },
+};
+
+const getReportTypeName = (type) => {
+  const reportType = reportTypes.find(rt => rt.id === type);
+  return reportType ? reportType.name : type;
+};
+
+const formatRelativeTime = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 60) return `${diffMins} minutes ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  return `${diffDays} days ago`;
+};
 
 export default function Reports() {
   const [selectedReport, setSelectedReport] = useState("");
-  const [dateRange, setDateRange] = useState("last-30-days");
   const [startDate, setStartDate] = useState();
   const [endDate, setEndDate] = useState();
   const [isGenerating, setIsGenerating] = useState(false);
+  const [recentReports, setRecentReports] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const fetchReports = async () => {
+    try {
+      setIsLoading(true);
+      const result = await reportsService.getReports();
+      
+      if (result?.data) {
+        setRecentReports(result.data);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to fetch reports. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleGenerateReport = async () => {
     if (!selectedReport) {
@@ -41,47 +142,126 @@ export default function Reports() {
       return;
     }
 
-    setIsGenerating(true);
-    
-    // Simulate report generation
-    setTimeout(() => {
-      setIsGenerating(false);
+    if (!startDate || !endDate) {
       toast({
-        title: "Report Generated Successfully",
-        description: `Your ${reportTypes.find(r => r.id === selectedReport)?.name} has been generated and is ready for download.`,
+        title: "Date Range Required",
+        description: "Please select both start and end dates.",
+        variant: "destructive",
       });
-    }, 3000);
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const payload = {
+        type: selectedReport,
+        start_date: format(startDate, "yyyy-MM-dd"),
+        end_date: format(endDate, "yyyy-MM-dd"),
+      };
+
+      const result = await reportsService.generateReport(payload);
+
+      if (result) {
+        toast({
+          title: "Report Generated Successfully",
+          description: `Your ${getReportTypeName(selectedReport)} has been generated and is ready for download.`,
+        });
+
+        // Auto-download the generated report
+        if (result.path) {
+          downloadFile(result.path, `${getReportTypeName(selectedReport)}_${format(startDate, "yyyy-MM-dd")}_to_${format(endDate, "yyyy-MM-dd")}`);
+        }
+
+        // Refresh the reports list
+        fetchReports();
+      }
+    } catch (error) {
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate report. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
-  const handleDownloadReport = (reportNam) => {
+  const downloadFile = (reportPath, reportName) => {
+    if (reportPath) {
+      try {
+        const a = document.createElement('a');
+        a.href = reportPath;
+      a.target = "_blank"; 
+      a.rel = "noopener noreferrer"; 
+        a.download = `${reportName.replace(/\s+/g, '_')}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(a);
+        }, 100);
+      } catch (error) {
+        console.error('Download error:', error);
+        toast({
+          title: "Download Failed",
+          description: "Failed to download the report. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const handleDownloadReport = async (reportPath, reportName) => {
+    downloadFile(reportPath, reportName);
     toast({
       title: "Download Started",
-      description: `Downloading ${reportN}...`,
+      description: `Downloading ${reportName}...`,
     });
   };
 
-  const handleExportAll = () => {
+  const handleExportAll = async () => {
+    if (recentReports.length === 0) {
+      toast({
+        title: "No Reports Available",
+        description: "There are no reports to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Bulk Export Started", 
-      description: "All reports are being prepared for download. This may take a few minutes.",
+      description: "All reports are being prepared for download. This may take a few moments.",
     });
+
+    // Download each report
+    for (let i = 0; i < recentReports.length; i++) {
+      const report = recentReports[i];
+      await new Promise(resolve => setTimeout(resolve, i * 500)); // Stagger downloads
+      await handleDownloadReport(report.path, `${getReportTypeName(report.type)}_${format(new Date(report.created_at), "yyyy-MM-dd")}`);
+    }
   };
 
   return (
     <div className="p-8">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
-  <div>
-    <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports & Analytics</h1>
-    <p className="text-sm sm:text-base text-muted-foreground mt-1">
-      Generate and manage system reports
-    </p>
-  </div>
-  <Button onClick={handleExportAll} className="self-start sm:self-auto flex items-center gap-2">
-    <Download className="h-4 w-4" />
-    Export All
-  </Button>
-</div>
-
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Reports & Analytics</h1>
+          <p className="text-sm sm:text-base text-muted-foreground mt-1">
+            Generate and manage system reports
+          </p>
+        </div>
+        <Button 
+          onClick={handleExportAll} 
+          className="self-start sm:self-auto flex items-center gap-2"
+          disabled={recentReports.length === 0}
+        >
+          <Download className="h-4 w-4" />
+          Export All
+        </Button>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
@@ -115,63 +295,50 @@ export default function Reports() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Date Range</label>
-                  <Select value={dateRange} onValueChange={setDateRange}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="last-7-days">Last 7 days</SelectItem>
-                      <SelectItem value="last-30-days">Last 30 days</SelectItem>
-                      <SelectItem value="last-90-days">Last 90 days</SelectItem>
-                      <SelectItem value="custom">Custom range</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <label className="text-sm font-medium mb-2 block">Start Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDate ? format(startDate, "PPP") : "Select start date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={startDate}
+                        onSelect={setStartDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
 
-                {dateRange === "custom" && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {startDate ? format(startDate, "PPP") : "Start date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={startDate}
-                          onSelect={setStartDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="justify-start text-left font-normal">
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {endDate ? format(endDate, "PPP") : "End date"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar
-                          mode="single"
-                          selected={endDate}
-                          onSelect={setEndDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                )}
+                <div>
+                  <label className="text-sm font-medium mb-2 block">End Date</label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDate ? format(endDate, "PPP") : "Select end date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={endDate}
+                        onSelect={setEndDate}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
 
               <Button 
                 className="w-full" 
                 size="lg"
-                disabled={!selectedReport}
+                disabled={!selectedReport || !startDate || !endDate || isGenerating}
                 onClick={handleGenerateReport}
               >
                 <TrendingUp className="h-4 w-4 mr-2" />
@@ -181,63 +348,70 @@ export default function Reports() {
           </Card>
 
           <Card>
-  <CardHeader>
-    <CardTitle>Recent Reports</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <div className="space-y-4">
-      {/* Header row */}
-      <div className="hidden md:grid md:grid-cols-5 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-        <div className="col-span-2">Report Name</div>
-        <div>Type</div>
-        <div>Generated</div>
-        <div>Actions</div>
-      </div>
+            <CardHeader>
+              <CardTitle>Recent Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  Loading reports...
+                </div>
+              ) : recentReports.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No reports generated yet. Create your first report above.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="hidden md:grid md:grid-cols-5 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
+                    <div className="col-span-2">Report Name</div>
+                    <div>Type</div>
+                    <div>Generated</div>
+                    <div>Actions</div>
+                  </div>
 
-      {/* Data rows */}
-      {recentReports.map((report, index) => (
-        <div
-          key={index}
-          className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start md:items-center py-3 border-b border-border last:border-0 hover:bg-accent/50 rounded-lg px-2"
-        >
-          {/* Report name + size */}
-          <div className="col-span-2">
-            <div className="font-medium text-sm">{report.name}</div>
-            <div className="text-xs text-muted-foreground">{report.size}</div>
-          </div>
+                  {recentReports.map((report) => (
+                    <div
+                      key={report.id}
+                      className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start md:items-center py-3 border-b border-border last:border-0 hover:bg-gray-200 rounded-lg px-2"
+                    >
+                      <div className="col-span-2">
+                        <div className="font-medium text-sm">
+                          {getReportTypeName(report.type)} - {format(new Date(report.created_at), "MMM dd, yyyy")}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {report.format.toUpperCase()} Format
+                        </div>
+                      </div>
 
-          {/* Report type */}
-          <div>
-            <Badge variant="outline" className="text-xs">
-              {report.type}
-            </Badge>
-          </div>
+                      <div>
+                       <Badge variant="outline" className="text-xs truncate">
+  {getReportTypeName(report.type).replace(/report/i, "").trim()}
+</Badge>
 
-          {/* Generated */}
-          <div className="text-sm text-muted-foreground">{report.generated}</div>
+                      </div>
 
-          {/* Actions */}
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => handleDownloadReport(report.name)}
-            >
-              <Download className="h-3 w-3" />
-            </Button>
-            <Badge
-              variant={report.status === "Ready" ? "default" : "secondary"}
-              className="text-xs"
-            >
-              {report.status}
-            </Badge>
-          </div>
-        </div>
-      ))}
-    </div>
-  </CardContent>
-</Card>
+                      <div className="text-sm text-muted-foreground">
+                        {formatRelativeTime(report.created_at)}
+                      </div>
 
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDownloadReport(report.path, getReportTypeName(report.type))}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                        <Badge variant="default" className="text-xs">
+                          Ready
+                        </Badge>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         <div>
@@ -247,49 +421,49 @@ export default function Reports() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="p-3 border border-border rounded-lg">
-                <div className="text-2xl font-bold">127</div>
-                <div className="text-sm text-muted-foreground">Reports Generated This Month</div>
+                <div className="text-2xl font-bold">{recentReports.length}</div>
+                <div className="text-sm text-muted-foreground">Total Reports Generated</div>
               </div>
               
               <div className="p-3 border border-border rounded-lg">
-                <div className="text-2xl font-bold">2.4 GB</div>
-                <div className="text-sm text-muted-foreground">Total Report Data</div>
+                <div className="text-2xl font-bold">
+                  {recentReports.filter(r => r.type === "storage_usage").length}
+                </div>
+                <div className="text-sm text-muted-foreground">Storage Reports</div>
               </div>
               
               <div className="p-3 border border-border rounded-lg">
-                <div className="text-2xl font-bold">95%</div>
-                <div className="text-sm text-muted-foreground">Report Completion Rate</div>
+                <div className="text-2xl font-bold">
+                  {recentReports.filter(r => r.type === "user_activity").length}
+                </div>
+                <div className="text-sm text-muted-foreground">Activity Reports</div>
               </div>
               
               <div className="p-3 border border-border rounded-lg">
-                <div className="text-2xl font-bold">45 min</div>
-                <div className="text-sm text-muted-foreground">Average Generation Time</div>
+                <div className="text-2xl font-bold">
+                  {recentReports.filter(r => r.type === "file_history").length}
+                </div>
+                <div className="text-sm text-muted-foreground">File History Reports</div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="mt-6">
             <CardHeader>
-              <CardTitle>Scheduled Reports</CardTitle>
+              <CardTitle>Report Types</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                <div className="p-3 border border-border rounded-lg">
-                  <div className="font-medium text-sm">Weekly User Activity</div>
-                  <div className="text-xs text-muted-foreground">Every Monday at 9:00 AM</div>
-                  <Badge variant="secondary" className="text-xs mt-1">Active</Badge>
-                </div>
-                
-                <div className="p-3 border border-border rounded-lg">
-                  <div className="font-medium text-sm">Monthly Storage Report</div>
-                  <div className="text-xs text-muted-foreground">1st of every month</div>
-                  <Badge variant="secondary" className="text-xs mt-1">Active</Badge>
-                </div>
+                {reportTypes.map((type) => (
+                  <div key={type.id} className="p-3 border border-border rounded-lg">
+                    <div className="flex items-center gap-2 mb-1">
+                      <type.icon className="h-4 w-4" />
+                      <div className="font-medium text-sm">{type.name}</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{type.description}</div>
+                  </div>
+                ))}
               </div>
-              
-              <Button variant="outline" className="w-full mt-4" size="sm">
-                Manage Schedules
-              </Button>
             </CardContent>
           </Card>
         </div>

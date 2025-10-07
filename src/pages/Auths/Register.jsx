@@ -8,7 +8,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Eye, EyeOff } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { authService } from "@/services/Auth-service"
+import { useNavigate } from "react-router-dom"
 export default function RegisterPage() {
+    const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -38,56 +40,71 @@ export default function RegisterPage() {
     if (!acceptTerms) return "Please accept the terms and conditions"
     return null
   }
-  const handleSubmit = async (e) => {
-    e.preventDefault()
+const handleSubmit = async (e) => {
+  e.preventDefault()
 
-    const validationError = validateForm()
-    if (validationError) {
-      toast({
-        title: "Registration Error",
-        description: validationError,
-        variant: "destructive",
-      })
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      const response = await authService.register({
-        name: `${formData.firstName} ${formData.lastName}`.trim(),
-        email: formData.email,
-        password: formData.password,
-      })
-
-      if (response.success) {
-        setSuccess(true)
-        toast({
-          title: "Account Created 🎉",
-          description: "Redirecting to dashboard...",
-        })
-
-        setTimeout(() => {
-          window.location.href = "/filemanager" // ✅ redirect to file manager
-        }, 2000)
-      } else {
-        toast({
-          title: "Registration Failed",
-          description: response.message || "Something went wrong",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Unexpected Error",
-        description: "Please try again later",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
+  const validationError = validateForm()
+  if (validationError) {
+    toast({
+      title: "Registration Error",
+      description: validationError,
+      variant: "destructive",
+    })
+    return
   }
 
+  setIsLoading(true)
+
+  try {
+    const response = await authService.register({
+      name: `${formData.firstName} ${formData.lastName}`.trim(),
+      email: formData.email,
+      password: formData.password,
+    })
+
+    console.log("Full API Response:", response); // Add this for debugging
+
+    // Check for success - adjust based on actual response structure
+    if (response.status === "success" || response.data?.status === "success") {
+      // Save token and user data to localStorage
+      const token = response.authorisation?.token || response.data?.authorisation?.token;
+      const user = response.user || response.data?.user;
+
+      if (token && user) {
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+      }
+
+      setSuccess(true)
+      toast({
+        title: "Account Created 🎉",
+        description: "Redirecting to file manager...",
+      })
+
+      // Navigate to filemanager after successful registration
+      setTimeout(() => {
+        navigate('/filemanager', { replace: true });
+      }, 1500);
+      
+    } else {
+      console.log("Registration failed with response:", response);
+      toast({
+        title: "Registration Failed",
+        description: response.message || response.data?.message || "Something went wrong",
+        variant: "destructive",
+      })
+    }
+  } catch (error) {
+    console.log("Registration error:", error);
+    toast({
+      title: "Unexpected Error",
+      description: error.message || "Please try again later",
+      variant: "destructive",
+    })
+  } finally {
+    setIsLoading(false)
+  }
+}
 
   return (
     <div className="h-screen flex overflow-hidden">
@@ -278,49 +295,6 @@ export default function RegisterPage() {
               >
                 {isLoading ? "Creating Account..." : "Create Account"}
               </Button>
-              {/* <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-background text-muted-foreground">Or sign in with</span>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Button
-                  type="button"
-                  className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
-                >
-                  <img
-                    src="https://www.svgrepo.com/show/355037/google.svg"
-                    alt="Google"
-                    className="w-4 h-4"
-                  />
-                  <span className="text-sm font-medium">Google</span>
-                </Button>
-
-                <Button
-                  type="button"
-                  className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-[#1877F2] text-white hover:bg-[#166FE0] shadow-sm transition-colors"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 
-              5.373-12 12c0 5.99 4.388 10.954 10.125 
-              11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 
-              1.792-4.669 4.533-4.669 1.312 0 
-              2.686.235 2.686.235v2.953H15.83c-1.491 
-              0-1.956.925-1.956 1.874v2.25h3.328l-.532 
-              3.47h-2.796v8.385C19.612 23.027 24 
-              18.062 24 12.073z" />
-                  </svg>
-                  <span className="text-sm font-medium">Facebook</span>
-                </Button>
-              </div> */}
-
               {/* Login Redirect */}
               <div className="text-center pt-1">
                 <span className="text-xs text-gray-600">Already have an account? </span>

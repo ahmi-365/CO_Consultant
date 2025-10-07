@@ -68,7 +68,7 @@ export default function FileManagement() {
   const [itemToMove, setItemToMove] = useState(null);
 const [searchDebounceTimer, setSearchDebounceTimer] = useState(null); // ← ADD THIS LINE
   const { toast } = useToast();
-
+const base_url = import.meta.env.VITE_API_URL ;
   useEffect(() => {
     loadFiles();
   }, [currentPath, selectedUser]);
@@ -101,73 +101,97 @@ useEffect(() => {
       loadAvailableFolders();
     }
   }, [isMoveDialogOpen]);
+const handleIframeUpdate = async (itemId, iframeUrl) => {
+  try {
+    const response = await fetch(`${base_url}/onedrive/update-iframe/${itemId}`, {
+      method: 'POST',
+     headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        iframe_url: iframeUrl
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.status === 'ok') {
+      // Update your local state here to reflect the change
+      // For example, update the item in your files array
+      setFiles(prevFiles => 
+        prevFiles.map(file => 
+          file.id === itemId 
+            ? { ...file, iframe_url: iframeUrl }
+            : file
+        )
+      );
+      return data;
+    } else {
+      throw new Error(data.message || 'Failed to update iframe');
+    }
+  } catch (error) {
+    throw error;
+  }
+};
 
 const loadFiles = async (opts = {}) => {
   console.log("🔄 loadFiles called with opts:", opts);
-
   setLoading(true);
+  
   try {
-    const currentParentId =
-      currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+    const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+    
+    const params = {
+      ...(selectedUser ? { user_id: selectedUser } : {}),
+      ...(opts.search ? { search: opts.search } : {}),
+    };
 
-    console.log("📂 Current Parent ID:", currentParentId);
+    const options = {
+      force: opts.force || !!selectedUser || !!opts.search,
+    };
 
-    // Always pass the correct parent_id
-const params = {
-  ...(selectedUser ? { user_id: selectedUser } : {}),
-  ...(opts.search ? { search: opts.search } : {}),  // ← ADD THIS LINE
-};
-
-const options = {
-  force: opts.force || !!selectedUser || !!opts.search,  // ← ADD || !!opts.search
-};
-
-    console.log("⚙️ API options:", options);
-    console.log("📡 Calling fileApi.listFiles with:", {
-      parentId: currentParentId,
-      params,
-      options,
-    });
-
+    console.log("📡 API call params:", { currentParentId, params, options });
+    
     const response = await fileApi.listFiles(currentParentId, params, options);
-    console.log("✅ API Response raw:", response);
-
-    // Extract data from response - handle both direct array and object with data property
-    let data;
+    console.log("✅ Full API Response:", response);
+    
+    // SIMPLIFIED response handling
+    let data = [];
     if (Array.isArray(response)) {
       data = response;
-    } else if (response && Array.isArray(response.data)) {
-      data = response.data;
-    } else {
-      console.error("❌ Unexpected response format:", response);
-      data = [];
+    } else if (response?.data) {
+      data = Array.isArray(response.data) ? response.data : [response.data];
+    } else if (response?.files) {
+      data = Array.isArray(response.files) ? response.files : [response.files];
     }
+    
+    console.log("📊 Extracted data:", data);
+    console.log("📊 Data length:", data.length);
+    
+    // Apply filtering only when NOT searching
+    const safeData = opts.search 
+      ? data  
+      : data.filter((f) => {
+          if (currentParentId === null) {
+            return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
+          } else {
+            return f.parent_id === currentParentId;
+          }
+        });
 
-    // ✅ Filter to only show files/folders from current parent
-const safeData = opts.search 
-  ? data  // ← When searching, show all results (no filtering)
-  : data.filter((f) => {  // ← Normal folder filtering when not searching
-      if (currentParentId === null) {
-        return f.parent_id === 1 || f.parent_id === null;
-      } else {
-        return f.parent_id === currentParentId;
-      }
-    });
-
-    console.log("📊 Safe Data (files count):", safeData.length);
-    console.log("📊 Filtered files:", safeData);
-
+    console.log("🎯 Final files to display:", safeData);
     setFiles(safeData);
+    
   } catch (error) {
     console.error("❌ Failed to load files:", error);
     toast({
       title: "Error",
-      description: "Failed to load files. Please check your authentication.",
+      description: "Failed to load files",
       variant: "destructive",
     });
     setFiles([]);
   } finally {
-    console.log("🏁 loadFiles finished");
     setLoading(false);
   }
 };
@@ -676,6 +700,7 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
                                 isDeleting={isDeleting[item.id]}
                                 isDownloading={isDownloading[item.id]}
                                 isRenaming={isRenaming[item.id]}
+  onIframeUpdate={handleIframeUpdate}
                               />
                             </DragDropZone>
                           </div>

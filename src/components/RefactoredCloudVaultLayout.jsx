@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Search, ChevronRight, Folder, Upload, RefreshCw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import AvatarImage
 import EnhancedSidebar from "./EnhancedSidebar";
 import EnhancedFileList from "./EnhancedFileList";
 import FileUploadModal from "./FileUploadModal";
@@ -15,12 +15,14 @@ import { toast } from "sonner";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 
-
 export default function RefactoredCloudVaultLayout({ children }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { folderId } = useParams();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
+
+  // Add user state
+  const [user, setUser] = useState(null);
 
   // LIFTED SEARCH STATE: This state now controls both search inputs
   const [searchTerm, setSearchTerm] = useState("");
@@ -34,6 +36,55 @@ export default function RefactoredCloudVaultLayout({ children }) {
   const [allItems, setAllItems] = useState([]);
 
   const currentPath = location.pathname;
+
+  // Load user data on component mount
+  useEffect(() => {
+    const loadUserData = async () => {
+      try {
+        // Replace this with your actual user data fetching logic
+        // This could be from context, localStorage, or an API call
+        const userData = await getUserData(); // You'll need to implement this
+        setUser(userData);
+      } catch (error) {
+        console.error("Error loading user data:", error);
+      }
+    };
+
+    loadUserData();
+  }, []);
+
+  // Function to get user initials
+  const getUserInitials = (user) => {
+    if (!user) return "U";
+    
+    const firstName = user.name || "";
+    const lastName = user.last_name || "";
+    
+    if (firstName && lastName) {
+      return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+    } else if (firstName) {
+      return firstName.charAt(0).toUpperCase();
+    } else if (user.email) {
+      return user.email.charAt(0).toUpperCase();
+    }
+    
+    return "U";
+  };
+
+  // Function to get user display name
+  const getUserDisplayName = (user) => {
+    if (!user) return "User";
+    
+    if (user.name && user.last_name) {
+      return `${user.name} ${user.last_name}`;
+    } else if (user.name) {
+      return user.name;
+    } else if (user.email) {
+      return user.email.split('@')[0];
+    }
+    
+    return "User";
+  };
 
   // Load all items for breadcrumb building
   const loadAllItems = useCallback(async () => {
@@ -238,28 +289,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
         {/* Header */}
         <header className="bg-background border-b border-border px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            {/* Mobile Sidebar Trigger - ALSO PASSING SEARCH PROPS */}
-            {/* <Sheet open={isMobileSidebarOpen} onOpenChange={setIsMobileSidebarOpen}>
-              <SheetTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="md:hidden bg-background/80 backdrop-blur-sm border shadow-sm"
-                >
-                  <Menu className="w-5 h-5" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[85%] max-w-xs p-0">
-                <EnhancedSidebar
-                  onUploadClick={handleSidebarUploadClick}
-                  isMobileView={true}
-                  searchTerm={searchTerm}
-                  setSearchTerm={setSearchTerm}
-                />
-              </SheetContent>
-            </Sheet> */}
-
-            {/* Enhanced Breadcrumb */}
+            {/* Breadcrumb code remains the same */}
             <nav className="flex items-center gap-2 text-sm text-muted-foreground">
               {isLoadingPath && currentPath.startsWith("/folder/") ? (
                 <div className="flex items-center gap-2">
@@ -322,12 +352,19 @@ export default function RefactoredCloudVaultLayout({ children }) {
             {/* Notifications */}
             <NotificationDropdown />
 
-            {/* User Avatar */}
+            {/* Updated User Avatar with Profile Photo */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer">
+                  {user?.profile_photo ? (
+                    <AvatarImage 
+                      src={user.profile_photo} 
+                      alt={getUserDisplayName(user)}
+                      className="object-cover"
+                    />
+                  ) : null}
                   <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
-                    U
+                    {getUserInitials(user)}
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
@@ -347,8 +384,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
           </div>
         </header>
 
-
-        {/* Page Content */}
+        {/* Rest of the component remains the same */}
         <main className="flex-1 p-6">
           {children || (
             <div className="space-y-6">
@@ -418,13 +454,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
       </div>
 
       {/* Upload Modal */}
-      <FileUploadModal
-        isOpen={isUploadModalOpen}
-        onClose={() => setIsUploadModalOpen(false)}
-        onUpload={(file) => handleFileUpload(file, uploadParentId)}
-        parentId={uploadParentId}
-      />
-
+      
       {/* New Folder Modal */}
       <NewFolderModal
         isOpen={isNewFolderModalOpen}
@@ -433,6 +463,20 @@ export default function RefactoredCloudVaultLayout({ children }) {
         parentId={folderId || null}
       />
     </div>
-
   );
+}
+
+// You'll need to implement this function based on how you get user data
+async function getUserData() {
+  // This could be from localStorage, context, or an API call
+  // Example from localStorage:
+  const userData = localStorage.getItem('user');
+  if (userData) {
+    return JSON.parse(userData);
+  }
+  
+  // Or from an API call:
+  // return await authApi.getCurrentUser();
+  
+  return null;
 }

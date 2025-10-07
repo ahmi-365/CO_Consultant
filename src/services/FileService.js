@@ -123,7 +123,23 @@ if (parent_id && !params.search) {
 
   return safeData;
 },
+async getRootMetadata() {
+  const url = `${API_URL}/onedrive/list`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json',
+    },
+  });
 
+  if (!response.ok) {
+    throw new Error(`Failed to fetch root metadata: ${response.status}`);
+  }
+
+  const data = await response.json();
+  // Return the full response object to get iframe_url
+  return data;
+},
   async createFolder(name, parent_id) {
     const response = await fetch(`${API_URL}/onedrive/folders/create`, {
       method: 'POST',
