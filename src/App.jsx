@@ -16,14 +16,11 @@ import Settings from "./pages/admin/Settings";
 import Profile from "./pages/admin/Profile";
 import LoginPage from "./pages/Auths/Login";
 import RegisterPage from "./pages/Auths/Register";
-import RefactoredCloudVaultLayout from "./components/RefactoredCloudVaultLayout";
 import StarredPage from "./pages/CustomerPanel/StarredPage";
 import TrashPage from "./pages/CustomerPanel/TrashPage";
 import ProfilePage from "./pages/CustomerPanel/ProfilePage";
 import { CustomerLayout } from "./pages/CustomerPanel/CustomerLayout";
 import { AuthGuard, RoleBasedRedirect } from "./pages/Auths/ProtectedRoute";
-import CloudVaultLayout from "./components/CloudVaultLayout";
-import CPFileManagement from "./pages/CustomerPanel/CPFiles";
 import EnhancedFileList from "./components/EnhancedFileList";
 import CPDashboard from "./pages/CustomerPanel/CPDashboard";
 

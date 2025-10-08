@@ -1,4 +1,4 @@
-const BASE_URL = 'https://co-consultant.majesticsofts.com/api';
+const BASE_URL = import.meta.env.VITE_API_URL;
 
 // User Management API
 export const userApi = {

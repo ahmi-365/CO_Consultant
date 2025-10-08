@@ -179,10 +179,13 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
         try {
             // Transform selectedFolders into the final API payload format:
             // { itemId: [permission1, permission2], ... }
-            const folderPermissionsPayload = selectedFolders.reduce((acc, item) => {
-                acc[item.id] = item.permissions;
-                return acc;
-            }, {});
+          const folderPermissionsPayload = selectedFolders.reduce((acc, item) => {
+    console.log(`Processing item ${item.id}:`, item.permissions);
+    acc[item.id] = item.permissions; // This should be an array of permissions
+    return acc;
+}, {});
+
+console.log("Final payload:", folderPermissionsPayload);
 
          const submitData = {
     name: formData.name,
@@ -352,7 +355,7 @@ if (result?.success === true || result?.id) {
     <p className="text-xs text-red-500">{fieldErrors.role[0]}</p>
 )}
 {!rolesLoading && roles.length === 0 && (
-    <p className="text-xs text-muted-foreground text-red-500">
+    <p className="text-xs text-muted-foreground ">
         Unable to load roles. Please try refreshing the page.
     </p>
 )}

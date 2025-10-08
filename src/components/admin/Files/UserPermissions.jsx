@@ -66,6 +66,7 @@ const getPermissionDetails = (permissionValue) => {
     color: 'bg-gray-100 text-gray-800 border-gray-200'
   };
 };
+const API_BASE_URL = import.meta.env.VITE_API_URL;
 
 // Helper function to get permission color class
 const getPermissionColor = (permissionValue) => {
@@ -202,7 +203,7 @@ const [removingAll, setRemovingAll] = useState(false);
 
       // Try the direct API call to debug the endpoint
       const token = localStorage.getItem('token');
-      const response = await fetch(`https://co-consultant.majesticsofts.com/api/files/permissions/list/${selectedItem.id}`, {
+      const response = await fetch(`${API_BASE_URL}/files/permissions/list/${selectedItem.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -289,7 +290,7 @@ const handleAddUserAccess = async (userId, permissions) => {
     const token = localStorage.getItem("token");
 
     const response = await fetch(
-      "https://co-consultant.majesticsofts.com/api/files/permissions/assign",
+      `${API_BASE_URL}/files/permissions/assign`,
       {
         method: "POST",
         headers: {
@@ -343,7 +344,7 @@ const handleRemovePermission = async (userId, permission) => {
   try {
     const token = localStorage.getItem('token');
     const response = await fetch(
-      'https://co-consultant.majesticsofts.com/api/files/permissions/remove',
+      `${API_BASE_URL}/files/permissions/remove`,
       {
         method: 'POST',
         headers: {
@@ -394,7 +395,7 @@ const handleRemoveAllUserPermissions = async (userId, userPermissions) => {
     const token = localStorage.getItem('token');
 
     const response = await fetch(
-      'https://co-consultant.majesticsofts.com/api/files/permissions/remove',
+     `${API_BASE_URL}/files/permissions/remove`,
       {
         method: 'POST',
         headers: {
