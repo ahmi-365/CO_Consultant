@@ -1,29 +1,34 @@
 export const authService = {
   // Register user
 async register(data) {
-    try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(data),
-      });
+  try {
+    const res = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+      body: JSON.stringify(data),
+    });
 
-      const result = await res.json();
+    const result = await res.json();
 
-      if (!res.ok) {
-        return { success: false, message: result.message || "Registration failed" };
-      }
-
-      return { success: true, message: "Registration successful" };
-    } catch (err) {
-      console.error("❌ Register error:", err);
-      return { success: false, message: "Something went wrong" };
+    if (!res.ok) {
+      return {
+        success: false,
+        message: result.message || "Registration failed",
+        data: result,
+      };
     }
-  },
 
+    // ✅ Return full API data (so token & user reach frontend)
+    return result;
+  } catch (err) {
+    console.error("❌ Register error:", err);
+    return { success: false, message: "Something went wrong" };
+  }
+}
+,
   // Login user
   async login(data) {
     try {

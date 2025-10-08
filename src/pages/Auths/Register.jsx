@@ -41,58 +41,77 @@ export default function RegisterPage() {
     return null
   }
 const handleSubmit = async (e) => {
-  e.preventDefault()
+  e.preventDefault();
 
-  const validationError = validateForm()
+  const validationError = validateForm();
   if (validationError) {
     toast({
       title: "Registration Error",
       description: validationError,
       variant: "destructive",
-    })
-    return
+    });
+    return;
   }
 
-  setIsLoading(true)
+  setIsLoading(true);
 
   try {
     const response = await authService.register({
       name: `${formData.firstName} ${formData.lastName}`.trim(),
       email: formData.email,
       password: formData.password,
-    })
+    });
 
-    console.log("Full API Response:", response); // Add this for debugging
+    // ✅ Check success
+    const isSuccess =
+      response?.status?.toLowerCase() === "success" ||
+      response?.success === true ||
+      response?.message?.toLowerCase()?.includes("success");
 
-    // Check for success - adjust based on actual response structure
-    if (response.status === "success" || response.data?.status === "success") {
-      // Save token and user data to localStorage
-      const token = response.authorisation?.token || response.data?.authorisation?.token;
-      const user = response.user || response.data?.user;
+    if (isSuccess) {
+      // ✅ Extract correct token and user
+      const token =
+        response?.authorisation?.token ||
+        response?.authorisation?.access_token ||
+        response?.data?.authorisation?.token ||
+        response?.data?.authorisation?.access_token ||
+        response?.token ||
+        response?.data?.token;
 
+      const user = response?.user || response?.data?.user;
+
+      // ✅ Save to localStorage
       if (token && user) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('user', JSON.stringify(user));
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+
+
+        setSuccess(true);
+        toast({
+          title: "Account Created 🎉",
+          description: "Redirecting to file manager...",
+        });
+
+        setTimeout(() => {
+          navigate("/filemanager", { replace: true });
+        }, 1500);
+      } else {
+       
+
+        setTimeout(() => {
+          navigate("/login", { replace: true });
+        }, 1500);
       }
-
-      setSuccess(true)
-      toast({
-        title: "Account Created 🎉",
-        description: "Redirecting to file manager...",
-      })
-
-      // Navigate to filemanager after successful registration
-      setTimeout(() => {
-        navigate('/filemanager', { replace: true });
-      }, 1500);
-      
     } else {
-      console.log("Registration failed with response:", response);
+      console.log("❌ Registration failed with response:", response);
       toast({
         title: "Registration Failed",
-        description: response.message || response.data?.message || "Something went wrong",
+        description:
+          response?.message ||
+          response?.data?.message ||
+          "Something went wrong. Please try again.",
         variant: "destructive",
-      })
+      });
     }
   } catch (error) {
     console.log("Registration error:", error);
@@ -100,11 +119,11 @@ const handleSubmit = async (e) => {
       title: "Unexpected Error",
       description: error.message || "Please try again later",
       variant: "destructive",
-    })
+    });
   } finally {
-    setIsLoading(false)
+    setIsLoading(false);
   }
-}
+};
 
   return (
     <div className="h-screen flex overflow-hidden">

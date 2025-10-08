@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,6 @@ import { Folder } from "lucide-react";
 import { toast } from "sonner";
 import { fileApi } from "../services/FileService";
 
-// Removed TypeScript interface as this is a JS file
-
 export default function NewFolderModal({
   isOpen,
   onClose,
@@ -24,39 +22,64 @@ export default function NewFolderModal({
 }) {
   const [folderName, setFolderName] = useState("");
   const [isCreating, setIsCreating] = useState(false);
-const handleCreate = async () => {
-  if (!folderName.trim() || isCreating) return; // prevent duplicate call
+  const [hasCreated, setHasCreated] = useState(false);
 
-  setIsCreating(true);
+  // Reset states when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      // Reset everything when modal closes
+      setFolderName("");
+      setIsCreating(false);
+      setHasCreated(false);
+    }
+  }, [isOpen]);
 
-  try {
-    const newFolder = await fileApi.createFolder(folderName.trim(), parentId || null);
+  const handleCreate = async (e) => {
+    e?.preventDefault();
+    e?.stopPropagation();
 
-    toast.success(`Folder "${newFolder?.name || folderName}" created successfully!`);
-    onFolderCreated(newFolder);
-    window.dispatchEvent(new CustomEvent("folderCreated"));
+    if (!folderName.trim() || isCreating || hasCreated) return;
 
-    setFolderName("");
-    onClose();
-  } catch (error) {
-    // console.error("Error creating folder:", error);
-    toast.error(error.message || "Failed to create folder");
-  } finally {
-    setIsCreating(false);
-  }
-};
+    setIsCreating(true);
+    setHasCreated(true);
 
+    try {
+      const newFolder = await fileApi.createFolder(folderName.trim(), parentId || null);
+      toast.success(`Folder "${newFolder?.name || folderName}" created successfully!`);
+      
+      // Pass the new folder data to parent
+      if (onFolderCreated) {
+        onFolderCreated(newFolder);
+      }
+      
+      // Close modal (useEffect will handle cleanup)
+      onClose();
+      
+    } catch (error) {
+      console.error("Error creating folder:", error);
+      toast.error(error.message || "Failed to create folder");
+      setHasCreated(false);
+      setIsCreating(false);
+    }
+  };
 
   const handleClose = () => {
-    setFolderName("");
-    onClose();
+    if (!isCreating) {
+      onClose();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !isCreating && folderName.trim()) {
+      handleCreate(e);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-">
+          <DialogTitle className="flex items-center gap-2">
             <Folder className="h-5 w-5 text-panel" />
             Create New Folder
           </DialogTitle>
@@ -70,7 +93,8 @@ const handleCreate = async () => {
               placeholder="Enter folder name..."
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
+              onKeyDown={handleKeyDown}
+              disabled={isCreating}
               autoFocus
             />
           </div>
@@ -81,15 +105,25 @@ const handleCreate = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose} disabled={isCreating}>
+          <Button 
+            variant="outline" 
+            onClick={handleClose} 
+            disabled={isCreating}
+          >
             Cancel
           </Button>
           <Button
             onClick={handleCreate}
             disabled={!folderName.trim() || isCreating}
-            varient="variant" 
           >
-            {isCreating ? "Creating..." : "Create Folder"}
+            {isCreating ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                Creating...
+              </>
+            ) : (
+              "Create Folder"
+            )}
           </Button>
         </DialogFooter>
       </DialogContent>

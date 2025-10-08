@@ -176,7 +176,6 @@ const loadFiles = useCallback(
         params
       );
 
-      console.log('📂 Files loaded:', filesData.length);
       setAllFiles(filesData);
 
       // Build folder hierarchy
@@ -308,8 +307,7 @@ useEffect(() => {
 
   useEffect(() => {
     const handleFileUploaded = () => loadFiles();
-    const handleFolderCreated = () => loadFiles();
-    const handleFilesMoved = () => loadFiles();
+      const handleFilesMoved = () => loadFiles();
     const handleRefreshFileList = () => {
       console.log("Refreshing file list...");
       loadFiles();
@@ -337,14 +335,14 @@ useEffect(() => {
     };
 
     window.addEventListener("fileUploaded", handleFileUploaded);
-    window.addEventListener("folderCreated", handleFolderCreated);
+    // window.addEventListener("folderCreated", handleFolderCreated);
     window.addEventListener("filesMoved", handleFilesMoved);
     window.addEventListener("refreshFileList", handleRefreshFileList);
     window.addEventListener("globalSearch", handleGlobalSearch);
 
     return () => {
       window.removeEventListener("fileUploaded", handleFileUploaded);
-      window.removeEventListener("folderCreated", handleFolderCreated);
+      // window.removeEventListener("folderCreated", handleFolderCreated);
       window.removeEventListener("filesMoved", handleFilesMoved);
       window.removeEventListener("refreshFileList", handleRefreshFileList);
       window.removeEventListener("globalSearch", handleGlobalSearch);
@@ -395,38 +393,75 @@ useEffect(() => {
     );
   };
 
-  const getCurrentFolder = () => {
-    if (!folderId) {
-      return {
-        id: null,
-        name: "My Files",
-        path: "/",
-        fullPath: "My Files",
-      };
-    }
+const getCurrentFolder = () => {
+  if (!folderId) {
+    return {
+      id: null,
+      name: "My Files",
+      path: "/",
+      fullPath: "My Files",
+    };
+  }
 
-    if (currentFolder) {
-      const folderPath = buildFolderPath(currentFolder.id);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(
-        " / "
-      );
+  const parsedFolderId = parseInt(folderId);
 
-      return {
-        id: currentFolder.id,
-        name: currentFolder.name,
-        path: `/folder/${currentFolder.id}`,
-        fullPath: fullPath,
-      };
-    }
+  // ✅ FIRST: Check folderHierarchy (most reliable)
+  if (folderHierarchy.has(parsedFolderId)) {
+    const folderInfo = folderHierarchy.get(parsedFolderId);
+    const folderPath = buildFolderPath(parsedFolderId);
+    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+    
+    return {
+      id: folderInfo.id,
+      name: folderInfo.name,
+      path: `/folder/${folderInfo.id}`,
+      fullPath: fullPath,
+    };
+  }
+
+  // ✅ SECOND: Check currentFolder state
+  if (currentFolder && currentFolder.id === parsedFolderId) {
+    const folderPath = buildFolderPath(currentFolder.id);
+    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
     return {
-      id: parseInt(folderId),
+      id: currentFolder.id,
+      name: currentFolder.name,
+      path: `/folder/${currentFolder.id}`,
+      fullPath: fullPath,
+    };
+  }
+
+  // ✅ THIRD: Try to find from allFiles
+  const childItem = allFiles.find(
+    (item) => item.parent_id && item.parent_id.toString() === folderId
+  );
+  
+  if (childItem) {
+    const folderPath = buildFolderPath(parsedFolderId);
+    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+    
+    return {
+      id: parsedFolderId,
       name: `Folder ${folderId}`,
       path: `/folder/${folderId}`,
-      fullPath: `My Files / Folder ${folderId}`,
+      fullPath: fullPath.length > "My Files".length ? fullPath : `My Files / Folder ${folderId}`,
     };
-  };
+  }
 
+  // ✅ Last resort
+  return {
+    id: parsedFolderId,
+    name: `Folder ${folderId}`,
+    path: `/folder/${folderId}`,
+    fullPath: `My Files / Folder ${folderId}`,
+  };
+};
+// Memoize current folder info for modal
+const currentFolderInfo = useMemo(
+  () => getCurrentFolder(), 
+  [folderId, currentFolder, folderHierarchy, allFiles]
+);
   const filteredFiles = files;
 
   const getFileIcon = (type) => {
@@ -689,29 +724,20 @@ useEffect(() => {
     window.dispatchEvent(new CustomEvent("refreshSidebar"));
   };
 
-  const handleFolderCreated = async (folderName) => {
-    setCreatingFolder(true);
-    try {
-      const response = await fileApi.createFolder({
-        name: folderName,
-        parent_id: folderId || null,
-      });
-
-      if (response.status === "ok" || response.success) {
-        toast.success(`Folder "${folderName}" created successfully!`);
-        loadFiles();
-        window.dispatchEvent(new CustomEvent("folderCreated"));
-        window.dispatchEvent(new CustomEvent("refreshSidebar"));
-      } else {
-        toast.error("Failed to create folder");
-      }
-    } catch (error) {
-      console.error("Error creating folder:", error);
-      toast.error("Error creating folder");
-    } finally {
-      setCreatingFolder(false);
-    }
-  };
+const handleFolderCreated = async (folderName) => {
+  // Don't check creatingFolder here - modal already handles it
+  try {
+    // Just refresh the file list once
+    await loadFiles();
+    
+    // Dispatch events only once
+    window.dispatchEvent(new CustomEvent("refreshSidebar"));
+    
+    // DON'T dispatch "folderCreated" here - it causes double load
+  } catch (error) {
+    console.error("Error refreshing after folder creation:", error);
+  }
+};
 
   // Mobile Card View Component
   const MobileCardView = ({ item }) => (
@@ -1648,14 +1674,16 @@ useEffect(() => {
         onFileUploaded={handleFileUploaded}
         currentFolder={getCurrentFolder()}
       />
-
-      <NewFolderModal
-        isOpen={showNewFolderModal}
-        onClose={() => setShowNewFolderModal(false)}
-        onFolderCreated={handleFolderCreated}
-        currentPath={getCurrentFolder().fullPath}
-        parentId={getCurrentFolder().id}
-      />
+<NewFolderModal
+  isOpen={showNewFolderModal}
+  onClose={() => setShowNewFolderModal(false)}
+  onFolderCreated={(newFolder) => {
+    loadFiles();
+    window.dispatchEvent(new CustomEvent("refreshSidebar"));
+  }}
+  currentPath={currentFolderInfo.fullPath}  // ✅ Use memoized value
+  parentId={currentFolderInfo.id}            // ✅ Use memoized value
+/>
 
       {/* Move Modal */}
       {selectedFileForMove && (

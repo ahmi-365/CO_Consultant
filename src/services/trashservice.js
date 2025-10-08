@@ -39,7 +39,6 @@ export const trashService = {
       if (!res.ok) throw new Error("Failed to move file to trash");
       
       const data = await res.json();
-      console.log("📦 MoveToTrash raw response:", data);
 
       // Laravel response unwrap
       const normalized = data.original || data;

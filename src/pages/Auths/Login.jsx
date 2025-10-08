@@ -19,70 +19,67 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  // Check if user is already logged in
-  useEffect(() => {
-    const token = authService.getToken()
-    const user = authService.getUser()
+// Check if user is already logged in
+useEffect(() => {
+  const token = authService.getToken();
+  const user = authService.getUser();
 
-    if (token && user) {
-      // Redirect based on role
-      const userRoles = user.roles || []
-      if (userRoles.includes('admin')) {
-        navigate('/dash', { replace: true })
-      } else {
-        navigate('/filemanager', { replace: true })
-      }
-    }
-  }, [navigate])
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-
-    try {
-      const response = await authService.login({ email, password })
-
-      if (response.success) {
-        toast({
-          title: "Login Successful 🎉",
-          description: "Redirecting to dashboard...",
-        })
-
-        // Get user data after successful login
-        const user = authService.getUser()
-        const from = location.state?.from?.pathname || null
-
-        setTimeout(() => {
-          if (from) {
-            // Redirect to the page they were trying to access
-            navigate(from, { replace: true })
-          } else {
-            // Redirect based on user role
-            const userRoles = user?.roles || []
-            if (userRoles.includes('admin')) {
-              navigate('/dash', { replace: true })
-            } else {
-              navigate('/filemanager', { replace: true })
-            }
-          }
-        }, 1500)
-      } else {
-        toast({
-          title: "Login Failed",
-          description: response.message || "Invalid credentials",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Unexpected Error",
-        description: "Please try again later",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
+  if (token && user) {
+    // Redirect based on is_admin
+    if (user.is_admin === 1) {
+      navigate('/dash', { replace: true });
+    } else {
+      navigate('/filemanager', { replace: true });
     }
   }
+}, [navigate]);
+
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+
+  try {
+    const response = await authService.login({ email, password });
+
+    if (response.success) {
+      toast({
+        title: "Login Successful 🎉",
+        description: "Redirecting...",
+      });
+
+      const user = authService.getUser();
+      const from = location.state?.from?.pathname || null;
+
+      setTimeout(() => {
+        if (from) {
+          navigate(from, { replace: true });
+        } else {
+          // Redirect based on is_admin flag
+          if (user.is_admin === 1) {
+            navigate('/dash', { replace: true });
+          } else {
+            navigate('/filemanager', { replace: true });
+          }
+        }
+      }, 1500);
+    } else {
+      toast({
+        title: "Login Failed",
+        description: response.message || "Invalid credentials",
+        variant: "destructive",
+      });
+    }
+  } catch (error) {
+    toast({
+      title: "Unexpected Error",
+      description: "Please try again later",
+      variant: "destructive",
+    });
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
