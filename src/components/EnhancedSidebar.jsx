@@ -633,7 +633,13 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               </div>
             )}
 
-            <div className="mt-4 border-t border-sidebar-border pt-2 space-y-1">
+         
+          </nav>
+        </div>
+
+        {/* Updated Footer with Upload and Logout in one row */}
+        <div className="p-3 border-t border-sidebar-border bg-sidebar">
+             <div className=" gap-10 mb-3">
               <button
                 onClick={() => handleNavigationClick("/starred")}
                 className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
@@ -667,11 +673,6 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
                 <span>Profile</span>
               </button>
             </div>
-          </nav>
-        </div>
-
-        {/* Updated Footer with Upload and Logout in one row */}
-        <div className="p-3 border-t border-sidebar-border bg-sidebar">
           <div className="flex gap-2">
             <Button
               className="flex-1 bg-panel hover:bg-panel/90 text-panel-foreground"
