@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navigation = [
   { name: "Dashboard", href: "/dash", icon: Home },
@@ -99,7 +100,7 @@ const handleLogout = () => {
                     "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                     isActive
                       ? "bg-panel text-panel-foreground"
-                      : "text-foreground hover:bg-gray-200 hover:text-accent-foreground",
+                      : "text-foreground hover:bg-accent hover:text-accent-foreground",
                     collapsed && "justify-center"
                   )
                 }
@@ -112,12 +113,18 @@ const handleLogout = () => {
         </ul>
       </nav>
 
-      {/* Footer (Logout) */}
+      {/* Footer (Theme Toggle & Logout) */}
       <div className="border-t border-border p-4 space-y-2">
+        <div className={cn(
+          "flex w-full items-center gap-3 px-3 py-2",
+          collapsed && "justify-center"
+        )}>
+          <ThemeToggle />
+        </div>
         <button
           onClick={handleLogout}
           className={cn(
-            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-gray-200 hover:text-accent-foreground",
+            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
             collapsed && "justify-center"
           )}
         >

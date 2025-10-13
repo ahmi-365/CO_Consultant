@@ -51,14 +51,14 @@ const ContactSection = () => {
   
   ];
 
-  return (
-    <section id="contact" className="py-20 bg-construction-light-grey">
+return (
+    <section id="contact" className="py-20 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-primary">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
             Get In Touch
           </h2>
-          <p className="text-xl text-construction-grey max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Ready to start your next construction project? Contact us today for a free consultation and quote.
           </p>
         </div>
@@ -68,120 +68,132 @@ const ContactSection = () => {
           <div className="lg:col-span-1">
             <div className="space-y-6">
               {contactInfo.map((item, index) => (
-                <Card key={index} className="border-0 shadow-card hover:shadow-card-hover transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-secondary/10 rounded-full">
-                        <item.icon className="w-6 h-6 text-secondary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-primary mb-1">
-                          {item.title}
-                        </h3>
-                        <p className="text-foreground font-medium">
-                          {item.info}
-                        </p>
-                        <p className="text-construction-grey text-sm">
-                          {item.subinfo}
-                        </p>
-                      </div>
+                <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 p-6">
+                  <div className="flex items-start gap-4">
+                    <div className="p-3 bg-blue-400/10 rounded-full">
+                      <item.icon className="w-6 h-6 text-blue-400" />
                     </div>
-                  </CardContent>
-                </Card>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">
+                        {item.title}
+                      </h3>
+                      <p className="text-black font-medium">
+                        {item.info}
+                      </p>
+                      <p className="text-gray-600 text-sm">
+                        {item.subinfo}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
 
           {/* Contact Form */}
           <div className="lg:col-span-2">
-            <Card className="border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary">
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
                   Send Us a Message
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+                </h3>
+                <p className="text-gray-600 mb-6">Fill out the form below and we'll get back to you within 24 hours.</p>
+                
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="name">Full Name *</Label>
-                      <Input
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                        Full Name *
+                      </label>
+                      <input
                         id="name"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
                         required
-                        className="mt-2"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="email">Email Address *</Label>
-                      <Input
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                        Email Address *
+                      </label>
+                      <input
                         id="email"
                         type="email"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         required
-                        className="mt-2"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+                        Phone Number
+                      </label>
+                      <input
                         id="phone"
                         type="tel"
                         value={formData.phone}
                         onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="mt-2"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="company">Company Name</Label>
-                      <Input
+                      <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
+                        Company Name
+                      </label>
+                      <input
                         id="company"
                         value={formData.company}
                         onChange={(e) => handleInputChange('company', e.target.value)}
-                        className="mt-2"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="projectType">Project Type</Label>
-                    <Select onValueChange={(value) => handleInputChange('projectType', value)}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select project type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="commercial">Commercial Construction</SelectItem>
-                        <SelectItem value="residential">Residential Development</SelectItem>
-                        <SelectItem value="infrastructure">Infrastructure Project</SelectItem>
-                        <SelectItem value="renovation">Renovation/Remodeling</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">
+                      Project Type
+                    </label>
+                    <select 
+                      onChange={(e) => handleInputChange('projectType', e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white"
+                    >
+                      <option value="">Select project type</option>
+                      <option value="commercial">Commercial Construction</option>
+                      <option value="residential">Residential Development</option>
+                      <option value="infrastructure">Infrastructure Project</option>
+                      <option value="renovation">Renovation/Remodeling</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
 
                   <div>
-                    <Label htmlFor="message">Project Details *</Label>
-                    <Textarea
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
+                      Project Details *
+                    </label>
+                    <textarea
                       id="message"
                       value={formData.message}
                       onChange={(e) => handleInputChange('message', e.target.value)}
                       required
                       placeholder="Tell us about your project requirements, timeline, and any specific needs..."
-                      className="mt-2 min-h-32"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-h-32"
                     />
                   </div>
 
-                  <Button type="submit" variant="hero" className="w-full">
+                  <button 
+                    type="submit" 
+                    className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+                  >
                     Send Message
-                  </Button>
+                  </button>
                 </form>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
         </div>
       </div>

@@ -68,25 +68,25 @@ const ProjectsSection = () => {
 
   const project = projects[activeProject];
 
-  return (
-    <section id="projects" className="py-20 bg-background overflow-hidden">
+return (
+    <section id="projects" className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-primary">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
             Our Featured Projects
           </h2>
-          <p className="text-xl text-construction-grey max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Showcasing excellence in construction management across diverse project types and scales
           </p>
         </div>
 
-        {/* Project Carousel */}
-        <div className="relative">
-          <Card className="overflow-hidden border-0 shadow-card-hover">
+        {/* Project Carousel - Reduced Height */}
+        <div className="relative mb-16">
+          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
             <div className="grid grid-cols-1 lg:grid-cols-2">
-              {/* Project Image */}
+              {/* Project Image - Reduced height */}
               <div className="relative group">
-                <div className="aspect-[4/3] overflow-hidden">
+                <div className="aspect-[5/4] overflow-hidden"> {/* Changed from aspect-[4/3] */}
                   <img 
                     src={project.image} 
                     alt={project.title}
@@ -94,102 +94,110 @@ const ProjectsSection = () => {
                   />
                 </div>
                 
-                {/* Image Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-primary/70 via-transparent to-transparent" />
+                {/* Enhanced Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-transparent to-transparent" />
                 
-                {/* Status Badge */}
-                <div className="absolute top-4 left-4">
-                  <Badge 
-                    variant={project.status === 'Completed' ? 'default' : 'secondary'}
-                    className="text-sm font-semibold"
-                  >
+                {/* Status & Category Badges */}
+                <div className="absolute top-4 left-4 flex gap-2">
+                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    project.status === 'Completed' 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-yellow-500 text-white'
+                  }`}>
                     {project.status}
-                  </Badge>
-                </div>
-
-                {/* Category Badge */}
-                <div className="absolute top-4 right-4">
-                  <Badge variant="outline" className="bg-white/90 text-primary border-white">
+                  </div>
+                  <div className="px-3 py-1 rounded-full text-sm font-semibold bg-white/90 text-gray-900">
                     {project.category}
-                  </Badge>
+                  </div>
                 </div>
               </div>
 
-              {/* Project Details */}
-              <CardContent className="p-8 lg:p-12 flex flex-col justify-center">
-                <h3 className="text-3xl font-bold mb-4 text-primary">
+              {/* Project Details - Reduced padding */}
+              <div className="p-6 lg:p-8 flex flex-col justify-center"> {/* Reduced from p-8 lg:p-12 */}
+                <h3 className="text-2xl font-bold mb-3 text-gray-900"> {/* Reduced text size */}
                   {project.title}
                 </h3>
                 
-                <p className="text-construction-grey mb-8 leading-relaxed text-lg">
+                <p className="text-gray-600 mb-6 leading-relaxed"> {/* Reduced margin */}
                   {project.description}
                 </p>
 
-                {/* Project Stats */}
-                <div className="grid grid-cols-2 gap-6 mb-8">
-                  <div className="flex items-center gap-3">
-                    <DollarSign className="w-5 h-5 text-secondary" />
+                {/* Project Stats - Compact layout */}
+                <div className="grid grid-cols-2 gap-4 mb-6"> {/* Reduced gap and margin */}
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-blue-50"> {/* Reduced padding */}
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center"> {/* Smaller icon */}
+                      <DollarSign className="w-4 h-4 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-construction-grey">Budget</p>
-                      <p className="font-semibold text-primary">{project.details.budget}</p>
+                      <p className="text-xs text-gray-600">Budget</p> {/* Smaller text */}
+                      <p className="font-semibold text-gray-900 text-sm">{project.details.budget}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <Calendar className="w-5 h-5 text-secondary" />
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <Calendar className="w-4 h-4 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-construction-grey">Duration</p>
-                      <p className="font-semibold text-primary">{project.details.duration}</p>
+                      <p className="text-xs text-gray-600">Duration</p>
+                      <p className="font-semibold text-gray-900 text-sm">{project.details.duration}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <Users className="w-5 h-5 text-secondary" />
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-50">
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <Users className="w-4 h-4 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-construction-grey">Team Size</p>
-                      <p className="font-semibold text-primary">{project.details.team}</p>
+                      <p className="text-xs text-gray-600">Team Size</p>
+                      <p className="font-semibold text-gray-900 text-sm">{project.details.team}</p>
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-3">
-                    <MapPin className="w-5 h-5 text-secondary" />
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50">
+                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <MapPin className="w-4 h-4 text-white" />
+                    </div>
                     <div>
-                      <p className="text-sm text-construction-grey">Location</p>
-                      <p className="font-semibold text-primary">{project.details.location}</p>
+                      <p className="text-xs text-gray-600">Location</p>
+                      <p className="font-semibold text-gray-900 text-sm">{project.details.location}</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Features */}
-                <div className="mb-8">
-                  <h4 className="font-semibold text-primary mb-3">Key Features:</h4>
-                  <div className="flex flex-wrap gap-2">
+                {/* Features - Compact */}
+                <div className="mb-6"> {/* Reduced margin */}
+                  <h4 className="font-semibold text-gray-900 mb-2 text-sm">Key Features:</h4> {/* Smaller text */}
+                  <div className="flex flex-wrap gap-1"> {/* Reduced gap */}
                     {project.features.map((feature, index) => (
-                      <Badge key={index} variant="secondary" className="text-xs">
+                      <div 
+                        key={index}
+                        className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium" /* Smaller badges */
+                      >
                         {feature}
-                      </Badge>
+                      </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Navigation Buttons */}
+                {/* Navigation - Same layout but compact */}
                 <div className="flex items-center justify-between">
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm" 
                       onClick={prevProject}
-                      className="hover:bg-secondary hover:text-white"
+                      className="hover:bg-blue-500 hover:text-white border-gray-300"
                     >
-                      <ChevronLeft className="w-4 h-4" />
+                      <ChevronLeft className="w-3 h-3" />
                     </Button>
                     <Button
                       variant="outline"
-                      size="icon"
+                      size="sm"
                       onClick={nextProject}
-                      className="hover:bg-secondary hover:text-white"
+                      className="hover:bg-blue-500 hover:text-white border-gray-300"
                     >
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-3 h-3" />
                     </Button>
                   </div>
 
@@ -198,50 +206,51 @@ const ProjectsSection = () => {
                       <button
                         key={index}
                         onClick={() => setActiveProject(index)}
-                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                          index === activeProject ? 'bg-secondary' : 'bg-construction-grey/30'
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                          index === activeProject ? 'bg-blue-500' : 'bg-gray-300'
                         }`}
                       />
                     ))}
                   </div>
                 </div>
-              </CardContent>
+              </div>
             </div>
-          </Card>
+          </div>
         </div>
 
-        {/* All Projects Grid Preview */}
+        {/* All Projects Grid Preview - Same size cards */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
           {projects.map((proj, index) => (
-            <Card 
+            <div 
               key={proj.id}
-              className={`cursor-pointer transition-all duration-300 hover:shadow-card-hover hover:-translate-y-2 border-0 shadow-card ${
-                index === activeProject ? 'ring-2 ring-secondary' : ''
+              className={`cursor-pointer bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
+                index === activeProject ? 'ring-2 ring-blue-500' : ''
               }`}
               onClick={() => setActiveProject(index)}
             >
-              <div className="aspect-[4/3] overflow-hidden rounded-t-lg">
+              <div className="aspect-[4/3] overflow-hidden">
                 <img 
                   src={proj.image} 
                   alt={proj.title}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
               </div>
-              <CardContent className="p-4">
-                <h4 className="font-semibold text-primary mb-2">{proj.title}</h4>
+              <div className="p-4">
+                <h4 className="font-semibold text-gray-900 mb-2">{proj.title}</h4>
                 <div className="flex justify-between items-center">
-                  <Badge variant="outline" className="text-xs">
+                  <div className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
                     {proj.category}
-                  </Badge>
-                  <Badge 
-                    variant={proj.status === 'Completed' ? 'default' : 'secondary'}
-                    className="text-xs"
-                  >
+                  </div>
+                  <div className={`px-2 py-1 rounded text-xs ${
+                    proj.status === 'Completed' 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-yellow-500 text-white'
+                  }`}>
                     {proj.status}
-                  </Badge>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))}
         </div>
       </div>

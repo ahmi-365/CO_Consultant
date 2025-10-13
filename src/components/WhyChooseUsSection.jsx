@@ -8,16 +8,16 @@ const benefits = [
 ];
 
 const WhyChooseUsSection = () => {
-  return (
-    <section className="py-0 bg-background">
+return (
+    <section className="py-0 bg-white">
       <div className="container mx-auto px-4">
         {/* Mobile view: Title, Description, Image, Benefits */}
         <div className="block lg:hidden">
-          <h2 className="text-4xl md:text-5xl font-bold mb-8 text-primary text-center lg:text-left">
+          <h2 className="text-4xl md:text-5xl font-bold mb-8 text-gray-900 text-center lg:text-left">
             Why Choose CO Consultants?
           </h2>
 
-          <p className="text-xl text-construction-grey mb-10 leading-relaxed text-center lg:text-left">
+          <p className="text-xl text-gray-600 mb-10 leading-relaxed text-center lg:text-left">
             We combine industry expertise with cutting-edge technology to deliver construction management solutions that drive real results.
           </p>
 
@@ -34,11 +34,11 @@ const WhyChooseUsSection = () => {
             {benefits.map((benefit, index) => (
               <div key={index} className="flex items-center gap-4">
                 <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                    <Check className="w-5 h-5 text-primary" />
+                  <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                    <Check className="w-5 h-5 text-white" />
                   </div>
                 </div>
-                <span className="text-lg text-foreground font-medium hover:text-accent transition-colors">
+                <span className="text-lg text-black font-medium hover:text-yellow-500 transition-colors">
                   {benefit}
                 </span>
               </div>
@@ -50,11 +50,11 @@ const WhyChooseUsSection = () => {
         <div className="hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left: Content */}
           <div className="ml-6 lg:ml-12">
-            <h2 className="text-4xl md:text-5xl font-bold mb-8 text-primary">
+            <h2 className="text-4xl md:text-5xl font-bold mb-8 text-gray-900">
               Why Choose CO Consultants?
             </h2>
 
-            <p className="text-xl text-construction-grey mb-10 leading-relaxed">
+            <p className="text-xl text-gray-600 mb-10 leading-relaxed">
               We combine industry expertise with cutting-edge technology to deliver construction management solutions that drive real results.
             </p>
 
@@ -62,11 +62,11 @@ const WhyChooseUsSection = () => {
               {benefits.map((benefit, index) => (
                 <div key={index} className="flex items-center gap-4">
                   <div className="flex-shrink-0">
-                    <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
-                      <Check className="w-5 h-5 text-primary" />
+                    <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
+                      <Check className="w-5 h-5 text-white" />
                     </div>
                   </div>
-                  <span className="text-lg text-foreground font-medium hover:text-accent transition-colors">
+                  <span className="text-lg text-black font-medium hover:text-yellow-500 transition-colors">
                     {benefit}
                   </span>
                 </div>

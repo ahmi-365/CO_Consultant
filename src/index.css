@@ -94,66 +94,78 @@
   }
 
   .dark {
-    /* Dark mode colors */
-    --background: 222.2 84% 4.9%;
+    --background: 222 47% 11%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 222 47% 14%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 222 47% 14%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47% 11%;
 
-    --secondary: 217.2 32.6% 17.5%;
+    --secondary: 217 33% 22%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 215 28% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 217.2 32.6% 17.5%;
+    --accent: 199 89% 48%;
     --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 63% 45%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --border: 215 28% 20%;
+    --input: 215 28% 20%;
+    --ring: 217 91% 60%;
 
-    --panel: 210 40% 98%;
-    --panel-foreground: 222.2 47.4% 11.2%;
+    --panel: 217 91% 60%;
+    --panel-foreground: 222 47% 11%;
 
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 222 47% 8%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 222 47% 11%;
+    --sidebar-accent: 217 33% 18%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 215 28% 18%;
+    --sidebar-ring: 217 91% 60%;
 
-    /* Admin dark colors */
-    --admin-primary: 220 90% 60%;
-    --admin-primary-foreground: 0 0% 100%;
-    --admin-secondary: 220 20% 25%;
-    --admin-secondary-foreground: 210 40% 95%;
-    --admin-accent: 160 80% 45%;
-    --admin-accent-foreground: 0 0% 100%;
-    --admin-destructive: 0 80% 40%;
+    --admin-primary: 217 91% 60%;
+    --admin-primary-foreground: 222 47% 11%;
+    --admin-secondary: 217 33% 22%;
+    --admin-secondary-foreground: 210 40% 98%;
+    --admin-accent: 142 76% 36%;
+    --admin-accent-foreground: 210 40% 98%;
+    --admin-destructive: 0 72% 51%;
     --admin-destructive-foreground: 210 40% 98%;
-    --admin-success: 142 70% 45%;
-    --admin-warning: 38 90% 55%;
-    --admin-info: 200 90% 55%;
-    --admin-gray: 220 10% 65%;
+    --admin-success: 142 76% 36%;
+    --admin-warning: 38 92% 50%;
+    --admin-info: 199 89% 48%;
+    --admin-gray: 215 20% 65%;
+
+    --cloudvault-bg: 222 47% 11%;
+    --cloudvault-hover: 217 33% 18%;
+    --cloudvault-text-secondary: 215 20% 65%;
+
+    --construction-grey: 215 20% 65%;
+    --construction-light-grey: 217 33% 22%;
+
+    --gradient-hero: linear-gradient(135deg, hsl(217 91% 60% / 0.9), hsl(199 89% 48% / 0.7));
+    --gradient-cta: linear-gradient(135deg, hsl(217 91% 60%), hsl(199 89% 48%));
+
+    --shadow-card: 0 8px 16px -4px hsl(222 47% 5% / 0.3), 0 4px 8px -2px hsl(222 47% 5% / 0.2);
+    --shadow-card-hover: 0 20px 25px -5px hsl(217 91% 60% / 0.2), 0 10px 10px -5px hsl(217 91% 60% / 0.1);
   }
 }
 
 @layer base {
   * {
     @apply border-border;
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
 
   html,
@@ -165,6 +177,39 @@
 
   body {
     @apply bg-background text-foreground font-space;
+  }
+}
+
+.dark {
+  .glass-effect {
+    background: rgba(30, 41, 59, 0.5);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .card-hover:hover {
+    box-shadow: 0 25px 50px -12px rgba(59, 130, 246, 0.3);
+  }
+
+  .professional-shadow {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+  }
+
+  .professional-shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+  }
+
+  .professional-shadow-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.3);
+  }
+
+  .btn-primary-enhanced {
+    background: linear-gradient(135deg, hsl(217, 91%, 60%), hsl(199, 89%, 48%));
+    box-shadow: 0 4px 14px 0 hsl(217 91% 60% / 0.39);
+  }
+
+  .btn-primary-enhanced:hover {
+    box-shadow: 0 8px 25px 0 hsl(217 91% 60% / 0.5);
   }
 }
 

@@ -45,16 +45,16 @@ const services = [
 ];
 
 const PrecisionSection = () => {
-  return (
-    <section className="min-h-screen flex items-center bg-gradient-to-br from-background to-muted/20 py-4">
+return (
+    <section className="min-h-screen flex items-center bg-white py-4">
       <div className="container mx-auto px-4">
         {/* Title & Description - full width */}
         <div className="text-center max-w-3xl mx-auto mt-12 mb-16">
           <h2 className="text-3xl md:text-5xl font-bold leading-snug">
-            <span className="text-primary">Build Your Future with</span>{" "}
-            <span className="text-accent">Precision</span>
+            <span className="text-gray-900">Build Your Future with</span>{" "}
+            <span className="text-yellow-500">Precision</span>
           </h2>
-          <p className="text-base md:text-lg text-construction-grey mt-4 leading-relaxed">
+          <p className="text-base md:text-lg text-gray-600 mt-4 leading-relaxed">
             Specializing in tailored solutions for your construction and
             engineering needs, we ensure your projects are executed with
             excellence.
@@ -79,17 +79,17 @@ const PrecisionSection = () => {
               <div key={service.number} className="space-y-3 mb-10">
                 {/* Header */}
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
+                  <div className="w-9 h-9 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-lg">
                     {service.number}
                   </div>
-                  <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                    <IconComponent className="w-5 h-5 text-accent" />
+                  <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                    <IconComponent className="w-5 h-5 text-yellow-500" />
                     {service.title}
                   </h3>
                 </div>
 
                 {/* Description */}
-                <p className="text-construction-grey text-base leading-normal pl-12">
+                <p className="text-gray-600 text-base leading-normal pl-12">
                   {service.description}
                 </p>
 
@@ -98,7 +98,7 @@ const PrecisionSection = () => {
                   {service.features.map((feature, index) => (
                     <li
                       key={index}
-                      className="hover:text-accent transition-colors"
+                      className="text-black hover:text-yellow-500 transition-colors"
                     >
                       {feature}
                     </li>
@@ -130,17 +130,17 @@ const PrecisionSection = () => {
                   <div key={service.number} className="space-y-3">
                     {/* Header */}
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
+                      <div className="w-9 h-9 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-lg">
                         {service.number}
                       </div>
-                      <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                        <IconComponent className="w-5 h-5 text-accent" />
+                      <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                        <IconComponent className="w-5 h-5 text-yellow-500" />
                         {service.title}
                       </h3>
                     </div>
 
                     {/* Description */}
-                    <p className="text-construction-grey text-base leading-normal pl-12">
+                    <p className="text-gray-600 text-base leading-normal pl-12">
                       {service.description}
                     </p>
 
@@ -149,7 +149,7 @@ const PrecisionSection = () => {
                       {service.features.map((feature, index) => (
                         <li
                           key={index}
-                          className="hover:text-accent transition-colors"
+                          className="text-black hover:text-yellow-500 transition-colors"
                         >
                           {feature}
                         </li>
@@ -169,24 +169,24 @@ const PrecisionSection = () => {
                 <div key={service.number} className="space-y-3 mb-10">
                   {/* Header */}
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
+                    <div className="w-9 h-9 bg-blue-900 text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
                       {service.number}
                     </div>
-                    <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                      <IconComponent className="w-5 h-5 text-accent" />
+                    <h3 className="text-xl font-semibold text-gray-900 flex items-center gap-2">
+                      <IconComponent className="w-5 h-5 text-yellow-500" />
                       {service.title}
                     </h3>
                   </div>
 
                   {/* Description */}
-                  <p className="text-construction-grey text-base leading-normal pl-12">
+                  <p className="text-gray-600 text-base leading-normal pl-12">
                     {service.description}
                   </p>
 
                   {/* Features */}
                   <ul className="list-disc list-inside text-base space-y-1 ml-16">
                     {service.features.map((feature, index) => (
-                      <li key={index} className="hover:text-accent transition-colors">
+                      <li key={index} className="text-black hover:text-yellow-500 transition-colors">
                         {feature}
                       </li>
                     ))}

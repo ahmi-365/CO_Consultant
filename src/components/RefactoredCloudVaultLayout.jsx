@@ -3,7 +3,8 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { Search, ChevronRight, Folder, Upload, RefreshCw, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import AvatarImage
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import EnhancedSidebar from "./EnhancedSidebar";
 import EnhancedFileList from "./EnhancedFileList";
 import FileUploadModal from "./FileUploadModal";
@@ -335,8 +336,8 @@ export default function RefactoredCloudVaultLayout({ children }) {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search all files..."
-                value={searchTerm} // Use the centralized state
-                onChange={handleSearchChange} // Use the stable handler
+                value={searchTerm}
+                onChange={handleSearchChange}
                 className="pl-10 w-64 bg-input border-border"
                 title="Search across all your files and folders"
               />
@@ -348,6 +349,9 @@ export default function RefactoredCloudVaultLayout({ children }) {
                 </div>
               )}
             </div>
+
+            {/* Theme Toggle */}
+            <ThemeToggle />
 
             {/* Notifications */}
             <NotificationDropdown />

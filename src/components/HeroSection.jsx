@@ -19,7 +19,7 @@ const HeroSection = () => {
   return (
     <section
       id="hero"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gray-50"
     >
       {/* Background Image */}
       <div
@@ -30,32 +30,37 @@ const HeroSection = () => {
       />
 
       {/* Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-hero" />
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-900/90 to-blue-900/70" />
 
       {/* Content */}
       <div className="relative z-10 container mx-auto px-4 text-center text-white animate-fade-in">
         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
           Smart Construction Management.{" "}
-          <span className="text-accent">Real-Time.</span>{" "}
-          <span className="text-secondary">Reliable</span>{" "}
-          <span className="text-accent">Results.</span>
+          <span className="text-yellow-400">Real-Time.</span>{" "}
+          <span className="text-blue-400">Reliable</span>{" "}
+          <span className="text-yellow-400">Results.</span>
         </h1>
 
-        <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed text-white/90">
+        <p className="text-xl md:text-2xl mb-12 max-w-3xl mx-auto leading-relaxed text-gray-200">
           From daily reporting to productivity estimation — we give you the
           tools to manage projects efficiently and securely.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-6 justify-center items-center">
-          <Button variant="hero" className="min-w-48" onClick={scrollToServices}>
+          <Button 
+            variant="hero" 
+            className="min-w-48 bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={scrollToServices}
+          >
             Get Started
           </Button>
           <Button
             variant="hero-outline"
-            className="min-w-48"
+            className="min-w-48 border-white text-white hover:bg-white hover:text-gray-900"
             onClick={scrollToContact}
           >
-Let’s Talk          </Button>
+            Let's Talk
+          </Button>
         </div>
       </div>
     </section>

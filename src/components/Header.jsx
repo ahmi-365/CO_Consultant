@@ -78,7 +78,7 @@ const Header = () => {
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled || isMobileMenuOpen
-          ? "bg-primary/95 backdrop-blur-md shadow-card"
+          ? "bg-gray-900/95 backdrop-blur-md shadow-lg"
           : "bg-transparent"
       }`}
     >
@@ -112,14 +112,19 @@ const Header = () => {
               <button
                 key={item.id}
                 onClick={() => scrollToSection(item.id)}
-                className="text-white hover:text-accent transition-colors duration-200 font-medium"
+                className="text-white hover:text-blue-400 transition-colors duration-200 font-medium"
               >
                 {item.label}
               </button>
             ))}
-            <Button variant="hero-outline" size="sm" onClick={handleNavigation}>
-              {getButtonText()}
-            </Button>
+           <Button 
+  variant="hero-outline" 
+  size="sm" 
+  className="border-white text-white hover:bg-white hover:text-gray-900"
+  onClick={handleNavigation}
+>
+  {getButtonText()}
+</Button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -133,13 +138,13 @@ const Header = () => {
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-primary/95 backdrop-blur-md border-t border-white/10">
+          <div className="md:hidden bg-gray-900/95 backdrop-blur-md border-t border-gray-700">
             <nav className="py-4 space-y-2">
               {menuItems.map((item) => (
                 <button
                   key={item.id}
                   onClick={() => scrollToSection(item.id)}
-                  className="block w-full text-left px-4 py-3 text-white hover:text-accent hover:bg-white/10 transition-colors duration-200"
+                  className="block w-full text-left px-4 py-3 text-white hover:text-blue-400 hover:bg-gray-800 transition-colors duration-200"
                 >
                   {item.label}
                 </button>
