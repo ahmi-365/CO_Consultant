@@ -110,7 +110,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
   const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
-  
+
   // Mobile-specific state
   const [viewMode, setViewMode] = useState("list"); // 'list' or 'grid'
   const [isMobile, setIsMobile] = useState(false);
@@ -139,7 +139,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const loadRootIframe = useCallback(async () => {
     // Calculate inside function to avoid dependency
     const isCurrentlyRoot = !folderId && location.pathname === "/filemanager";
-    
+
     if (!isCurrentlyRoot) {
       setShowIframePanel(false);
       setSelectedItemForIframe(null);
@@ -162,7 +162,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
           type: 'iframe'
         });
         setShowIframePanel(true);
-        
+
         // Auto-switch to embedded frame tab when root iframe is available
         setActiveTab("embedded-frame");
       } else {
@@ -269,7 +269,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         setLoading(false);
       }
     },
-  [folderId]
+    [folderId]
   );
 
   // Load root iframe separately - only when route changes
@@ -328,7 +328,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
   useEffect(() => {
     const handleFileUploaded = () => loadFiles();
-      const handleFilesMoved = () => loadFiles();
+    const handleFilesMoved = () => loadFiles();
     const handleRefreshFileList = () => {
       console.log("Refreshing file list...");
       loadFiles();
@@ -429,7 +429,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       const folderInfo = folderHierarchy.get(parsedFolderId);
       const folderPath = buildFolderPath(parsedFolderId);
       const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
-      
+
       return {
         id: folderInfo.id,
         name: folderInfo.name,
@@ -455,11 +455,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     const childItem = allFiles.find(
       (item) => item.parent_id && item.parent_id.toString() === folderId
     );
-    
+
     if (childItem) {
       const folderPath = buildFolderPath(parsedFolderId);
       const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
-      
+
       return {
         id: parsedFolderId,
         name: `Folder ${folderId}`,
@@ -479,7 +479,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
   // Memoize current folder info for modal
   const currentFolderInfo = useMemo(
-    () => getCurrentFolder(), 
+    () => getCurrentFolder(),
     [folderId, currentFolder, folderHierarchy, allFiles, buildFolderPath]
   );
 
@@ -632,8 +632,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       );
       if (response.status === "ok") {
         toast.success(
-          `${
-            selectedItemForRename.type === "folder" ? "Folder" : "File"
+          `${selectedItemForRename.type === "folder" ? "Folder" : "File"
           } renamed successfully`
         );
         setRenameModalOpen(false);
@@ -751,7 +750,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     try {
       // Just refresh the file list once
       await loadFiles();
-      
+
       // Dispatch events only once
       window.dispatchEvent(new CustomEvent("refreshSidebar"));
     } catch (error) {
@@ -977,14 +976,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               </Button>
 
               {/* Upload Files button */}
-              <Button
-                onClick={() => setShowUploadModal(true)}
-                className="flex items-center gap-1 sm:gap-2 h-9"
-                size="sm"
-              >
-                <Upload className="w-4 h-4" />
-                <span className="hidden sm:inline">Upload</span>
-              </Button>
+             <Button
+  onClick={() => setShowUploadModal(true)}
+  size="sm"
+  className={`
+    flex items-center gap-1 sm:gap-2 h-9 px-4 rounded-md font-medium transition-colors shadow-sm
+    bg-red-600 text-white hover:bg-red-700
+    dark:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] dark:text-gray-100
+    disabled:opacity-70 disabled:cursor-not-allowed
+  `}
+>
+  <Upload className="w-4 h-4" />
+  <span className="hidden sm:inline">Upload</span>
+</Button>
+
 
               {/* New Folder button */}
               <Button
@@ -1024,302 +1029,102 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         <div className="flex flex-col flex-1 overflow-auto">
           {/* FILE MANAGER TAB */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsContent value="file-manager" className="flex-1 overflow-auto m-0 p-4">
-            {loading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
-              </div>
-            ) : (
-              <>
-                {filteredFiles.length === 0 ? (
-                  <EmptyState />
-                ) : (
-                  <>
-                    {viewMode === "grid" ? (
-                      /* Desktop Grid View */
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 w-full overflow-hidden">
-                        {filteredFiles.map((item) => (
-                          <Card
-                            key={item.id}
-                            className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
-                            onClick={() => handleItemClick(item)}
-                            style={{
-                              opacity: movingStatus[item.id] ? 0.5 : 1,
-                            }}
-                          >
-                            <CardContent className="p-2 sm:p-3">
-                              <div className="flex flex-col items-center sm:items-start text-center sm:text-left justify-between gap-2 w-full">
-                                {/* Large colored icon */}
-                                <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-muted/50">
-                                  {(() => {
-                                    const fileType = getFileTypeFromItem(item);
-                                    switch (fileType) {
-                                      case "document":
-                                        return <FileText className="w-8 h-8 text-blue-500" />;
-                                      case "image":
-                                        return <Image className="w-8 h-8 text-green-500" />;
-                                      case "video":
-                                        return <Video className="w-8 h-8 text-purple-500" />;
-                                      case "zip":
-                                        return <Archive className="w-8 h-8 text-orange-500" />;
-                                      case "folder":
-                                        return <Folder className="w-8 h-8 text-red-500" />;
-                                      default:
-                                        return <FileText className="w-8 h-8 text-gray-500" />;
-                                    }
-                                  })()}
-                                </div>
-
-                                {/* File name */}
-                                <div className="w-full">
-                                  <div className="flex items-center justify-center gap-1 mb-1">
-                                    <span
-                                      className="font-medium text-sm truncate max-w-full"
-                                      title={item.name}
-                                    >
-                                      {item.name}
-                                    </span>
-                                    {item.is_starred && (
-                                      <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
-                                    )}
+            <TabsContent value="file-manager" className="flex-1 overflow-auto m-0 p-4">
+              {loading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
+                </div>
+              ) : (
+                <>
+                  {filteredFiles.length === 0 ? (
+                    <EmptyState />
+                  ) : (
+                    <>
+                      {viewMode === "grid" ? (
+                        /* Desktop Grid View */
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-3 w-full overflow-hidden">
+                          {filteredFiles.map((item) => (
+                            <Card
+                              key={item.id}
+                              className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+                              onClick={() => handleItemClick(item)}
+                              style={{
+                                opacity: movingStatus[item.id] ? 0.5 : 1,
+                              }}
+                            >
+                              <CardContent className="p-2 sm:p-3">
+                                <div className="flex flex-col items-center sm:items-start text-center sm:text-left justify-between gap-2 w-full">
+                                  {/* Large colored icon */}
+                                  <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-muted/50">
+                                    {(() => {
+                                      const fileType = getFileTypeFromItem(item);
+                                      switch (fileType) {
+                                        case "document":
+                                          return <FileText className="w-8 h-8 text-blue-500" />;
+                                        case "image":
+                                          return <Image className="w-8 h-8 text-green-500" />;
+                                        case "video":
+                                          return <Video className="w-8 h-8 text-purple-500" />;
+                                        case "zip":
+                                          return <Archive className="w-8 h-8 text-orange-500" />;
+                                        case "folder":
+                                          return <Folder className="w-8 h-8 text-red-500" />;
+                                        default:
+                                          return <FileText className="w-8 h-8 text-gray-500" />;
+                                      }
+                                    })()}
                                   </div>
 
-                                  {/* File details */}
-                                  <div className="text-xs text-muted-foreground space-y-1">
-                                    <div>{formatDate(item.updated_at)}</div>
-                                    {item.type !== "folder" && (
-                                      <div>{formatFileSize(item.size)}</div>
-                                    )}
-                                  </div>
-                                </div>
-
-                                {/* Badges */}
-                                <div className="flex flex-wrap gap-1 justify-center">
-                                  {item.is_starred && (
-                                    <Badge variant="outline" className="text-xs">
-                                      Starred
-                                    </Badge>
-                                  )}
-                                  {item.is_trashed && (
-                                    <Badge variant="destructive" className="text-xs">
-                                      Trashed
-                                    </Badge>
-                                  )}
-                                  <Badge variant="outline" className="capitalize text-xs">
-                                    {item.type}
-                                  </Badge>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap w-full mt-1">
-                                  {item.type === "file" && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDownloadFile(item.id, item.name);
-                                      }}
-                                      disabled={actionLoading.downloading[item.id]}
-                                      className="h-8 w-8 p-0"
-                                    >
-                                      {actionLoading.downloading[item.id] ? (
-                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
-                                      ) : (
-                                        <Download className="w-4 h-4" />
+                                  {/* File name */}
+                                  <div className="w-full">
+                                    <div className="flex items-center justify-center gap-1 mb-1">
+                                      <span
+                                        className="font-medium text-sm truncate max-w-full"
+                                        title={item.name}
+                                      >
+                                        {item.name}
+                                      </span>
+                                      {item.is_starred && (
+                                        <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
                                       )}
-                                    </Button>
-                                  )}
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-8 w-8 p-0"
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <MoreHorizontal className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent
-                                      align="end"
-                                      className="w-48 bg-popover border border-border"
-                                    >
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleStarFile(item.id);
-                                        }}
-                                        disabled={actionLoading.starring[item.id]}
-                                      >
-                                        <Star className="w-4 h-4 mr-2" />
-                                        {item.is_starred ? "Unstar" : "Star"}
-                                      </DropdownMenuItem>
+                                    </div>
 
-                                      {item.type === "file" && (
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDownloadFile(item.id, item.name);
-                                          }}
-                                          disabled={actionLoading.downloading[item.id]}
-                                        >
-                                          <Download className="w-4 h-4 mr-2" />
-                                          Download
-                                        </DropdownMenuItem>
+                                    {/* File details */}
+                                    <div className="text-xs text-muted-foreground space-y-1">
+                                      <div>{formatDate(item.updated_at)}</div>
+                                      {item.type !== "folder" && (
+                                        <div>{formatFileSize(item.size)}</div>
                                       )}
-
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleTrashFile(item.id);
-                                        }}
-                                        disabled={actionLoading.trashing[item.id]}
-                                        className="text-destructive focus:text-destructive"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Move to Trash
-                                      </DropdownMenuItem>
-
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleMoveFile(item.id, item.name);
-                                        }}
-                                      >
-                                        <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                        Move
-                                      </DropdownMenuItem>
-
-                                      <DropdownMenuItem
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleRenameItem(item);
-                                        }}
-                                      >
-                                        <Edit className="w-4 h-4 mr-2" />
-                                        Rename
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
-
-                                {movingStatus[item.id] && (
-                                  <div className="text-xs text-muted-foreground">
-                                    Moving...
-                                  </div>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      /* Desktop Table View */
-                      <div className="rounded-md border">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Name</TableHead>
-                              <TableHead className="hidden md:table-cell">
-                                Last Modified
-                              </TableHead>
-                              <TableHead className="hidden sm:table-cell">
-                                Size
-                              </TableHead>
-                              <TableHead className="hidden lg:table-cell">
-                                Type
-                              </TableHead>
-                              <TableHead className="w-12">Actions</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {filteredFiles.map((item) => (
-                              <TableRow
-                                key={item.id}
-                                className={`hover:bg-muted/50 ${
-                                  selectedItemForIframe?.id === item.id
-                                    ? "bg-blue-50"
-                                    : ""
-                                }`}
-                                style={{
-                                  opacity: movingStatus[item.id] ? 0.5 : 1,
-                                }}
-                              >
-                                <TableCell>
-                                  <div
-                                    className={`flex items-center gap-2 ${
-                                      item.type === "folder"
-                                        ? "cursor-pointer"
-                                        : "cursor-move"
-                                    }`}
-                                    draggable={item.type !== "folder" && !isMobile}
-                                    onDragStart={(e) =>
-                                      item.type !== "folder" && handleDragStart(e, item.id)
-                                    }
-                                    onDragOver={
-                                      item.type === "folder" ? handleDragOver : undefined
-                                    }
-                                    onDrop={
-                                      item.type === "folder"
-                                        ? (e) => handleDrop(e, item.id)
-                                        : undefined
-                                    }
-                                    onClick={() => handleItemClick(item)}
-                                  >
-                                    {getFileIcon(getFileTypeFromItem(item))}
-                                    <div className="flex flex-col">
-                                      <div className="flex items-center gap-2">
-                                        <span className="font-medium">
-                                          {item.name}
-                                          {movingStatus[item.id] && (
-                                            <span className="ml-2 text-xs text-muted-foreground">
-                                              Moving...
-                                            </span>
-                                          )}
-                                        </span>
-                                        {item.is_starred && (
-                                          <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                                        )}
-                                      </div>
-                                      {/* Mobile-only details */}
-                                      <div className="md:hidden text-xs text-muted-foreground mt-1">
-                                        {formatDate(item.updated_at)}
-                                        {item.type !== "folder" && (
-                                          <span className="ml-2">
-                                            • {formatFileSize(item.size)}
-                                          </span>
-                                        )}
-                                      </div>
                                     </div>
                                   </div>
-                                </TableCell>
-                                <TableCell className="hidden md:table-cell text-muted-foreground">
-                                  {formatDate(item.updated_at)}
-                                </TableCell>
-                                <TableCell className="hidden sm:table-cell text-muted-foreground">
-                                  {item.type === "folder" ? "-" : formatFileSize(item.size)}
-                                </TableCell>
-                                <TableCell className="hidden lg:table-cell">
-                                  <div className="flex gap-1">
+
+                                  {/* Badges */}
+                                  <div className="flex flex-wrap gap-1 justify-center">
                                     {item.is_starred && (
-                                      <Badge variant="outline">Starred</Badge>
+                                      <Badge variant="outline" className="text-xs">
+                                        Starred
+                                      </Badge>
                                     )}
                                     {item.is_trashed && (
-                                      <Badge variant="destructive">Trashed</Badge>
+                                      <Badge variant="destructive" className="text-xs">
+                                        Trashed
+                                      </Badge>
                                     )}
-                                    <Badge variant="outline" className="capitalize">
+                                    <Badge variant="outline" className="capitalize text-xs">
                                       {item.type}
                                     </Badge>
                                   </div>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex items-center gap-1">
+
+                                  {/* Actions */}
+                                  <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap w-full mt-1">
                                     {item.type === "file" && (
                                       <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleDownloadFile(item.id, item.name)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDownloadFile(item.id, item.name);
+                                        }}
                                         disabled={actionLoading.downloading[item.id]}
                                         className="h-8 w-8 p-0"
                                       >
@@ -1332,7 +1137,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     )}
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-8 w-8 p-0"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
                                           <MoreHorizontal className="w-4 h-4" />
                                         </Button>
                                       </DropdownMenuTrigger>
@@ -1341,7 +1151,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         className="w-48 bg-popover border border-border"
                                       >
                                         <DropdownMenuItem
-                                          onClick={() => handleStarFile(item.id)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleStarFile(item.id);
+                                          }}
                                           disabled={actionLoading.starring[item.id]}
                                         >
                                           <Star className="w-4 h-4 mr-2" />
@@ -1350,7 +1163,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
                                         {item.type === "file" && (
                                           <DropdownMenuItem
-                                            onClick={() => handleDownloadFile(item.id, item.name)}
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleDownloadFile(item.id, item.name);
+                                            }}
                                             disabled={actionLoading.downloading[item.id]}
                                           >
                                             <Download className="w-4 h-4 mr-2" />
@@ -1359,7 +1175,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         )}
 
                                         <DropdownMenuItem
-                                          onClick={() => handleTrashFile(item.id)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleTrashFile(item.id);
+                                          }}
                                           disabled={actionLoading.trashing[item.id]}
                                           className="text-destructive focus:text-destructive"
                                         >
@@ -1368,14 +1187,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         </DropdownMenuItem>
 
                                         <DropdownMenuItem
-                                          onClick={() => handleMoveFile(item.id, item.name)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleMoveFile(item.id, item.name);
+                                          }}
                                         >
                                           <ArrowRightLeft className="w-4 h-4 mr-2" />
                                           Move
                                         </DropdownMenuItem>
 
                                         <DropdownMenuItem
-                                          onClick={() => handleRenameItem(item)}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleRenameItem(item);
+                                          }}
                                         >
                                           <Edit className="w-4 h-4 mr-2" />
                                           Rename
@@ -1383,55 +1208,232 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   </div>
-                                </TableCell>
+
+                                  {movingStatus[item.id] && (
+                                    <div className="text-xs text-muted-foreground">
+                                      Moving...
+                                    </div>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        /* Desktop Table View */
+                        <div className="rounded-md border">
+                          <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead className="hidden md:table-cell">
+                                  Last Modified
+                                </TableHead>
+                                <TableHead className="hidden sm:table-cell">
+                                  Size
+                                </TableHead>
+                                <TableHead className="hidden lg:table-cell">
+                                  Type
+                                </TableHead>
+                                <TableHead className="w-12">Actions</TableHead>
                               </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    )}
-                  </>
-                )}
-              </>
-            )}
-          </TabsContent>
-</Tabs>
+                            </TableHeader>
+                            <TableBody>
+                              {filteredFiles.map((item) => (
+                                <TableRow
+                                  key={item.id}
+                                  className={`hover:bg-muted/50 ${selectedItemForIframe?.id === item.id
+                                    ? "bg-blue-50"
+                                    : ""
+                                    }`}
+                                  style={{
+                                    opacity: movingStatus[item.id] ? 0.5 : 1,
+                                  }}
+                                >
+                                  <TableCell>
+                                    <div
+                                      className={`flex items-center gap-2 ${item.type === "folder"
+                                        ? "cursor-pointer"
+                                        : "cursor-move"
+                                        }`}
+                                      draggable={item.type !== "folder" && !isMobile}
+                                      onDragStart={(e) =>
+                                        item.type !== "folder" && handleDragStart(e, item.id)
+                                      }
+                                      onDragOver={
+                                        item.type === "folder" ? handleDragOver : undefined
+                                      }
+                                      onDrop={
+                                        item.type === "folder"
+                                          ? (e) => handleDrop(e, item.id)
+                                          : undefined
+                                      }
+                                      onClick={() => handleItemClick(item)}
+                                    >
+                                      {getFileIcon(getFileTypeFromItem(item))}
+                                      <div className="flex flex-col">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-medium">
+                                            {item.name}
+                                            {movingStatus[item.id] && (
+                                              <span className="ml-2 text-xs text-muted-foreground">
+                                                Moving...
+                                              </span>
+                                            )}
+                                          </span>
+                                          {item.is_starred && (
+                                            <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                                          )}
+                                        </div>
+                                        {/* Mobile-only details */}
+                                        <div className="md:hidden text-xs text-muted-foreground mt-1">
+                                          {formatDate(item.updated_at)}
+                                          {item.type !== "folder" && (
+                                            <span className="ml-2">
+                                              • {formatFileSize(item.size)}
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell className="hidden md:table-cell text-muted-foreground">
+                                    {formatDate(item.updated_at)}
+                                  </TableCell>
+                                  <TableCell className="hidden sm:table-cell text-muted-foreground">
+                                    {item.type === "folder" ? "-" : formatFileSize(item.size)}
+                                  </TableCell>
+                                  <TableCell className="hidden lg:table-cell">
+                                    <div className="flex gap-1">
+                                      {item.is_starred && (
+                                        <Badge variant="outline">Starred</Badge>
+                                      )}
+                                      {item.is_trashed && (
+                                        <Badge variant="destructive">Trashed</Badge>
+                                      )}
+                                      <Badge variant="outline" className="capitalize">
+                                        {item.type}
+                                      </Badge>
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>
+                                    <div className="flex items-center gap-1">
+                                      {item.type === "file" && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => handleDownloadFile(item.id, item.name)}
+                                          disabled={actionLoading.downloading[item.id]}
+                                          className="h-8 w-8 p-0"
+                                        >
+                                          {actionLoading.downloading[item.id] ? (
+                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
+                                          ) : (
+                                            <Download className="w-4 h-4" />
+                                          )}
+                                        </Button>
+                                      )}
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                            <MoreHorizontal className="w-4 h-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                          align="end"
+                                          className="w-48 bg-popover border border-border"
+                                        >
+                                          <DropdownMenuItem
+                                            onClick={() => handleStarFile(item.id)}
+                                            disabled={actionLoading.starring[item.id]}
+                                          >
+                                            <Star className="w-4 h-4 mr-2" />
+                                            {item.is_starred ? "Unstar" : "Star"}
+                                          </DropdownMenuItem>
+
+                                          {item.type === "file" && (
+                                            <DropdownMenuItem
+                                              onClick={() => handleDownloadFile(item.id, item.name)}
+                                              disabled={actionLoading.downloading[item.id]}
+                                            >
+                                              <Download className="w-4 h-4 mr-2" />
+                                              Download
+                                            </DropdownMenuItem>
+                                          )}
+
+                                          <DropdownMenuItem
+                                            onClick={() => handleTrashFile(item.id)}
+                                            disabled={actionLoading.trashing[item.id]}
+                                            className="text-destructive focus:text-destructive"
+                                          >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Move to Trash
+                                          </DropdownMenuItem>
+
+                                          <DropdownMenuItem
+                                            onClick={() => handleMoveFile(item.id, item.name)}
+                                          >
+                                            <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                            Move
+                                          </DropdownMenuItem>
+
+                                          <DropdownMenuItem
+                                            onClick={() => handleRenameItem(item)}
+                                          >
+                                            <Edit className="w-4 h-4 mr-2" />
+                                            Rename
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
+                                    </div>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </TabsContent>
+          </Tabs>
 
           {/* EMBEDDED FRAME TAB */}
-                <Tabs
-  value={activeTab}
-  onValueChange={setActiveTab}
-  className="w-full h-[calc(100vh-100px)] flex flex-col" // 👈 full screen ke close height
->
-  <TabsContent
-    value="embedded-frame"
-    className="flex-1 overflow-auto m-0 flex flex-col h-full"
-  >
-    <div className="flex-1 p-4 h-full">
-      <div className="w-full h-full border rounded-lg overflow-hidden bg-white">
-        {getPreviewUrl() ? (
-          <iframe
-            src={getPreviewUrl()}
-            className="w-full h-full border-0"
-            title={`Embedded content: ${
-              selectedItemForIframe?.name || "Content"
-            }`}
-            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-            loading="lazy"
-            onError={(e) => console.error("Iframe load error:", e)}
-          />
-        ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
-            <div className="text-center">
-              <Code className="h-8 w-8 mx-auto mb-2" />
-              <p className="text-sm">No embedded content available</p>
-            </div>
-          </div>
-        )}
-      </div>
-    </div>
-  </TabsContent>
-</Tabs>
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full h-[calc(100vh-100px)] flex flex-col" // 👈 full screen ke close height
+          >
+            <TabsContent
+              value="embedded-frame"
+              className="flex-1 overflow-auto m-0 flex flex-col h-full"
+            >
+              <div className="flex-1 p-4 h-full">
+                <div className="w-full h-full border rounded-lg overflow-hidden bg-white">
+                  {getPreviewUrl() ? (
+                    <iframe
+                      src={getPreviewUrl()}
+                      className="w-full h-full border-0"
+                      title={`Embedded content: ${selectedItemForIframe?.name || "Content"
+                        }`}
+                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                      loading="lazy"
+                      onError={(e) => console.error("Iframe load error:", e)}
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                      <div className="text-center">
+                        <Code className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm">No embedded content available</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
 
         </div>
       ) : (
@@ -1513,17 +1515,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                         {selectedItemForIframe?.name || "Embedded Content"}
                       </h3>
                       <p className="text-sm text-muted-foreground">
-                        {selectedItemForIframe?.type === 'iframe' && selectedItemForIframe?.id === 'root-iframe' 
-                          ? "Root embedded content" 
-                          : selectedItemForIframe?.type === 'folder' 
-                            ? "From folder" 
+                        {selectedItemForIframe?.type === 'iframe' && selectedItemForIframe?.id === 'root-iframe'
+                          ? "Root embedded content"
+                          : selectedItemForIframe?.type === 'folder'
+                            ? "From folder"
                             : "Interactive content"}
                       </p>
                     </div>
                   </div>
                   <div className="flex-1 p-4">
-                    <iframe 
-                      src={getPreviewUrl()} 
+                    <iframe
+                      src={getPreviewUrl()}
                       className="w-full h-full border-0 rounded"
                       title={`Embedded content: ${selectedItemForIframe?.name || 'Content'}`}
                       sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
@@ -1747,22 +1749,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                               {filteredFiles.map((item) => (
                                 <TableRow
                                   key={item.id}
-                                  className={`hover:bg-muted/50 ${
-                                    selectedItemForIframe?.id === item.id
-                                      ? "bg-blue-50"
-                                      : ""
-                                  }`}
+                                  className={`hover:bg-muted/50 ${selectedItemForIframe?.id === item.id
+                                    ? "bg-blue-50"
+                                    : ""
+                                    }`}
                                   style={{
                                     opacity: movingStatus[item.id] ? 0.5 : 1,
                                   }}
                                 >
                                   <TableCell>
                                     <div
-                                      className={`flex items-center gap-2 ${
-                                        item.type === "folder"
-                                          ? "cursor-pointer"
-                                          : "cursor-move"
-                                      }`}
+                                      className={`flex items-center gap-2 ${item.type === "folder"
+                                        ? "cursor-pointer"
+                                        : "cursor-move"
+                                        }`}
                                       draggable={item.type !== "folder" && !isMobile}
                                       onDragStart={(e) =>
                                         item.type !== "folder" && handleDragStart(e, item.id)

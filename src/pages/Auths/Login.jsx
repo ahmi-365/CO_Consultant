@@ -1,5 +1,3 @@
-
-
 import { useState, useEffect } from "react"
 import { Link, useNavigate, useLocation } from "react-router-dom"
 import { Button } from "@/components/ui/button"
@@ -82,14 +80,14 @@ const handleSubmit = async (e) => {
 
 
   return (
-    <div className="h-screen flex flex-col lg:flex-row overflow-hidden">
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8  animate-slide-in-left">
+    <div className="h-screen flex flex-col lg:flex-row overflow-hidden bg-white">
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 animate-slide-in-left">
         <div className="w-full max-w-sm space-y-6">
           {/* Sign In Form */}
           <div className="space-y-4">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">Sign in</h1>
-              <p className="text-sm text-muted-foreground mt-1">
+              <h1 className="text-2xl font-semibold text-gray-900">Sign in</h1>
+              <p className="text-sm text-gray-600 mt-1">
                 Access your consulting dashboard and client management tools
               </p>
             </div>
@@ -97,7 +95,7 @@ const handleSubmit = async (e) => {
             <form onSubmit={handleSubmit} className="space-y-3">
               {/* Email Field */}
               <div className="space-y-1">
-                <Label htmlFor="email" className="text-sm font-medium text-foreground">
+                <Label htmlFor="email" className="text-sm font-medium text-gray-900">
                   Enter your email
                 </Label>
                 <Input
@@ -105,14 +103,14 @@ const handleSubmit = async (e) => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 py-2  border border-border rounded-lg  placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
                 />
               </div>
 
               {/* Password Field */}
               <div className="space-y-1">
-                <Label htmlFor="password" className="text-sm font-medium text-foreground">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-900">
                   Password
                 </Label>
                 <div className="relative">
@@ -121,13 +119,13 @@ const handleSubmit = async (e) => {
                     type={showPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full px-3 py-2 pr-10  border border-border rounded-lg text-black placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-3 py-2 pr-10 bg-white border border-gray-300 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
@@ -141,9 +139,9 @@ const handleSubmit = async (e) => {
                   id="remember"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-blue-600 bg-panel border-border rounded focus:ring-blue-500"
+                  className="w-4 h-4 text-blue-600 bg-white border-gray-300 rounded focus:ring-blue-500"
                 />
-                <Label htmlFor="remember" className="text-sm text-muted-foreground">
+                <Label htmlFor="remember" className="text-sm text-gray-600">
                   Remember me for 30 days
                 </Label>
               </div>
@@ -152,60 +150,14 @@ const handleSubmit = async (e) => {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-panel hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+                className="w-full font-medium py-2 px-4 rounded-lg transition-colors shadow-sm bg-red-600 hover:bg-red-700 text-white disabled:opacity-70 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Signing in..." : "Sign in"}
               </Button>
+
             </form>
 
-            {/* Divider */}
-            {/* <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border"></div>
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-background text-muted-foreground">Or sign in with</span>
-              </div>
-            </div>
-
-          
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                type="button"
-                className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-white text-gray-700 hover:bg-gray-50 shadow-sm transition-colors"
-              >
-                <img
-                  src="https://www.svgrepo.com/show/355037/google.svg"
-                  alt="Google"
-                  className="w-4 h-4"
-                />
-                <span className="text-sm font-medium">Google</span>
-              </Button>
-
-              <Button
-                type="button"
-                className="w-full flex items-center justify-center gap-2 border border-border rounded-lg bg-[#1877F2] text-white hover:bg-[#166FE0] shadow-sm transition-colors"
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 
-      5.373-12 12c0 5.99 4.388 10.954 10.125 
-      11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 
-      1.792-4.669 4.533-4.669 1.312 0 
-      2.686.235 2.686.235v2.953H15.83c-1.491 
-      0-1.956.925-1.956 1.874v2.25h3.328l-.532 
-      3.47h-2.796v8.385C19.612 23.027 24 
-      18.062 24 12.073z" />
-                </svg>
-                <span className="text-sm font-medium">Facebook</span>
-              </Button>
-            </div> */}
-
-
-            <div className="text-center text-sm text-muted-foreground">
+            <div className="text-center text-sm text-gray-600">
               Don't have an account?{" "}
               <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium">
                 Sign up

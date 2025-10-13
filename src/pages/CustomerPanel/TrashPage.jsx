@@ -330,15 +330,20 @@ export default function TrashPage() {
                   </Button>
                   {/* ✅ Updated Empty Trash button */}
                   <Button
-                    onClick={handleEmptyTrash}
-                    disabled={emptyTrashLoading}
-                    variant="destructive"
-                    size="sm"
-                    className="rounded-full px-6"
-                  >
-                    <Trash2 className="w-4 h-4 mr-2" /> 
-                    {emptyTrashLoading ? "Emptying..." : "Empty Trash"}
-                  </Button>
+  onClick={handleEmptyTrash}
+  disabled={emptyTrashLoading}
+  size="sm"
+  className={`
+    rounded-full px-6 font-medium flex items-center transition-colors shadow-sm
+    bg-red-600 text-white hover:bg-red-700
+    dark:bg-[#b91c1c] dark:hover:bg-[#ef4444] dark:text-gray-100
+    disabled:opacity-70 disabled:cursor-not-allowed
+  `}
+>
+  <Trash2 className="w-4 h-4 mr-2" />
+  {emptyTrashLoading ? "Emptying..." : "Empty Trash"}
+</Button>
+
                 </>
               )
             )}

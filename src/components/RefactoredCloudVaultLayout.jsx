@@ -57,10 +57,10 @@ export default function RefactoredCloudVaultLayout({ children }) {
   // Function to get user initials
   const getUserInitials = (user) => {
     if (!user) return "U";
-    
+
     const firstName = user.name || "";
     const lastName = user.last_name || "";
-    
+
     if (firstName && lastName) {
       return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     } else if (firstName) {
@@ -68,14 +68,14 @@ export default function RefactoredCloudVaultLayout({ children }) {
     } else if (user.email) {
       return user.email.charAt(0).toUpperCase();
     }
-    
+
     return "U";
   };
 
   // Function to get user display name
   const getUserDisplayName = (user) => {
     if (!user) return "User";
-    
+
     if (user.name && user.last_name) {
       return `${user.name} ${user.last_name}`;
     } else if (user.name) {
@@ -83,7 +83,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
     } else if (user.email) {
       return user.email.split('@')[0];
     }
-    
+
     return "User";
   };
 
@@ -173,7 +173,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
     navigate("/login");
     toast.success("Logged out successfully");
 
-    if (isMobileSidebarOpen) { 
+    if (isMobileSidebarOpen) {
       setIsMobileSidebarOpen(false);
     }
   };
@@ -304,8 +304,8 @@ export default function RefactoredCloudVaultLayout({ children }) {
                     <button
                       onClick={() => navigate(crumb.path)}
                       className={`hover:text-foreground transition-colors max-w-[150px] truncate ${index === getBreadcrumbPath().length - 1
-                          ? "text-foreground font-medium"
-                          : ""
+                        ? "text-foreground font-medium"
+                        : ""
                         }`}
                       title={crumb.name}
                     >
@@ -359,32 +359,43 @@ export default function RefactoredCloudVaultLayout({ children }) {
             {/* Updated User Avatar with Profile Photo */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer">
+                <Avatar className="cursor-pointer border border-gray-200 dark:border-gray-700 transition-colors">
                   {user?.profile_photo ? (
-                    <AvatarImage 
-                      src={user.profile_photo} 
+                    <AvatarImage
+                      src={user.profile_photo}
                       alt={getUserDisplayName(user)}
                       className="object-cover"
                     />
                   ) : null}
-                  <AvatarFallback className="bg-panel text-panel-foreground hover:bg-panel/90 transition-colors">
+                  <AvatarFallback className="bg-red-600 text-white dark:bg-[#1e40af] dark:text-gray-100 hover:opacity-90 transition-all font-medium">
                     {getUserInitials(user)}
                   </AvatarFallback>
                 </Avatar>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-40">
-                <DropdownMenuItem onClick={handleProfileClick}>
+
+              <DropdownMenuContent
+                align="end"
+                className="w-44 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 
+               bg-white dark:bg-[#0f172a] transition-colors"
+              >
+                <DropdownMenuItem
+                  onClick={handleProfileClick}
+                  className="text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1e293b] transition-colors"
+                >
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuSeparator />
+
+                <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+
                 <DropdownMenuItem
                   onClick={handleLogout}
-                  className="text-red-600 focus:text-red-600"
+                  className="text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-[#1e293b] transition-colors"
                 >
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
           </div>
         </header>
 
@@ -458,7 +469,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
       </div>
 
       {/* Upload Modal */}
-      
+
       {/* New Folder Modal */}
       <NewFolderModal
         isOpen={isNewFolderModalOpen}
@@ -478,9 +489,9 @@ async function getUserData() {
   if (userData) {
     return JSON.parse(userData);
   }
-  
+
   // Or from an API call:
   // return await authApi.getCurrentUser();
-  
+
   return null;
 }
