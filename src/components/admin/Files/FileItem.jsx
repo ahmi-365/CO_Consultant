@@ -329,16 +329,16 @@ export default function FileItem({
             <div className="flex items-center gap-1">
               {/* Iframe button - only for UserRoot folders */}
               {isUserRoot && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleIframeClick}
-                  className="h-8 w-8 p-0"
-                  disabled={isAnyOperationInProgress}
-                  title="Embed iframe"
-                >
-                  <Code className="h-4 w-4" />
-                </Button>
+               <Button
+  variant="ghost"
+  size="sm"
+  onClick={handleIframeClick}
+  className="h-8 w-8 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+  disabled={isAnyOperationInProgress}
+  title="Embed iframe"
+>
+  <Code className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+</Button>
               )}
 
               {/* User permissions icon for folders */}
@@ -376,13 +376,13 @@ export default function FileItem({
               <DropdownMenu>
                 <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
                   <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 w-8 p-0 cursor-pointer"
-                    disabled={isAnyOperationInProgress}
-                  >
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
+  variant="ghost" 
+  size="sm" 
+  className="h-8 w-8 p-0 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-200"
+  disabled={isAnyOperationInProgress}
+>
+  <MoreHorizontal className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+</Button>
                 </DropdownMenuTrigger>
 
                 <DropdownMenuContent align="end" className="w-48">

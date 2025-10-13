@@ -56,82 +56,89 @@ const handleLogout = () => {
   navigate("/login");
 };
 
-
-  return (
-    <div
-      className={cn(
-        "relative flex h-screen flex-col bg-card border-r border-border transition-all duration-300",
-        collapsed ? "w-20" : "w-64"
-      )}
-    >
-      {/* Header */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-border">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-panel">
-          <FolderOpen className="h-5 w-5 text-panel-foreground" />
-        </div>
-        {!collapsed && !isMobile && (
+return (
+  <div
+    className={cn(
+      "relative flex h-screen flex-col bg-card border-r border-border transition-all duration-300",
+      collapsed ? "w-20" : "w-64"
+    )}
+  >
+    {/* Header */}
+    <div className="flex items-center justify-between px-4 py-5 border-b border-border">
+      <div className="flex items-center gap-3">
+        {/* Show folder icon on desktop, theme toggle on mobile */}
+        {!isMobile ? (
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-panel">
+            <FolderOpen className="h-5 w-5 text-panel-foreground" />
+          </div>
+        ) : (
+          <ThemeToggle />
+        )}
+        {!collapsed && (
           <span className="text-lg font-semibold">Admin Panel</span>
         )}
       </div>
-
-      {/* Collapse Toggle (🚫 Hide on mobile) */}
-      {!isMobile && (
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="absolute top-16 -right-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-gray-100 transition"
-        >
-          {collapsed ? (
-            <ChevronRight className="h-5 w-5" />
-          ) : (
-            <ChevronLeft className="h-5 w-5" />
-          )}
-        </button>
+      
+      {/* Theme Toggle - Show on desktop when sidebar is expanded */}
+      {!collapsed && !isMobile && (
+        <ThemeToggle />
       )}
-
-      {/* Navigation */}
-      <nav className="flex-1 px-2 py-6">
-        <ul className="space-y-2">
-          {navigation.map((item) => (
-            <li key={item.name}>
-              <NavLink
-                to={item.href}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    isActive
-                      ? "bg-panel text-panel-foreground"
-                      : "text-foreground hover:bg-accent hover:text-accent-foreground",
-                    collapsed && "justify-center"
-                  )
-                }
-              >
-                <item.icon className="h-5 w-5" />
-                {!collapsed && !isMobile && item.name}
-              </NavLink>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      {/* Footer (Theme Toggle & Logout) */}
-      <div className="border-t border-border p-4 space-y-2">
-        <div className={cn(
-          "flex w-full items-center gap-3 px-3 py-2",
-          collapsed && "justify-center"
-        )}>
-          <ThemeToggle />
-        </div>
-        <button
-          onClick={handleLogout}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-accent hover:text-accent-foreground transition-colors",
-            collapsed && "justify-center"
-          )}
-        >
-          <LogOut className="h-5 w-5" />
-          {!collapsed && !isMobile && "Logout"}
-        </button>
-      </div>
     </div>
-  );
+
+    {/* Collapse Toggle (🚫 Hide on mobile) */}
+    {!isMobile && (
+      <button
+        onClick={() => setCollapsed(!collapsed)}
+        className="absolute top-16 -right-3 z-20 flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card shadow-md hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        {collapsed ? (
+          <ChevronRight className="h-5 w-5" />
+        ) : (
+          <ChevronLeft className="h-5 w-5" />
+        )}
+      </button>
+    )}
+
+    {/* Navigation */}
+    <nav className="flex-1 px-2 py-6">
+      <ul className="space-y-2">
+        {navigation.map((item) => (
+          <li key={item.name}>
+            <NavLink
+              to={item.href}
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  isActive
+                    ? "bg-panel text-panel-foreground"
+                    : "text-foreground hover:bg-gray-100 dark:hover:bg-gray-700",
+                  collapsed && "justify-center"
+                )
+              }
+            >
+              <item.icon className="h-5 w-5" />
+              {!collapsed && item.name}
+            </NavLink>
+          </li>
+        ))}
+      </ul>
+    </nav>
+
+    {/* Footer */}
+    <div className="border-t border-border p-4">
+      <button
+        onClick={handleLogout}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-foreground hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
+          collapsed && "justify-center"
+        )}
+      >
+        <LogOut className="h-5 w-5" />
+        {!collapsed && "Logout"}
+      </button>
+    </div>
+  </div>
+);
+
+
 }

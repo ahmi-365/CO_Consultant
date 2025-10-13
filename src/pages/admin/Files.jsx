@@ -523,9 +523,9 @@ const displayItems = files;  // ← Just display what API returns
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b pb-4">
             {/* Left side: title and subtitle */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
-                File Management
-              </h1>
+             <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 dark:text-white">
+  File Management
+</h1>
               <p className="text-sm text-gray-500 mt-1">
                 Organize and manage your team's files with ease
               </p>
