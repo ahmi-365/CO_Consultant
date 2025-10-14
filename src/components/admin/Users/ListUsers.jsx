@@ -45,7 +45,7 @@ export const UserListComponent = ({
   roleFilter,
   setRoleFilter,
   filteredUsers,
-updatingUserId,
+  updatingUserId,
   handleUpdateUser,
 }) => {
   const { toast } = useToast();
@@ -235,7 +235,11 @@ updatingUserId,
                 return (
                   <div
                     key={user.id}
-                    className="sm:grid sm:grid-cols-12 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-gray-50/50 rounded-lg px-2 transition-colors"
+                    // className="sm:grid sm:grid-cols-12 gap-4 items-center py-4 border-b border-border last:border-0 hover:bg-gray-50/50 dark:hover:bg-transparent rounded-lg px-2 transition-colors"
+                    className="sm:grid sm:grid-cols-12 gap-4 items-center py-4 border-b border-border last:border-0 
+                                hover:bg-gray-50/50 dark:hover:bg-[#0f172a] 
+                                rounded-lg px-2 transition-colors"
+
                   >
                     {/* ✅ Mobile View (Card layout) */}
                     <div className="block sm:hidden space-y-2 p-3 border rounded-lg shadow-sm bg-white">
@@ -424,35 +428,35 @@ updatingUserId,
                               View Details
                             </DropdownMenuItem>
                             <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <UserForm
-  mode="edit"
-  initialData={{
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    password: "",
-    role: user.roles?.[0]?.name || "user",
-  }}
-  onSubmit={(updatedUser) =>
-    handleUpdateUser({
-      id: updatedUser.id,
-      name: updatedUser.name,
-      email: updatedUser.email,
-      password: updatedUser.password || undefined,
-      role: updatedUser.role,
-    })
-  }
-  isLoading={updatingUserId === user.id} // Add this line
-  trigger={
-    <Button
-      variant="ghost"
-      size="sm"
-      className="w-full justify-start"
-    >
-      Edit User
-    </Button>
-  }
-/>
+                              <UserForm
+                                mode="edit"
+                                initialData={{
+                                  id: user.id,
+                                  name: user.name,
+                                  email: user.email,
+                                  password: "",
+                                  role: user.roles?.[0]?.name || "user",
+                                }}
+                                onSubmit={(updatedUser) =>
+                                  handleUpdateUser({
+                                    id: updatedUser.id,
+                                    name: updatedUser.name,
+                                    email: updatedUser.email,
+                                    password: updatedUser.password || undefined,
+                                    role: updatedUser.role,
+                                  })
+                                }
+                                isLoading={updatingUserId === user.id} // Add this line
+                                trigger={
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="w-full justify-start"
+                                  >
+                                    Edit User
+                                  </Button>
+                                }
+                              />
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <AlertDialog>

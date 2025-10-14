@@ -382,10 +382,17 @@ export default function RefactoredCloudVaultLayout({ children }) {
                   onClick={handleProfileClick}
                   className="text-gray-700 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1e293b] transition-colors"
                 >
+
+
+
+
+
                   Profile
                 </DropdownMenuItem>
 
                 <DropdownMenuSeparator className="bg-gray-200 dark:bg-gray-700" />
+
+
 
                 <DropdownMenuItem
                   onClick={handleLogout}

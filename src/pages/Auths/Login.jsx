@@ -17,66 +17,66 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
 
-// Check if user is already logged in
-useEffect(() => {
-  const token = authService.getToken();
-  const user = authService.getUser();
+  // Check if user is already logged in
+  useEffect(() => {
+    const token = authService.getToken();
+    const user = authService.getUser();
 
-  if (token && user) {
-    // Redirect based on is_admin
-    if (user.is_admin === 1) {
-      navigate('/dash', { replace: true });
-    } else {
-      navigate('/filemanager', { replace: true });
+    if (token && user) {
+      // Redirect based on is_admin
+      if (user.is_admin === 1) {
+        navigate('/dash', { replace: true });
+      } else {
+        navigate('/filemanager', { replace: true });
+      }
     }
-  }
-}, [navigate]);
+  }, [navigate]);
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-  try {
-    const response = await authService.login({ email, password });
+    try {
+      const response = await authService.login({ email, password });
 
-    if (response.success) {
-      toast({
-        title: "Login Successful 🎉",
-        description: "Redirecting...",
-      });
+      if (response.success) {
+        toast({
+          title: "Login Successful 🎉",
+          description: "Redirecting...",
+        });
 
-      const user = authService.getUser();
-      const from = location.state?.from?.pathname || null;
+        const user = authService.getUser();
+        const from = location.state?.from?.pathname || null;
 
-      setTimeout(() => {
-        if (from) {
-          navigate(from, { replace: true });
-        } else {
-          // Redirect based on is_admin flag
-          if (user.is_admin === 1) {
-            navigate('/dash', { replace: true });
+        setTimeout(() => {
+          if (from) {
+            navigate(from, { replace: true });
           } else {
-            navigate('/filemanager', { replace: true });
+            // Redirect based on is_admin flag
+            if (user.is_admin === 1) {
+              navigate('/dash', { replace: true });
+            } else {
+              navigate('/filemanager', { replace: true });
+            }
           }
-        }
-      }, 1500);
-    } else {
+        }, 1500);
+      } else {
+        toast({
+          title: "Login Failed",
+          description: response.message || "Invalid credentials",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
       toast({
-        title: "Login Failed",
-        description: response.message || "Invalid credentials",
+        title: "Unexpected Error",
+        description: "Please try again later",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    toast({
-      title: "Unexpected Error",
-      description: "Please try again later",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
 
   return (

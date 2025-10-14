@@ -56,7 +56,7 @@ const HeroSection = () => {
           </Button>
           <Button
             variant="hero-outline"
-            className="min-w-48 border-white text-white hover:bg-white hover:text-gray-900"
+            className="!border-white !text-white min-w-48 border-white text-white hover:bg-white hover:text-gray-900"
             onClick={scrollToContact}
           >
             Let's Talk

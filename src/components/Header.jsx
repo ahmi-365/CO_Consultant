@@ -76,11 +76,10 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled || isMobileMenuOpen
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || isMobileMenuOpen
           ? "bg-gray-900/95 backdrop-blur-md shadow-lg"
           : "bg-transparent"
-      }`}
+        }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
@@ -90,17 +89,16 @@ const Header = () => {
             onClick={() => scrollToSection("hero")}
           >
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <img 
+              <img
                 src="/Assets/icon.png"
-                alt="Building Icon" 
+                alt="Building Icon"
                 className="w-6 h-6 object-contain"
               />
             </div>
             {/* Show company name only when scrolled or on mobile */}
             <span
-              className={`text-2xl font-bold text-white transition-opacity duration-300 md:opacity-100 ${
-                isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
-              }`}
+              className={`text-2xl font-bold text-white transition-opacity duration-300 md:opacity-100 ${isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
+                }`}
             >
               CO Consultants
             </span>
@@ -117,14 +115,14 @@ const Header = () => {
                 {item.label}
               </button>
             ))}
-           <Button 
-  variant="hero-outline" 
-  size="sm" 
-  className="border-white text-white hover:bg-white hover:text-gray-900"
-  onClick={handleNavigation}
->
-  {getButtonText()}
-</Button>
+            <Button
+              variant="hero-outline"
+              size="sm"
+              className="!border-white !text-white hover:!bg-white hover:!text-gray-900"
+              onClick={handleNavigation}
+            >
+              {getButtonText()}
+            </Button>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -153,11 +151,12 @@ const Header = () => {
                 <Button
                   variant="hero-outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full !border-white text-white hover:!bg-white hover:!text-gray-900"
                   onClick={handleNavigation}
                 >
                   {getButtonText()}
                 </Button>
+
               </div>
             </nav>
           </div>

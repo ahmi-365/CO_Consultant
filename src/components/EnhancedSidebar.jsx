@@ -550,8 +550,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
       </div>
 
 
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10">
+      <div className="flex-1 flex flex-col min-h-0 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
+        <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
           <nav className="space-y-1 p-2">
             <button
               onClick={() => handleNavigationClick("/dashboard")}
@@ -649,7 +651,8 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
         </div>
 
         {/* Updated Footer with Upload and Logout in one row */}
-        <div className="p-3 border-t border-sidebar-border bg-sidebar">
+        <div className="p-3 border-t border-sidebar-border bg-sidebar dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
           <div className=" gap-10 mb-3">
             <button
               onClick={() => handleNavigationClick("/starred")}
@@ -695,19 +698,19 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               Upload
             </Button>
 
-           <Button
-  variant="ghost"
-  size="icon"
-  title="Logout"
-  onClick={handleLogout}
-  className={`
-    flex-shrink-0 transition-colors rounded-md
-    text-gray-600 hover:text-red-600 hover:bg-red-50
-    dark:text-gray-300 dark:hover:text-[#60a5fa] dark:hover:bg-[#1e3a8a]/20
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Logout"
+              onClick={handleLogout}
+              className={`
+                     flex-shrink-0 transition-colors rounded-md
+                     text-gray-600 hover:text-red-600 hover:bg-red-50
+                     dark:text-gray-300 dark:hover:text-[#60a5fa] dark:hover:bg-[#1e3a8a]/20
   `}
->
-  <LogOut className="w-4 h-4" />
-</Button>
+            >
+              <LogOut className="w-4 h-4" />
+            </Button>
 
           </div>
         </div>
@@ -721,7 +724,8 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     return (
       <>
         {/* Mobile Sidebar (icon-only) */}
-        <div className="fixed top-0 left-0 h-full w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 space-y-6 z-50">
+        <div className="fixed top-0 left-0 h-full w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 space-y-6 z-50 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
           {/* Profile Photo / Avatar (Top) */}
           <Avatar className="w-9 h-9 border border-sidebar-border">
             {user?.profile_photo ? (
