@@ -92,17 +92,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [activeTab, setActiveTab] = useState("file-manager");
   const [rootIframeUrl, setRootIframeUrl] = useState(null);
 
-  // Check if we're in the root folder
-  const isRootFolder = useMemo(
-    () => !folderId && location.pathname === "/filemanager",
-    [folderId, location.pathname]
-  );
-
+const isRootFolder = true;
   // Determine if we should show tabs
-  const shouldShowTabs = useMemo(
-    () => isRootFolder && rootIframeUrl,
-    [isRootFolder, rootIframeUrl]
-  );
+const shouldShowTabs = useMemo(
+  () => rootIframeUrl, // Show tabs whenever there's an iframe URL
+  [rootIframeUrl]
+);
 
   // IFRAME STATES
   const [selectedItemForIframe, setSelectedItemForIframe] = useState(null);
@@ -136,147 +131,262 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     return () => window.removeEventListener("resize", checkIsMobile);
   }, []);
 
-  const loadRootIframe = useCallback(async () => {
-    // Calculate inside function to avoid dependency
-    const isCurrentlyRoot = !folderId && location.pathname === "/filemanager";
-
-    if (!isCurrentlyRoot) {
-      setShowIframePanel(false);
-      setSelectedItemForIframe(null);
-      setRootIframeUrl(null);
-      return;
-    }
-
-    try {
-      console.log('🎯 Fetching root metadata for iframe...');
-      const rootMetadata = await fileApi.getRootMetadata();
-      console.log('📦 Root Metadata Response:', rootMetadata);
-
-      if (rootMetadata.iframe_url) {
-        console.log('✅ Found root iframe:', rootMetadata.iframe_url);
-        setRootIframeUrl(rootMetadata.iframe_url);
+const loadCurrentFolderIframe = useCallback(async () => {
+  try {
+    console.log('🎯 Fetching folder metadata for iframe...', folderId);
+    
+    // Get all files data
+    const response = await fileApi.listFiles(folderId || null);
+    console.log('📦 Full API Response:', response);
+    
+    // If in root folder (no folderId)
+    if (!folderId) {
+      // Check for root-level iframe_url in response
+      const rootIframe = response.iframe_url;
+      
+      if (rootIframe) {
+        console.log('✅ Found root iframe:', rootIframe);
+        setRootIframeUrl(rootIframe);
         setSelectedItemForIframe({
           id: 'root-iframe',
-          name: 'Embedded Content',
-          iframe_url: rootMetadata.iframe_url,
+          name: 'Root Embedded Content',
+          iframe_url: rootIframe,
           type: 'iframe'
         });
         setShowIframePanel(true);
-
-        // Auto-switch to embedded frame tab when root iframe is available
         setActiveTab("embedded-frame");
       } else {
-        console.log('❌ No root iframe in metadata');
+        console.log('❌ No root iframe found');
         setRootIframeUrl(null);
         setShowIframePanel(false);
         setSelectedItemForIframe(null);
         setActiveTab("file-manager");
       }
-    } catch (error) {
-      console.error('Error fetching root iframe:', error);
-      setRootIframeUrl(null);
-      setShowIframePanel(false);
-      setSelectedItemForIframe(null);
-      setActiveTab("file-manager");
-    }
-  }, [folderId, location.pathname]);
-
-  // Load files function with enhanced folder details extraction
-  const loadFiles = useCallback(
-    async (searchQuery = "") => {
-      try {
-        setLoading(true);
-        const params = {};
-        if (searchQuery && searchQuery.trim()) {
-          params.search = searchQuery.trim();
-        }
-
-        const filesData = await fileApi.listFiles(
-          searchQuery ? null : folderId,
-          params
-        );
-
-        setAllFiles(filesData);
-
-        // Build folder hierarchy
-        const hierarchyMap = new Map();
-        filesData.forEach((item) => {
-          if (item.type === "folder") {
-            hierarchyMap.set(item.id, {
-              id: item.id,
-              name: item.name,
-              parentId: item.parent_id,
-              type: item.type,
-            });
-          }
+    } else {
+      // For nested folders - find current folder in the data array
+      const filesData = response.data || response;
+      const currentFolderData = filesData.find(
+        item => item.id === parseInt(folderId) && item.type === 'folder'
+      );
+      
+      console.log('🔍 Looking for folder:', folderId);
+      console.log('📁 Found folder data:', currentFolderData);
+      
+      if (currentFolderData?.iframe_url) {
+        console.log('✅ Found nested folder iframe:', currentFolderData.iframe_url);
+        setRootIframeUrl(currentFolderData.iframe_url);
+        setSelectedItemForIframe({
+          id: currentFolderData.id,
+          name: currentFolderData.name,
+          iframe_url: currentFolderData.iframe_url,
+          type: 'folder'
         });
-        setFolderHierarchy(hierarchyMap);
-
-        // Filter files based on folder
-        let filteredFiles = filesData;
-        if (!folderId) {
-          const existingIds = new Set(filesData.map((item) => item.id));
-          filteredFiles = filesData.filter(
-            (item) => !existingIds.has(item.parent_id)
-          );
-        } else {
-          filteredFiles = filesData.filter(
-            (item) => item.parent_id && item.parent_id.toString() === folderId
-          );
+        setShowIframePanel(true);
+        setActiveTab("embedded-frame");
+      } else {
+        console.log('❌ No iframe found for this folder');
+        setRootIframeUrl(null);
+        setShowIframePanel(false);
+        setSelectedItemForIframe(null);
+        setActiveTab("file-manager");
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error fetching folder iframe:', error);
+    setRootIframeUrl(null);
+    setShowIframePanel(false);
+    setSelectedItemForIframe(null);
+    setActiveTab("file-manager");
+  }
+}, [folderId]);
+const getCurrentFolderMetadata = useCallback(async () => {
+  try {
+    if (!folderId) {
+      // Root folder
+      const response = await fileApi.listFiles(null);
+      return {
+        id: 'root',
+        name: 'My Files',
+        iframe_url: response.iframe_url,
+        type: 'root'
+      };
+    } else {
+      // Nested folder - need to fetch parent to get current folder details
+      const response = await fileApi.listFiles(null); // Get all files
+      const allFiles = response.data || response;
+      
+      // Find current folder in all files
+      const findFolder = (files, targetId) => {
+        for (const file of files) {
+          if (file.id === targetId && file.type === 'folder') {
+            return file;
+          }
         }
+        return null;
+      };
+      
+      const folderData = findFolder(allFiles, parseInt(folderId));
+      return folderData;
+    }
+  } catch (error) {
+    console.error('Error getting current folder metadata:', error);
+    return null;
+  }
+}, [folderId]);
+  // Load files function with enhanced folder details extraction
+const loadFiles = useCallback(
+  async (searchQuery = "") => {
+    try {
+      setLoading(true);
+      const params = {};
+      if (searchQuery && searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
 
-        // Set current folder info
-        if (folderId && hierarchyMap.has(parseInt(folderId))) {
-          const folderInfo = hierarchyMap.get(parseInt(folderId));
-          setCurrentFolder(folderInfo);
-        } else if (folderId) {
-          const childItem = filesData.find(
-            (item) => item.parent_id && item.parent_id.toString() === folderId
-          );
-          if (childItem) {
-            setCurrentFolder({
-              id: parseInt(folderId),
-              name: `Folder ${folderId}`,
-              parentId: null,
-              type: "folder",
+      const response = await fileApi.listFiles(
+        searchQuery ? null : folderId,
+        params
+      );
+
+      // Extract files data (handle different response formats)
+      const filesData = response.data || response;
+      setAllFiles(filesData);
+
+      // Build folder hierarchy
+      const hierarchyMap = new Map();
+      filesData.forEach((item) => {
+        if (item.type === "folder") {
+          hierarchyMap.set(item.id, {
+            id: item.id,
+            name: item.name,
+            parentId: item.parent_id,
+            type: item.type,
+            iframe_url: item.iframe_url, // 👈 IMPORTANT: Store iframe_url
+          });
+        }
+      });
+      setFolderHierarchy(hierarchyMap);
+
+      // Filter files based on folder
+      let filteredFiles = filesData;
+      if (!folderId) {
+        const existingIds = new Set(filesData.map((item) => item.id));
+        filteredFiles = filesData.filter(
+          (item) => !existingIds.has(item.parent_id)
+        );
+        
+        // 👇 Check for root-level iframe
+        if (response.iframe_url) {
+          console.log('✅ Root has iframe:', response.iframe_url);
+          setRootIframeUrl(response.iframe_url);
+          setSelectedItemForIframe({
+            id: 'root-iframe',
+            name: 'Root Embedded Content',
+            iframe_url: response.iframe_url,
+            type: 'root'
+          });
+          setShowIframePanel(true);
+        } else {
+          setRootIframeUrl(null);
+          setShowIframePanel(false);
+          setSelectedItemForIframe(null);
+        }
+      } else {
+        // Filter children of current folder
+        filteredFiles = filesData.filter(
+          (item) => item.parent_id && item.parent_id.toString() === folderId
+        );
+        
+        // 👇 CRITICAL FIX: Get current folder metadata from hierarchy
+        console.log('🔍 Looking for folder in hierarchy:', folderId);
+        console.log('📚 Hierarchy Map:', hierarchyMap);
+        
+        const currentFolderData = hierarchyMap.get(parseInt(folderId));
+        
+        if (currentFolderData) {
+          console.log('📁 Found folder in hierarchy:', currentFolderData);
+          
+          if (currentFolderData.iframe_url) {
+            console.log('✅ Folder has iframe:', currentFolderData.iframe_url);
+            setRootIframeUrl(currentFolderData.iframe_url);
+            setSelectedItemForIframe({
+              id: currentFolderData.id,
+              name: currentFolderData.name,
+              iframe_url: currentFolderData.iframe_url,
+              type: 'folder'
             });
+            setShowIframePanel(true);
+          } else {
+            console.log('❌ Folder has no iframe');
+            setRootIframeUrl(null);
+            setShowIframePanel(false);
+            setSelectedItemForIframe(null);
           }
         } else {
-          setCurrentFolder(null);
-        }
-
-        setFiles(filteredFiles);
-
-        // Dispatch folder details event
-        if (folderId && currentFolder) {
-          window.dispatchEvent(
-            new CustomEvent("folderDetailsLoaded", {
-              detail: {
-                folderId: parseInt(folderId),
-                folderInfo: hierarchyMap.get(parseInt(folderId)),
-                hierarchy: hierarchyMap,
-              },
-            })
+          console.log('⚠️ Folder not found in hierarchy, need to fetch all files');
+          // Fallback: fetch all files to find current folder
+          const allFilesResponse = await fileApi.listFiles(null);
+          const allFilesData = allFilesResponse.data || allFilesResponse;
+          
+          const folderInAllFiles = allFilesData.find(
+            item => item.id === parseInt(folderId) && item.type === 'folder'
           );
+          
+          if (folderInAllFiles?.iframe_url) {
+            console.log('✅ Found folder with iframe in all files:', folderInAllFiles);
+            setRootIframeUrl(folderInAllFiles.iframe_url);
+            setSelectedItemForIframe({
+              id: folderInAllFiles.id,
+              name: folderInAllFiles.name,
+              iframe_url: folderInAllFiles.iframe_url,
+              type: 'folder'
+            });
+            setShowIframePanel(true);
+          } else {
+            setRootIframeUrl(null);
+            setShowIframePanel(false);
+            setSelectedItemForIframe(null);
+          }
         }
-
-      } catch (error) {
-        console.error("Error loading files:", error);
-        toast.error("Error loading files");
-        setFiles([]);
-        setAllFiles([]);
-      } finally {
-        setLoading(false);
       }
-    },
-    [folderId]
-  );
 
-  // Load root iframe separately - only when route changes
-  useEffect(() => {
-    loadRootIframe();
-  }, [folderId, location.pathname, loadRootIframe]);
+      // Set current folder info
+      if (folderId && hierarchyMap.has(parseInt(folderId))) {
+        const folderInfo = hierarchyMap.get(parseInt(folderId));
+        setCurrentFolder(folderInfo);
+      } else if (folderId) {
+        const childItem = filesData.find(
+          (item) => item.parent_id && item.parent_id.toString() === folderId
+        );
+        if (childItem) {
+          setCurrentFolder({
+            id: parseInt(folderId),
+            name: `Folder ${folderId}`,
+            parentId: null,
+            type: "folder",
+          });
+        }
+      } else {
+        setCurrentFolder(null);
+      }
 
+      setFiles(filteredFiles);
+
+    } catch (error) {
+      console.error("Error loading files:", error);
+      toast.error("Error loading files");
+      setFiles([]);
+      setAllFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  },
+  [folderId]
+);
+
+// useEffect(() => {
+//   loadCurrentFolderIframe();
+// }, [folderId, location.pathname, loadCurrentFolderIframe]);
   const extractSrcFromIframe = (iframeCode) => {
     if (!iframeCode) return "";
 
@@ -291,11 +401,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   };
 
   const handleIframeClick = (item) => {
-    if (item.iframe_url && isRootFolder) {
-      setSelectedItemForIframe(item);
-      setActiveTab("embedded-frame");
-    }
-  };
+  if (item.iframe_url) { // Remove isRootFolder check
+    setSelectedItemForIframe(item);
+    setActiveTab("embedded-frame");
+  }
+};
 
   const getPreviewUrl = () => {
     if (!selectedItemForIframe?.iframe_url) return rootIframeUrl || "";
@@ -783,7 +893,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 <Star className="w-3.5 h-3.5 text-yellow-500 fill-current flex-shrink-0" />
               )}
               {/* IFRAME INDICATOR - Only show in root folder */}
-              {item.iframe_url && isRootFolder && (
+{item.iframe_url && (
                 <Code
                   className="w-3 h-3 text-blue-500 flex-shrink-0"
                   title="Has embedded content - Click to view"
@@ -1017,7 +1127,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               </TabsTrigger>
               <TabsTrigger value="embedded-frame" className="flex items-center gap-2">
                 <Code className="w-4 h-4" />
-                Embedded Frame
+                PowerBI Analytics
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1443,7 +1553,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
           {isMobile ? (
             <div className="flex flex-col h-full">
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
-              {isRootFolder && showIframePanel && selectedItemForIframe?.iframe_url && (
+              {showIframePanel && selectedItemForIframe?.iframe_url && (
                 <div className="border-b">
                   <div className="flex flex-col h-64">
                     <div className="flex items-center justify-between p-3 border-b bg-muted/50">
@@ -1481,7 +1591,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               )}
 
               {/* File List Panel - Always full width on mobile */}
-              <div className={isRootFolder && showIframePanel ? "flex-1" : "flex-1 p-3"}>
+              <div className={showIframePanel ? "flex-1" : "flex-1 p-3"}>
                 <div className="space-y-4">
                   {loading ? (
                     <div className="flex items-center justify-center h-64">
@@ -1507,7 +1617,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
             /* Desktop Layout - Full width iframe above file list in root folder */
             <div className="flex flex-col h-full p-4 pt-2">
               {/* IFRAME PANEL - Full width, above file list, always in root folder */}
-              {isRootFolder && showIframePanel && selectedItemForIframe?.iframe_url && (
+              {showIframePanel && selectedItemForIframe?.iframe_url && (
                 <div className="mb-4 border rounded-lg flex flex-col h-96">
                   <div className="flex items-center justify-between p-4 border-b">
                     <div>
@@ -1537,7 +1647,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               )}
 
               {/* File List Panel - Full width always */}
-              <div className={isRootFolder && showIframePanel ? "flex-1" : "flex-1 rounded-md border"}>
+              <div className={showIframePanel ? "flex-1" : "flex-1 rounded-md border"}>
                 {loading ? (
                   <div className="flex items-center justify-center h-64">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>

@@ -65,11 +65,9 @@ const getFileIconComponent = (filename, type) => {
   }
 };
 
-// Helper function to check if folder is a UserRoot folder
 const isUserRootFolder = (item) => {
-  return item.type === 'folder' && item.name.startsWith('UserRoot_');
+  return item.type === 'folder'; // All folders can have iframes now
 };
-
 // Helper function to extract src from iframe code
 const extractSrcFromIframe = (iframeCode) => {
   if (!iframeCode) return '';
