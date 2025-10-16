@@ -307,13 +307,13 @@ const handleSubmit = async (e) => {
               </div>
 
               {/* Button */}
-              <Button
+              <button
                 type="submit"
                 disabled={isLoading || !acceptTerms}
                 className="w-full h-9 bg-red-600 hover:bg-red-700 text-white font-medium rounded-xl transition-colors text-sm"
               >
                 {isLoading ? "Creating Account..." : "Create Account"}
-              </Button>
+              </button>
               {/* Login Redirect */}
               <div className="text-center pt-1">
                 <span className="text-xs text-gray-600">Already have an account? </span>
