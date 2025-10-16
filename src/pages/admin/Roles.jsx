@@ -531,7 +531,6 @@ export default function Roles() {
             <div className="space-y-4">
               <div className="hidden md:grid grid-cols-4 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
                 <div>Role Name</div>
-                <div>Users</div>
                 <div>Permissions</div>
                 <div className="text-right">Actions</div>
               </div>
@@ -558,11 +557,7 @@ export default function Roles() {
                     )}
                   </div>
 
-                  <div>
-                    <Badge variant="outline" className="text-xs">
-                      {role.user_count || 0} users
-                    </Badge>
-                  </div>
+                 
 
                   <div className="mt-2 sm:mt-0">
                     <RolePermissionsModal role={role} />
