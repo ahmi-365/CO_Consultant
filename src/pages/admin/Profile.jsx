@@ -302,7 +302,10 @@ export default function Profile() {
                 <Input id="phone" value={phone_number} onChange={(e) => setPhoneNumber(e.target.value)} />
               </div>
 
-              <Button onClick={handleSaveProfile} className="w-full" disabled={isSaving}>
+              <Button onClick={handleSaveProfile} className="w-full px-4 py-2 rounded-lg font-semibold transition-all
+             text-white 
+             bg-red-500 hover:bg-red-600
+             dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white" disabled={isSaving}>
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </CardContent>
@@ -341,7 +344,10 @@ export default function Profile() {
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
                 />
               </div>
-              <Button onClick={handleChangePassword} className="w-full" disabled={isChangingPassword}>
+              <Button onClick={handleChangePassword} className="w-full px-4 py-2 rounded-lg font-semibold transition-all
+             text-white 
+             bg-red-500 hover:bg-red-600
+             dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white" disabled={isChangingPassword}>
                 {isChangingPassword ? "Changing..." : "Change Password"}
               </Button>
             </CardContent>
@@ -364,7 +370,10 @@ export default function Profile() {
                 </Avatar>
                 <h3 className="font-semibold">{Name} {lastName}</h3>
                 <p className="text-sm text-muted-foreground">{email}</p>
-                <Badge className="mt-2">Administrator</Badge>
+                <Badge className=" mt-2 px-4 py-2 rounded-lg font-semibold transition-all
+    text-white
+    bg-red-500 hover:bg-red-600
+    dark:bg-sky-700 dark:hover:bg-sky-600">Administrator</Badge>
               </div>
 
               {/* <Separator /> */}
@@ -376,7 +385,7 @@ export default function Profile() {
             </CardContent>
           </Card>
 
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
@@ -389,7 +398,7 @@ export default function Profile() {
                 Delete Account
               </Button>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
       </div>
 

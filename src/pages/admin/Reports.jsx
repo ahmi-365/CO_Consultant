@@ -117,7 +117,7 @@ export default function Reports() {
     try {
       setIsLoading(true);
       const result = await reportsService.getReports();
-      
+
       if (result?.data) {
         setRecentReports(result.data);
       }
@@ -192,12 +192,12 @@ export default function Reports() {
       try {
         const a = document.createElement('a');
         a.href = reportPath;
-      a.target = "_blank"; 
-      a.rel = "noopener noreferrer"; 
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
         a.download = `${reportName.replace(/\s+/g, '_')}.pdf`;
         document.body.appendChild(a);
         a.click();
-        
+
         // Clean up
         setTimeout(() => {
           document.body.removeChild(a);
@@ -232,7 +232,7 @@ export default function Reports() {
     }
 
     toast({
-      title: "Bulk Export Started", 
+      title: "Bulk Export Started",
       description: "All reports are being prepared for download. This may take a few moments.",
     });
 
@@ -253,14 +253,14 @@ export default function Reports() {
             Generate and manage system reports
           </p>
         </div>
-        <Button 
-          onClick={handleExportAll} 
+        {/* <Button
+          onClick={handleExportAll}
           className="self-start sm:self-auto flex items-center gap-2"
           disabled={recentReports.length === 0}
         >
           <Download className="h-4 w-4" />
           Export All
-        </Button>
+        </Button> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -276,11 +276,10 @@ export default function Reports() {
                   {reportTypes.map((report) => (
                     <div
                       key={report.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedReport === report.id 
-                          ? 'border-primary bg-primary/5' 
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedReport === report.id
+                          ? 'border-primary bg-primary/5'
                           : 'border-border hover:border-accent-foreground'
-                      }`}
+                        }`}
                       onClick={() => setSelectedReport(report.id)}
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -335,8 +334,8 @@ export default function Reports() {
                 </div>
               </div>
 
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 size="lg"
                 disabled={!selectedReport || !startDate || !endDate || isGenerating}
                 onClick={handleGenerateReport}
@@ -372,7 +371,8 @@ export default function Reports() {
                   {recentReports.map((report) => (
                     <div
                       key={report.id}
-                      className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start md:items-center py-3 border-b border-border last:border-0 hover:bg-gray-200 rounded-lg px-2"
+                      className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start md:items-center py-3 border-b border-border last:border-0 hover:bg-gray-50/50 dark:hover:bg-[#0f172a] 
+                                rounded-lg px-2 transition-colors rounded-lg px-2"
                     >
                       <div className="col-span-2">
                         <div className="font-medium text-sm">
@@ -384,9 +384,9 @@ export default function Reports() {
                       </div>
 
                       <div>
-                       <Badge variant="outline" className="text-xs truncate">
-  {getReportTypeName(report.type).replace(/report/i, "").trim()}
-</Badge>
+                        <Badge variant="outline" className="text-xs truncate">
+                          {getReportTypeName(report.type).replace(/report/i, "").trim()}
+                        </Badge>
 
                       </div>
 
@@ -424,21 +424,21 @@ export default function Reports() {
                 <div className="text-2xl font-bold">{recentReports.length}</div>
                 <div className="text-sm text-muted-foreground">Total Reports Generated</div>
               </div>
-              
+
               <div className="p-3 border border-border rounded-lg">
                 <div className="text-2xl font-bold">
                   {recentReports.filter(r => r.type === "storage_usage").length}
                 </div>
                 <div className="text-sm text-muted-foreground">Storage Reports</div>
               </div>
-              
+
               <div className="p-3 border border-border rounded-lg">
                 <div className="text-2xl font-bold">
                   {recentReports.filter(r => r.type === "user_activity").length}
                 </div>
                 <div className="text-sm text-muted-foreground">Activity Reports</div>
               </div>
-              
+
               <div className="p-3 border border-border rounded-lg">
                 <div className="text-2xl font-bold">
                   {recentReports.filter(r => r.type === "file_history").length}
