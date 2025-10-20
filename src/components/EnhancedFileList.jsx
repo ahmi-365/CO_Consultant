@@ -86,23 +86,30 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
-  const [folderHierarchy, setFolderHierarchy] = useState(new Map());
+const [folderHierarchy, setFolderHierarchy] = useState(new Map());
 
   // Tab state
   const [activeTab, setActiveTab] = useState("file-manager");
   const [rootIframeUrl, setRootIframeUrl] = useState(null);
 
-const isRootFolder = true;
-  // Determine if we should show tabs
-const shouldShowTabs = useMemo(
-  () => rootIframeUrl, // Show tabs whenever there's an iframe URL
-  [rootIframeUrl]
-);
-
-  // IFRAME STATES
+  // IFRAME STATES - MOVED UP BEFORE shouldShowTabs
   const [selectedItemForIframe, setSelectedItemForIframe] = useState(null);
-  const [showIframePanel, setShowIframePanel] = useState(isRootFolder);
+  const [showIframePanel, setShowIframePanel] = useState(true);
 
+  const isRootFolder = true;
+  
+  // Determine if we should show tabs - NOW it can access selectedItemForIframe
+  const shouldShowTabs = useMemo(
+    () => {
+      // For root iframe, just check if URL exists (no is_iframe flag check)
+      if (selectedItemForIframe?.type === 'root' || selectedItemForIframe?.type === 'iframe') {
+        return !!rootIframeUrl;
+      }
+      // For folders/files, check both URL and is_iframe flag
+      return rootIframeUrl && selectedItemForIframe?.is_iframe === true;
+    },
+    [rootIframeUrl, selectedItemForIframe]
+  );
   const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
 
@@ -143,15 +150,15 @@ const loadCurrentFolderIframe = useCallback(async () => {
     if (!folderId) {
       // Check for root-level iframe_url in response
       const rootIframe = response.iframe_url;
-      
-      if (rootIframe) {
-        console.log('✅ Found root iframe:', rootIframe);
+     if (rootIframe) { // 👈 NO is_iframe check for root
+        console.log('✅ Found root iframe (no flag check for root):', rootIframe);
         setRootIframeUrl(rootIframe);
         setSelectedItemForIframe({
           id: 'root-iframe',
           name: 'Root Embedded Content',
           iframe_url: rootIframe,
-          type: 'iframe'
+          type: 'root', // 👈 Changed from 'iframe' to 'root'
+          is_iframe: true
         });
         setShowIframePanel(true);
         setActiveTab("embedded-frame");
@@ -172,14 +179,14 @@ const loadCurrentFolderIframe = useCallback(async () => {
       console.log('🔍 Looking for folder:', folderId);
       console.log('📁 Found folder data:', currentFolderData);
       
-      if (currentFolderData?.iframe_url) {
+if (currentFolderData?.iframe_url && currentFolderData?.is_iframe === true) { // 👈 Add check
         console.log('✅ Found nested folder iframe:', currentFolderData.iframe_url);
         setRootIframeUrl(currentFolderData.iframe_url);
         setSelectedItemForIframe({
           id: currentFolderData.id,
           name: currentFolderData.name,
           iframe_url: currentFolderData.iframe_url,
-          type: 'folder'
+    is_iframe: true // 👈 Add flag
         });
         setShowIframePanel(true);
         setActiveTab("embedded-frame");
@@ -283,7 +290,9 @@ const loadFiles = useCallback(
             id: 'root-iframe',
             name: 'Root Embedded Content',
             iframe_url: response.iframe_url,
-            type: 'root'
+            type: 'root',
+                        is_iframe: true // Set it but don't check it for root
+
           });
           setShowIframePanel(true);
         } else {
@@ -306,14 +315,16 @@ const loadFiles = useCallback(
         if (currentFolderData) {
           console.log('📁 Found folder in hierarchy:', currentFolderData);
           
-          if (currentFolderData.iframe_url) {
+if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) { // 👈 Add check
             console.log('✅ Folder has iframe:', currentFolderData.iframe_url);
             setRootIframeUrl(currentFolderData.iframe_url);
             setSelectedItemForIframe({
               id: currentFolderData.id,
               name: currentFolderData.name,
               iframe_url: currentFolderData.iframe_url,
-              type: 'folder'
+              type: 'folder',
+                  is_iframe: true // 👈 Add flag
+
             });
             setShowIframePanel(true);
           } else {
@@ -332,14 +343,16 @@ const loadFiles = useCallback(
             item => item.id === parseInt(folderId) && item.type === 'folder'
           );
           
-          if (folderInAllFiles?.iframe_url) {
+if (folderInAllFiles?.iframe_url && folderInAllFiles?.is_iframe === true) { // 👈 Add check
             console.log('✅ Found folder with iframe in all files:', folderInAllFiles);
             setRootIframeUrl(folderInAllFiles.iframe_url);
             setSelectedItemForIframe({
               id: folderInAllFiles.id,
               name: folderInAllFiles.name,
               iframe_url: folderInAllFiles.iframe_url,
-              type: 'folder'
+              type: 'folder',
+                  is_iframe: true // 👈 Add flag
+
             });
             setShowIframePanel(true);
           } else {
@@ -400,10 +413,19 @@ const loadFiles = useCallback(
     return srcMatch ? srcMatch[1] : iframeCode;
   };
 
-  const handleIframeClick = (item) => {
-  if (item.iframe_url) { // Remove isRootFolder check
-    setSelectedItemForIframe(item);
-    setActiveTab("embedded-frame");
+const handleIframeClick = (item) => {
+  // Root items don't need is_iframe check
+  if (item.type === 'root' || item.type === 'iframe') {
+    if (item.iframe_url) {
+      setSelectedItemForIframe(item);
+      setActiveTab("embedded-frame");
+    }
+  } else {
+    // For folders/files, check is_iframe flag
+    if (item.iframe_url && item.is_iframe === true) {
+      setSelectedItemForIframe(item);
+      setActiveTab("embedded-frame");
+    }
   }
 };
 
@@ -612,12 +634,18 @@ const loadFiles = useCallback(
     }
   };
 
-  const handleItemClick = (item) => {
+const handleItemClick = (item) => {
     if (item.type === "folder") {
       navigate(`/folder/${item.id}`);
     } else if (!isMobile) {
-      if (item.iframe_url && isRootFolder) {
-        // Auto-switch to embedded frame tab when clicking iframe items
+      // Root items don't need is_iframe check
+      if (item.type === 'root' || item.type === 'iframe') {
+        if (item.iframe_url) {
+          setSelectedItemForIframe(item);
+          setActiveTab("embedded-frame");
+        }
+      } else if (item.iframe_url && item.is_iframe === true) {
+        // For regular items, check is_iframe flag
         setSelectedItemForIframe(item);
         setActiveTab("embedded-frame");
       } else {
@@ -892,8 +920,12 @@ const loadFiles = useCallback(
               {item.is_starred && (
                 <Star className="w-3.5 h-3.5 text-yellow-500 fill-current flex-shrink-0" />
               )}
-              {/* IFRAME INDICATOR - Only show in root folder */}
-{item.iframe_url && (
+            {/* IFRAME INDICATOR */}
+              {item.iframe_url && (
+                item.type === 'root' || 
+                item.type === 'iframe' || 
+                item.is_iframe === true
+              ) && (
                 <Code
                   className="w-3 h-3 text-blue-500 flex-shrink-0"
                   title="Has embedded content - Click to view"
@@ -1553,9 +1585,13 @@ const loadFiles = useCallback(
           {isMobile ? (
             <div className="flex flex-col h-full">
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
+{/* IFRAME PANEL - Always show in root folder, full width, above file list */}
               {showIframePanel && selectedItemForIframe?.iframe_url && (
-                <div className="border-b">
-                  <div className="flex flex-col h-64">
+                selectedItemForIframe?.type === 'root' || 
+                selectedItemForIframe?.type === 'iframe' || 
+                selectedItemForIframe?.is_iframe === true
+              ) && (
+                <div className="border-b">                  <div className="flex flex-col h-64">
                     <div className="flex items-center justify-between p-3 border-b bg-muted/50">
                       <div>
                         <h3 className="font-semibold text-sm">Embedded Content</h3>
@@ -1617,7 +1653,12 @@ const loadFiles = useCallback(
             /* Desktop Layout - Full width iframe above file list in root folder */
             <div className="flex flex-col h-full p-4 pt-2">
               {/* IFRAME PANEL - Full width, above file list, always in root folder */}
+            {/* IFRAME PANEL - Full width, above file list, always in root folder */}
               {showIframePanel && selectedItemForIframe?.iframe_url && (
+                selectedItemForIframe?.type === 'root' || 
+                selectedItemForIframe?.type === 'iframe' || 
+                selectedItemForIframe?.is_iframe === true
+              ) && (
                 <div className="mb-4 border rounded-lg flex flex-col h-96">
                   <div className="flex items-center justify-between p-4 border-b">
                     <div>
