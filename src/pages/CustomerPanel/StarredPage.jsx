@@ -23,6 +23,53 @@ const getFileIcon = (type) => {
   }
 };
 
+// Helper function to format file size - shows exact size with proper units
+const formatFileSize = (bytes) => {
+  if (!bytes || bytes === 0) return "0 B";
+  
+  // If bytes is already a string with units (like "1.5 MB"), return as is
+  if (typeof bytes === 'string') return bytes;
+  
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  
+  // Calculate exact size with 2 decimal precision
+  const exactSize = (bytes / Math.pow(k, i)).toFixed(2);
+  
+  // Remove unnecessary trailing zeros
+  const formattedSize = parseFloat(exactSize);
+  
+  return formattedSize + " " + sizes[i];
+};
+
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return "Unknown";
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+      return "Today";
+    } else if (diffDays === 1) {
+      return "Yesterday";
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
+      });
+    }
+  } catch (error) {
+    return "Unknown";
+  }
+};
+
 export default function StarredPage() {
   const [starredFiles, setStarredFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +82,11 @@ export default function StarredPage() {
     setLoading(true);
     try {
       const response = await starService.getStarredFiles();
+      console.log("API Response:", response); // Debug log
       if (response.status === "ok") {
-        setStarredFiles(response.data || []);
+        const files = response.data || [];
+        console.log("Files received:", files); // Debug log
+        setStarredFiles(files);
       } else {
         toast.error("Failed to load starred files");
       }
@@ -109,6 +159,18 @@ export default function StarredPage() {
       ? getFolderPath(file.id) 
       : getFileLocationPath(file.id, file.parent_id, file.path);
 
+    // Handle different possible field names for size and date
+    const fileSize = formatFileSize(
+      file.size || file.file_size || file.fileSize || 0
+    );
+    
+    const modifiedDate = formatDate(
+      file.updated_at || file.updatedAt || file.modified_at || 
+      file.modifiedAt || file.created_at || file.createdAt
+    );
+
+    const owner = file.user_id || file.userId || file.owner || "Unknown";
+
     return (
       <div
         key={file.id}
@@ -121,7 +183,7 @@ export default function StarredPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
         <Link to={linkPath} className="block relative">
-          {/* Desktop Layout - Unchanged */}
+          {/* Desktop Layout */}
           <div className="hidden sm:grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm items-center px-6 py-4">
             <div className="col-span-6 lg:col-span-1 flex items-center min-w-0">
               <div className="flex-shrink-0 mr-3">{getFileIcon(file.type)}</div>
@@ -129,10 +191,10 @@ export default function StarredPage() {
                 {file.name}
               </span>
             </div>
-            <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium">{file.user_id}</div>
-            <div className="col-span-3 lg:col-span-1 hidden md:block text-muted-foreground">{file.updated_at}</div>
+            <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium">{owner}</div>
+            <div className="col-span-3 lg:col-span-1 hidden md:block text-muted-foreground">{modifiedDate}</div>
             <div className="col-span-3 lg:col-span-1 hidden lg:block">
-              <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">{file.size}</span>
+              <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">{fileSize}</span>
             </div>
             <div className="col-span-6 lg:col-span-1 flex items-center justify-end gap-2">
               <Button
@@ -151,7 +213,7 @@ export default function StarredPage() {
             </div>
           </div>
 
-          {/* Mobile Layout - Fixed */}
+          {/* Mobile Layout */}
           <div className="sm:hidden p-4">
             <div className="flex items-start gap-3">
               {/* Icon and File Info */}
@@ -165,12 +227,12 @@ export default function StarredPage() {
                 </div>
                 
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div>By {file.user_id}</div>
+                  <div>By {owner}</div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span>{file.updated_at}</span>
+                    <span>{modifiedDate}</span>
                     <span>•</span>
                     <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded">
-                      {file.size}
+                      {fileSize}
                     </span>
                   </div>
                 </div>

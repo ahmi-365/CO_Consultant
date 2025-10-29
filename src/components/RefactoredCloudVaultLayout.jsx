@@ -335,7 +335,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
             <div className="relative hidden sm:block">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Search all files..."
+                placeholder="Search files..."
                 value={searchTerm}
                 onChange={handleSearchChange}
                 className="pl-10 w-64 bg-input border-border"
@@ -350,14 +350,20 @@ export default function RefactoredCloudVaultLayout({ children }) {
               )}
             </div>
 
-            {/* Theme Toggle */}
-            <ThemeToggle />
+          
+           
 
+
+
+
+
+
+            <ThemeToggle />
             {/* Notifications */}
             <NotificationDropdown />
 
             {/* Updated User Avatar with Profile Photo */}
-            <DropdownMenu>
+            {/* <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Avatar className="cursor-pointer border border-gray-200 dark:border-gray-700 transition-colors">
                   {user?.profile_photo ? (
@@ -401,7 +407,7 @@ export default function RefactoredCloudVaultLayout({ children }) {
                   Logout
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
+            </DropdownMenu> */}
 
           </div>
         </header>

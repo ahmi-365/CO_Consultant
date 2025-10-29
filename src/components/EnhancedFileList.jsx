@@ -86,7 +86,14 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [currentFolder, setCurrentFolder] = useState(null);
-const [folderHierarchy, setFolderHierarchy] = useState(new Map());
+  const [folderHierarchy, setFolderHierarchy] = useState(new Map());
+  const [trashedFileName, setTrashedFileName] = useState("");
+  const [showConfirmPopup, setShowConfirmPopup] = useState(false);
+  const [fileToTrash, setFileToTrash] = useState(null);
+  const [showTrashPopup, setShowTrashPopup] = useState(false);
+
+
+
 
   // Tab state
   const [activeTab, setActiveTab] = useState("file-manager");
@@ -97,7 +104,7 @@ const [folderHierarchy, setFolderHierarchy] = useState(new Map());
   const [showIframePanel, setShowIframePanel] = useState(true);
 
   const isRootFolder = true;
-  
+
   // Determine if we should show tabs - NOW it can access selectedItemForIframe
   const shouldShowTabs = useMemo(
     () => {
@@ -138,108 +145,108 @@ const [folderHierarchy, setFolderHierarchy] = useState(new Map());
     return () => window.removeEventListener("resize", checkIsMobile);
   }, []);
 
-const loadCurrentFolderIframe = useCallback(async () => {
-  try {
-    console.log('🎯 Fetching folder metadata for iframe...', folderId);
-    
-    // Get all files data
-    const response = await fileApi.listFiles(folderId || null);
-    console.log('📦 Full API Response:', response);
-    
-    // If in root folder (no folderId)
-    if (!folderId) {
-      // Check for root-level iframe_url in response
-      const rootIframe = response.iframe_url;
-     if (rootIframe) { // 👈 NO is_iframe check for root
-        console.log('✅ Found root iframe (no flag check for root):', rootIframe);
-        setRootIframeUrl(rootIframe);
-        setSelectedItemForIframe({
-          id: 'root-iframe',
-          name: 'Root Embedded Content',
-          iframe_url: rootIframe,
-          type: 'root', // 👈 Changed from 'iframe' to 'root'
-          is_iframe: true
-        });
-        setShowIframePanel(true);
-        setActiveTab("embedded-frame");
-      } else {
-        console.log('❌ No root iframe found');
-        setRootIframeUrl(null);
-        setShowIframePanel(false);
-        setSelectedItemForIframe(null);
-        setActiveTab("file-manager");
-      }
-    } else {
-      // For nested folders - find current folder in the data array
-      const filesData = response.data || response;
-      const currentFolderData = filesData.find(
-        item => item.id === parseInt(folderId) && item.type === 'folder'
-      );
-      
-      console.log('🔍 Looking for folder:', folderId);
-      console.log('📁 Found folder data:', currentFolderData);
-      
-if (currentFolderData?.iframe_url && currentFolderData?.is_iframe === true) { // 👈 Add check
-        console.log('✅ Found nested folder iframe:', currentFolderData.iframe_url);
-        setRootIframeUrl(currentFolderData.iframe_url);
-        setSelectedItemForIframe({
-          id: currentFolderData.id,
-          name: currentFolderData.name,
-          iframe_url: currentFolderData.iframe_url,
-    is_iframe: true // 👈 Add flag
-        });
-        setShowIframePanel(true);
-        setActiveTab("embedded-frame");
-      } else {
-        console.log('❌ No iframe found for this folder');
-        setRootIframeUrl(null);
-        setShowIframePanel(false);
-        setSelectedItemForIframe(null);
-        setActiveTab("file-manager");
-      }
-    }
-  } catch (error) {
-    console.error('❌ Error fetching folder iframe:', error);
-    setRootIframeUrl(null);
-    setShowIframePanel(false);
-    setSelectedItemForIframe(null);
-    setActiveTab("file-manager");
-  }
-}, [folderId]);
-const getCurrentFolderMetadata = useCallback(async () => {
-  try {
-    if (!folderId) {
-      // Root folder
-      const response = await fileApi.listFiles(null);
-      return {
-        id: 'root',
-        name: 'My Files',
-        iframe_url: response.iframe_url,
-        type: 'root'
-      };
-    } else {
-      // Nested folder - need to fetch parent to get current folder details
-      const response = await fileApi.listFiles(null); // Get all files
-      const allFiles = response.data || response;
-      
-      // Find current folder in all files
-      const findFolder = (files, targetId) => {
-        for (const file of files) {
-          if (file.id === targetId && file.type === 'folder') {
-            return file;
-          }
+  const loadCurrentFolderIframe = useCallback(async () => {
+    try {
+      console.log('🎯 Fetching folder metadata for iframe...', folderId);
+
+      // Get all files data
+      const response = await fileApi.listFiles(folderId || null);
+      console.log('📦 Full API Response:', response);
+
+      // If in root folder (no folderId)
+      if (!folderId) {
+        // Check for root-level iframe_url in response
+        const rootIframe = response.iframe_url;
+        if (rootIframe) { // 👈 NO is_iframe check for root
+          console.log('✅ Found root iframe (no flag check for root):', rootIframe);
+          setRootIframeUrl(rootIframe);
+          setSelectedItemForIframe({
+            id: 'root-iframe',
+            name: 'Root Embedded Content',
+            iframe_url: rootIframe,
+            type: 'root', // 👈 Changed from 'iframe' to 'root'
+            is_iframe: true
+          });
+          setShowIframePanel(true);
+          setActiveTab("embedded-frame");
+        } else {
+          console.log('❌ No root iframe found');
+          setRootIframeUrl(null);
+          setShowIframePanel(false);
+          setSelectedItemForIframe(null);
+          setActiveTab("file-manager");
         }
-        return null;
-      };
-      
-      const folderData = findFolder(allFiles, parseInt(folderId));
-      return folderData;
+      } else {
+        // For nested folders - find current folder in the data array
+        const filesData = response.data || response;
+        const currentFolderData = filesData.find(
+          item => item.id === parseInt(folderId) && item.type === 'folder'
+        );
+
+        console.log('🔍 Looking for folder:', folderId);
+        console.log('📁 Found folder data:', currentFolderData);
+
+        if (currentFolderData?.iframe_url && currentFolderData?.is_iframe === true) { // 👈 Add check
+          console.log('✅ Found nested folder iframe:', currentFolderData.iframe_url);
+          setRootIframeUrl(currentFolderData.iframe_url);
+          setSelectedItemForIframe({
+            id: currentFolderData.id,
+            name: currentFolderData.name,
+            iframe_url: currentFolderData.iframe_url,
+            is_iframe: true // 👈 Add flag
+          });
+          setShowIframePanel(true);
+          setActiveTab("embedded-frame");
+        } else {
+          console.log('❌ No iframe found for this folder');
+          setRootIframeUrl(null);
+          setShowIframePanel(false);
+          setSelectedItemForIframe(null);
+          setActiveTab("file-manager");
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching folder iframe:', error);
+      setRootIframeUrl(null);
+      setShowIframePanel(false);
+      setSelectedItemForIframe(null);
+      setActiveTab("file-manager");
     }
-  } catch (error) {
-    console.error('Error getting current folder metadata:', error);
-    return null;
-  }
-}, [folderId]);
+  }, [folderId]);
+  const getCurrentFolderMetadata = useCallback(async () => {
+    try {
+      if (!folderId) {
+        // Root folder
+        const response = await fileApi.listFiles(null);
+        return {
+          id: 'root',
+          name: 'My Files',
+          iframe_url: response.iframe_url,
+          type: 'root'
+        };
+      } else {
+        // Nested folder - need to fetch parent to get current folder details
+        const response = await fileApi.listFiles(null); // Get all files
+        const allFiles = response.data || response;
+
+        // Find current folder in all files
+        const findFolder = (files, targetId) => {
+          for (const file of files) {
+            if (file.id === targetId && file.type === 'folder') {
+              return file;
+            }
+          }
+          return null;
+        };
+
+        const folderData = findFolder(allFiles, parseInt(folderId));
+        return folderData;
+      }
+    } catch (error) {
+      console.error('Error getting current folder metadata:', error);
+      return null;
+    }
+  }, [folderId]);
   // Load files function with enhanced folder details extraction
 const loadFiles = useCallback(
   async (searchQuery = "") => {
@@ -250,39 +257,51 @@ const loadFiles = useCallback(
         params.search = searchQuery.trim();
       }
 
-      const response = await fileApi.listFiles(
-        searchQuery ? null : folderId,
-        params
-      );
+      // 🔥 CRITICAL FIX: Always fetch ALL files first to build complete hierarchy
+      const allFilesResponse = await fileApi.listFiles(null, {}); // Always get all files
+      const allFilesData = allFilesResponse.data || allFilesResponse;
+      setAllFiles(allFilesData);
 
-      // Extract files data (handle different response formats)
-      const filesData = response.data || response;
-      setAllFiles(filesData);
-
-      // Build folder hierarchy
+      // Build complete folder hierarchy from ALL files
       const hierarchyMap = new Map();
-      filesData.forEach((item) => {
+      allFilesData.forEach((item) => {
         if (item.type === "folder") {
           hierarchyMap.set(item.id, {
             id: item.id,
             name: item.name,
             parentId: item.parent_id,
             type: item.type,
-            iframe_url: item.iframe_url, // 👈 IMPORTANT: Store iframe_url
+            iframe_url: item.iframe_url,
           });
         }
       });
       setFolderHierarchy(hierarchyMap);
 
+      console.log('📚 Built hierarchy with', hierarchyMap.size, 'folders');
+      console.log('🔍 Looking for folder', folderId, ':', hierarchyMap.get(parseInt(folderId)));
+
+      // Now handle search or filtering
+      let response;
+      if (searchQuery && searchQuery.trim()) {
+        // If searching, get search results
+        response = await fileApi.listFiles(null, { search: searchQuery.trim() });
+      } else {
+        // If viewing a specific folder, get its children
+        response = await fileApi.listFiles(folderId, {});
+      }
+
+      const filesData = response.data || response;
+
       // Filter files based on folder
       let filteredFiles = filesData;
       if (!folderId) {
-        const existingIds = new Set(filesData.map((item) => item.id));
-        filteredFiles = filesData.filter(
+        // Root folder - show only root-level items
+        const existingIds = new Set(allFilesData.map((item) => item.id));
+        filteredFiles = allFilesData.filter(
           (item) => !existingIds.has(item.parent_id)
         );
-        
-        // 👇 Check for root-level iframe
+
+        // Check for root-level iframe
         if (response.iframe_url) {
           console.log('✅ Root has iframe:', response.iframe_url);
           setRootIframeUrl(response.iframe_url);
@@ -291,8 +310,7 @@ const loadFiles = useCallback(
             name: 'Root Embedded Content',
             iframe_url: response.iframe_url,
             type: 'root',
-                        is_iframe: true // Set it but don't check it for root
-
+            is_iframe: true
           });
           setShowIframePanel(true);
         } else {
@@ -301,21 +319,22 @@ const loadFiles = useCallback(
           setSelectedItemForIframe(null);
         }
       } else {
-        // Filter children of current folder
+        // Nested folder - filter children
         filteredFiles = filesData.filter(
           (item) => item.parent_id && item.parent_id.toString() === folderId
         );
-        
-        // 👇 CRITICAL FIX: Get current folder metadata from hierarchy
-        console.log('🔍 Looking for folder in hierarchy:', folderId);
-        console.log('📚 Hierarchy Map:', hierarchyMap);
-        
+
+        // Get current folder metadata from hierarchy
         const currentFolderData = hierarchyMap.get(parseInt(folderId));
-        
+
         if (currentFolderData) {
           console.log('📁 Found folder in hierarchy:', currentFolderData);
-          
-if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) { // 👈 Add check
+
+          // Set as current folder
+          setCurrentFolder(currentFolderData);
+
+          // Check for iframe
+          if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
             console.log('✅ Folder has iframe:', currentFolderData.iframe_url);
             setRootIframeUrl(currentFolderData.iframe_url);
             setSelectedItemForIframe({
@@ -323,8 +342,7 @@ if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) { // �
               name: currentFolderData.name,
               iframe_url: currentFolderData.iframe_url,
               type: 'folder',
-                  is_iframe: true // 👈 Add flag
-
+              is_iframe: true
             });
             setShowIframePanel(true);
           } else {
@@ -334,53 +352,12 @@ if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) { // �
             setSelectedItemForIframe(null);
           }
         } else {
-          console.log('⚠️ Folder not found in hierarchy, need to fetch all files');
-          // Fallback: fetch all files to find current folder
-          const allFilesResponse = await fileApi.listFiles(null);
-          const allFilesData = allFilesResponse.data || allFilesResponse;
-          
-          const folderInAllFiles = allFilesData.find(
-            item => item.id === parseInt(folderId) && item.type === 'folder'
-          );
-          
-if (folderInAllFiles?.iframe_url && folderInAllFiles?.is_iframe === true) { // 👈 Add check
-            console.log('✅ Found folder with iframe in all files:', folderInAllFiles);
-            setRootIframeUrl(folderInAllFiles.iframe_url);
-            setSelectedItemForIframe({
-              id: folderInAllFiles.id,
-              name: folderInAllFiles.name,
-              iframe_url: folderInAllFiles.iframe_url,
-              type: 'folder',
-                  is_iframe: true // 👈 Add flag
-
-            });
-            setShowIframePanel(true);
-          } else {
-            setRootIframeUrl(null);
-            setShowIframePanel(false);
-            setSelectedItemForIframe(null);
-          }
+          console.log('⚠️ Folder not found in hierarchy');
+          setCurrentFolder(null);
+          setRootIframeUrl(null);
+          setShowIframePanel(false);
+          setSelectedItemForIframe(null);
         }
-      }
-
-      // Set current folder info
-      if (folderId && hierarchyMap.has(parseInt(folderId))) {
-        const folderInfo = hierarchyMap.get(parseInt(folderId));
-        setCurrentFolder(folderInfo);
-      } else if (folderId) {
-        const childItem = filesData.find(
-          (item) => item.parent_id && item.parent_id.toString() === folderId
-        );
-        if (childItem) {
-          setCurrentFolder({
-            id: parseInt(folderId),
-            name: `Folder ${folderId}`,
-            parentId: null,
-            type: "folder",
-          });
-        }
-      } else {
-        setCurrentFolder(null);
       }
 
       setFiles(filteredFiles);
@@ -397,9 +374,9 @@ if (folderInAllFiles?.iframe_url && folderInAllFiles?.is_iframe === true) { // �
   [folderId]
 );
 
-// useEffect(() => {
-//   loadCurrentFolderIframe();
-// }, [folderId, location.pathname, loadCurrentFolderIframe]);
+  // useEffect(() => {
+  //   loadCurrentFolderIframe();
+  // }, [folderId, location.pathname, loadCurrentFolderIframe]);
   const extractSrcFromIframe = (iframeCode) => {
     if (!iframeCode) return "";
 
@@ -413,21 +390,21 @@ if (folderInAllFiles?.iframe_url && folderInAllFiles?.is_iframe === true) { // �
     return srcMatch ? srcMatch[1] : iframeCode;
   };
 
-const handleIframeClick = (item) => {
-  // Root items don't need is_iframe check
-  if (item.type === 'root' || item.type === 'iframe') {
-    if (item.iframe_url) {
-      setSelectedItemForIframe(item);
-      setActiveTab("embedded-frame");
+  const handleIframeClick = (item) => {
+    // Root items don't need is_iframe check
+    if (item.type === 'root' || item.type === 'iframe') {
+      if (item.iframe_url) {
+        setSelectedItemForIframe(item);
+        setActiveTab("embedded-frame");
+      }
+    } else {
+      // For folders/files, check is_iframe flag
+      if (item.iframe_url && item.is_iframe === true) {
+        setSelectedItemForIframe(item);
+        setActiveTab("embedded-frame");
+      }
     }
-  } else {
-    // For folders/files, check is_iframe flag
-    if (item.iframe_url && item.is_iframe === true) {
-      setSelectedItemForIframe(item);
-      setActiveTab("embedded-frame");
-    }
-  }
-};
+  };
 
   const getPreviewUrl = () => {
     if (!selectedItemForIframe?.iframe_url) return rootIframeUrl || "";
@@ -544,70 +521,81 @@ const handleIframeClick = (item) => {
     );
   };
 
-  const getCurrentFolder = () => {
-    if (!folderId) {
-      return {
-        id: null,
-        name: "My Files",
-        path: "/",
-        fullPath: "My Files",
-      };
-    }
+ const getCurrentFolder = () => {
+  if (!folderId) {
+    return {
+      id: null,
+      name: "My Files",
+      path: "/",
+      fullPath: "My Files",
+    };
+  }
 
-    const parsedFolderId = parseInt(folderId);
+  const parsedFolderId = parseInt(folderId);
 
-    // ✅ FIRST: Check folderHierarchy (most reliable)
-    if (folderHierarchy.has(parsedFolderId)) {
-      const folderInfo = folderHierarchy.get(parsedFolderId);
-      const folderPath = buildFolderPath(parsedFolderId);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+  // ✅ FIRST: Check folderHierarchy Map (most reliable)
+  if (folderHierarchy.has(parsedFolderId)) {
+    const folderInfo = folderHierarchy.get(parsedFolderId);
+    const folderPath = buildFolderPath(parsedFolderId);
+    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
-      return {
-        id: folderInfo.id,
-        name: folderInfo.name,
-        path: `/folder/${folderInfo.id}`,
-        fullPath: fullPath,
-      };
-    }
+    return {
+      id: folderInfo.id,
+      name: folderInfo.name, // ✅ "File one" from hierarchy
+      path: `/folder/${folderInfo.id}`,
+      fullPath: fullPath,
+    };
+  }
 
-    // ✅ SECOND: Check currentFolder state
-    if (currentFolder && currentFolder.id === parsedFolderId) {
-      const folderPath = buildFolderPath(currentFolder.id);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+  // ✅ SECOND: Check currentFolder state
+  if (currentFolder && currentFolder.id === parsedFolderId) {
+    const folderPath = buildFolderPath(currentFolder.id);
+    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
-      return {
-        id: currentFolder.id,
-        name: currentFolder.name,
-        path: `/folder/${currentFolder.id}`,
-        fullPath: fullPath,
-      };
-    }
+    return {
+      id: currentFolder.id,
+      name: currentFolder.name, // ✅ Should have "File one"
+      path: `/folder/${currentFolder.id}`,
+      fullPath: fullPath,
+    };
+  }
 
-    // ✅ THIRD: Try to find from allFiles
-    const childItem = allFiles.find(
-      (item) => item.parent_id && item.parent_id.toString() === folderId
-    );
+  // ✅ THIRD: Search in allFiles array for the folder itself
+  const folderItem = allFiles.find(
+    (item) => item.id === parsedFolderId && item.type === 'folder'
+  );
 
-    if (childItem) {
-      const folderPath = buildFolderPath(parsedFolderId);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+  if (folderItem) {
+    const folderPath = buildFolderPath(parsedFolderId);
+    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
-      return {
-        id: parsedFolderId,
-        name: `Folder ${folderId}`,
-        path: `/folder/${folderId}`,
-        fullPath: fullPath.length > "My Files".length ? fullPath : `My Files / Folder ${folderId}`,
-      };
-    }
-
-    // ✅ Last resort
     return {
       id: parsedFolderId,
-      name: `Folder ${folderId}`,
-      path: `/folder/${folderId}`,
-      fullPath: `My Files / Folder ${folderId}`,
+      name: folderItem.name, // ✅ "File one" from API
+      path: `/folder/${parsedFolderId}`,
+      fullPath: fullPath.length > "My Files".length ? fullPath : `My Files / ${folderItem.name}`,
     };
+  }
+
+  // ✅ FOURTH: Fallback - search for any item with this ID
+  const anyItem = allFiles.find(item => item.id === parsedFolderId);
+  if (anyItem) {
+    return {
+      id: parsedFolderId,
+      name: anyItem.name || `Folder ${folderId}`, // ✅ Use API name
+      path: `/folder/${parsedFolderId}`,
+      fullPath: `My Files / ${anyItem.name || `Folder ${folderId}`}`,
+    };
+  }
+
+  // ✅ Last resort fallback (only if API data is missing)
+  return {
+    id: parsedFolderId,
+    name: `Folder ${folderId}`,
+    path: `/folder/${folderId}`,
+    fullPath: `My Files / Folder ${folderId}`,
   };
+};
 
   // Memoize current folder info for modal
   const currentFolderInfo = useMemo(
@@ -634,7 +622,7 @@ const handleIframeClick = (item) => {
     }
   };
 
-const handleItemClick = (item) => {
+  const handleItemClick = (item) => {
     if (item.type === "folder") {
       navigate(`/folder/${item.id}`);
     } else if (!isMobile) {
@@ -801,7 +789,11 @@ const handleItemClick = (item) => {
     }
   };
 
-  const handleTrashFile = async (fileId) => {
+  const handleTrashFile = async () => {
+    if (!fileToTrash) return; // no file selected
+
+    const fileId = fileToTrash.id;
+
     setActionLoading((prev) => ({
       ...prev,
       trashing: { ...prev.trashing, [fileId]: true },
@@ -809,16 +801,19 @@ const handleItemClick = (item) => {
 
     try {
       const response = await trashService.moveToTrash(fileId);
+      console.log("🗑️ Trash response:", response);
 
       if (response.success) {
-        toast.success(response.message);
+        toast.success(response.message || "File moved to trash");
+        setShowConfirmPopup(false);
+        setShowTrashPopup(true);
         loadFiles();
         window.dispatchEvent(new CustomEvent("refreshSidebar"));
       } else {
-        toast.error(response.message || "Failed to move file to trash");
+        toast.error(response.message || "Failed to move file");
       }
     } catch (error) {
-      console.error("❌ Error moving file to trash:", error);
+      console.error("❌ Error:", error);
       toast.error("Error moving file to trash");
     } finally {
       setActionLoading((prev) => ({
@@ -826,11 +821,9 @@ const handleItemClick = (item) => {
         trashing: { ...prev.trashing, [fileId]: false },
       }));
     }
-
-    if (isMobile) {
-      setShowMobileActions(false);
-    }
   };
+
+
 
   const handleDragStart = (e, fileId) => {
     if (isMobile) return; // Disable drag on mobile
@@ -920,17 +913,17 @@ const handleItemClick = (item) => {
               {item.is_starred && (
                 <Star className="w-3.5 h-3.5 text-yellow-500 fill-current flex-shrink-0" />
               )}
-            {/* IFRAME INDICATOR */}
+              {/* IFRAME INDICATOR */}
               {item.iframe_url && (
-                item.type === 'root' || 
-                item.type === 'iframe' || 
+                item.type === 'root' ||
+                item.type === 'iframe' ||
                 item.is_iframe === true
               ) && (
-                <Code
-                  className="w-3 h-3 text-blue-500 flex-shrink-0"
-                  title="Has embedded content - Click to view"
-                />
-              )}
+                  <Code
+                    className="w-3 h-3 text-blue-500 flex-shrink-0"
+                    title="Has embedded content - Click to view"
+                  />
+                )}
             </div>
 
             {/* Date and Size */}
@@ -1102,7 +1095,7 @@ const handleItemClick = (item) => {
             /* Desktop buttons */
             <>
               {/* Refresh button */}
-              <Button
+              {/* <Button
                 onClick={handleRefresh}
                 variant="outline"
                 disabled={actionLoading.refreshing}
@@ -1115,22 +1108,22 @@ const handleItemClick = (item) => {
                   <RefreshCw className="w-4 h-4" />
                 )}
                 <span className="hidden sm:inline">Refresh</span>
-              </Button>
+              </Button> */}
 
               {/* Upload Files button */}
-             <Button
-  onClick={() => setShowUploadModal(true)}
-  size="sm"
-  className={`
+              <Button
+                onClick={() => setShowUploadModal(true)}
+                size="sm"
+                className={`
     flex items-center gap-1 sm:gap-2 h-9 px-4 rounded-md font-medium transition-colors shadow-sm
     bg-red-600 text-white hover:bg-red-700
     dark:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] dark:text-gray-100
     disabled:opacity-70 disabled:cursor-not-allowed
   `}
->
-  <Upload className="w-4 h-4" />
-  <span className="hidden sm:inline">Upload</span>
-</Button>
+              >
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Upload</span>
+              </Button>
 
 
               {/* New Folder button */}
@@ -1317,9 +1310,9 @@ const handleItemClick = (item) => {
                                         )}
 
                                         <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleTrashFile(item.id);
+                                          onClick={() => {
+                                            setFileToTrash(item); // 👈 store selected file
+                                            setShowConfirmPopup(true); // 👈 open confirmation popup
                                           }}
                                           disabled={actionLoading.trashing[item.id]}
                                           className="text-destructive focus:text-destructive"
@@ -1585,13 +1578,13 @@ const handleItemClick = (item) => {
           {isMobile ? (
             <div className="flex flex-col h-full">
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
-{/* IFRAME PANEL - Always show in root folder, full width, above file list */}
+              {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
               {showIframePanel && selectedItemForIframe?.iframe_url && (
-                selectedItemForIframe?.type === 'root' || 
-                selectedItemForIframe?.type === 'iframe' || 
+                selectedItemForIframe?.type === 'root' ||
+                selectedItemForIframe?.type === 'iframe' ||
                 selectedItemForIframe?.is_iframe === true
               ) && (
-                <div className="border-b">                  <div className="flex flex-col h-64">
+                  <div className="border-b">                  <div className="flex flex-col h-64">
                     <div className="flex items-center justify-between p-3 border-b bg-muted/50">
                       <div>
                         <h3 className="font-semibold text-sm">Embedded Content</h3>
@@ -1623,8 +1616,8 @@ const handleItemClick = (item) => {
                       )}
                     </div>
                   </div>
-                </div>
-              )}
+                  </div>
+                )}
 
               {/* File List Panel - Always full width on mobile */}
               <div className={showIframePanel ? "flex-1" : "flex-1 p-3"}>
@@ -1653,39 +1646,39 @@ const handleItemClick = (item) => {
             /* Desktop Layout - Full width iframe above file list in root folder */
             <div className="flex flex-col h-full p-4 pt-2">
               {/* IFRAME PANEL - Full width, above file list, always in root folder */}
-            {/* IFRAME PANEL - Full width, above file list, always in root folder */}
+              {/* IFRAME PANEL - Full width, above file list, always in root folder */}
               {showIframePanel && selectedItemForIframe?.iframe_url && (
-                selectedItemForIframe?.type === 'root' || 
-                selectedItemForIframe?.type === 'iframe' || 
+                selectedItemForIframe?.type === 'root' ||
+                selectedItemForIframe?.type === 'iframe' ||
                 selectedItemForIframe?.is_iframe === true
               ) && (
-                <div className="mb-4 border rounded-lg flex flex-col h-96">
-                  <div className="flex items-center justify-between p-4 border-b">
-                    <div>
-                      <h3 className="font-semibold">
-                        {selectedItemForIframe?.name || "Embedded Content"}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {selectedItemForIframe?.type === 'iframe' && selectedItemForIframe?.id === 'root-iframe'
-                          ? "Root embedded content"
-                          : selectedItemForIframe?.type === 'folder'
-                            ? "From folder"
-                            : "Interactive content"}
-                      </p>
+                  <div className="mb-4 border rounded-lg flex flex-col h-96">
+                    <div className="flex items-center justify-between p-4 border-b">
+                      <div>
+                        <h3 className="font-semibold">
+                          {selectedItemForIframe?.name || "Embedded Content"}
+                        </h3>
+                        <p className="text-sm text-muted-foreground">
+                          {selectedItemForIframe?.type === 'iframe' && selectedItemForIframe?.id === 'root-iframe'
+                            ? "Root embedded content"
+                            : selectedItemForIframe?.type === 'folder'
+                              ? "From folder"
+                              : "Interactive content"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex-1 p-4">
+                      <iframe
+                        src={getPreviewUrl()}
+                        className="w-full h-full border-0 rounded"
+                        title={`Embedded content: ${selectedItemForIframe?.name || 'Content'}`}
+                        sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                        loading="lazy"
+                        onError={(e) => console.error('Iframe load error:', e)}
+                      />
                     </div>
                   </div>
-                  <div className="flex-1 p-4">
-                    <iframe
-                      src={getPreviewUrl()}
-                      className="w-full h-full border-0 rounded"
-                      title={`Embedded content: ${selectedItemForIframe?.name || 'Content'}`}
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                      loading="lazy"
-                      onError={(e) => console.error('Iframe load error:', e)}
-                    />
-                  </div>
-                </div>
-              )}
+                )}
 
               {/* File List Panel - Full width always */}
               <div className={showIframePanel ? "flex-1" : "flex-1 rounded-md border"}>
@@ -1834,9 +1827,9 @@ const handleItemClick = (item) => {
                                           )}
 
                                           <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleTrashFile(item.id);
+                                            onClick={() => {
+                                              setFileToTrash(item); // Store selected file
+                                              setShowConfirmPopup(true); // Open confirmation popup
                                             }}
                                             disabled={actionLoading.trashing[item.id]}
                                             className="text-destructive focus:text-destructive"
@@ -1844,6 +1837,7 @@ const handleItemClick = (item) => {
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Move to Trash
                                           </DropdownMenuItem>
+
 
                                           <DropdownMenuItem
                                             onClick={(e) => {
@@ -1890,9 +1884,9 @@ const handleItemClick = (item) => {
                                 <TableHead className="hidden sm:table-cell">
                                   Size
                                 </TableHead>
-                                <TableHead className="hidden lg:table-cell">
+                                {/* <TableHead className="hidden lg:table-cell">
                                   Type
-                                </TableHead>
+                                </TableHead> */}
                                 <TableHead className="w-12">Actions</TableHead>
                               </TableRow>
                             </TableHeader>
@@ -1961,7 +1955,9 @@ const handleItemClick = (item) => {
                                   <TableCell className="hidden sm:table-cell text-muted-foreground">
                                     {item.type === "folder" ? "-" : formatFileSize(item.size)}
                                   </TableCell>
-                                  <TableCell className="hidden lg:table-cell">
+
+
+                                  {/* <TableCell className="hidden lg:table-cell">
                                     <div className="flex gap-1">
                                       {item.is_starred && (
                                         <Badge variant="outline">Starred</Badge>
@@ -1973,8 +1969,11 @@ const handleItemClick = (item) => {
                                         {item.type}
                                       </Badge>
                                     </div>
-                                  </TableCell>
+                                  </TableCell> */}
                                   <TableCell>
+
+
+
                                     <div className="flex items-center gap-1">
                                       {item.type === "file" && (
                                         <Button
@@ -2020,13 +2019,17 @@ const handleItemClick = (item) => {
                                           )}
 
                                           <DropdownMenuItem
-                                            onClick={() => handleTrashFile(item.id)}
+                                            onClick={() => {
+                                              setFileToTrash(item); // Store selected file
+                                              setShowConfirmPopup(true); // Open confirmation popup
+                                            }}
                                             disabled={actionLoading.trashing[item.id]}
                                             className="text-destructive focus:text-destructive"
                                           >
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Move to Trash
                                           </DropdownMenuItem>
+
 
                                           <DropdownMenuItem
                                             onClick={() => handleMoveFile(item.id, item.name)}
@@ -2221,6 +2224,85 @@ const handleItemClick = (item) => {
           }}
         />
       )}
+
+
+
+
+
+      {showConfirmPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-[90%] max-w-sm text-center relative animate-fadeIn">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+              Move to Trash?
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              Are you sure you want to move{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {fileToTrash?.name}
+              </span>{" "}
+              to Trash?
+            </p>
+
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleTrashFile}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
+              >
+                Yes, Move
+              </button>
+              <button
+                onClick={() => setShowConfirmPopup(false)}
+                className="px-5 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {showConfirmPopup && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-[90%] max-w-sm text-center relative animate-fadeIn">
+            <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100 mb-3">
+              Move to Trash?
+            </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
+              Are you sure you want to move{" "}
+              <span className="font-medium text-gray-700 dark:text-gray-300">
+                {fileToTrash?.name}
+              </span>{" "}
+              to Trash?
+            </p>
+
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={handleTrashFile}
+                disabled={actionLoading.trashing[fileToTrash?.id]}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
+              >
+                {actionLoading.trashing[fileToTrash?.id] ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Moving...
+                  </>
+                ) : (
+                  "Yes, Move"
+                )}
+              </button>
+              <button
+                onClick={() => setShowConfirmPopup(false)}
+                className="px-5 py-2 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded-lg"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
     </div>
   );
 }

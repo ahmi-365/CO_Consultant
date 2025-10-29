@@ -17,15 +17,60 @@ const ContactSection = () => {
     projectType: "",
     message: ""
   });
+
+  const [errors, setErrors] = useState({});
   const { toast } = useToast();
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: "" })); // Clear error on change
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = "Full name is required.";
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    if (formData.phone.trim()) {
+      if (!/^\d+$/.test(formData.phone)) {
+        newErrors.phone = "Phone number must contain digits only.";
+      } else if (formData.phone.length < 7 || formData.phone.length > 15) {
+        newErrors.phone = "Phone number should be between 7–15 digits.";
+      }
+    }
+
+    if (!formData.message.trim()) {
+      newErrors.message = "Please describe your project.";
+    }
+
+    return newErrors;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
+    const newErrors = validateForm();
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: "Form not submitted!",
+        description: "Please fix the highlighted errors and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
       title: "Message Sent!",
       description: "Thank you for contacting us. We'll get back to you within 24 hours.",
     });
+
     setFormData({
       name: "",
       email: "",
@@ -36,22 +81,16 @@ const ContactSection = () => {
     });
   };
 
-  const handleInputChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
   const contactInfo = [
-   
     {
       icon: Mail,
       title: "Email Us",
       info: "admin@thecoconsultants.com",
       subinfo: "We respond within 24hrs"
     },
-  
   ];
 
-return (
+  return (
     <section id="contact" className="py-20 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
@@ -64,7 +103,7 @@ return (
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Contact Information */}
+          {/* Contact Info */}
           <div className="lg:col-span-1">
             <div className="space-y-6">
               {contactInfo.map((item, index) => (
@@ -74,15 +113,9 @@ return (
                       <item.icon className="w-6 h-6 text-blue-400" />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">
-                        {item.title}
-                      </h3>
-                      <p className="text-black font-medium">
-                        {item.info}
-                      </p>
-                      <p className="text-gray-600 text-sm">
-                        {item.subinfo}
-                      </p>
+                      <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
+                      <p className="text-black font-medium">{item.info}</p>
+                      <p className="text-gray-600 text-sm">{item.subinfo}</p>
                     </div>
                   </div>
                 </div>
@@ -94,73 +127,78 @@ return (
           <div className="lg:col-span-2">
             <div className="bg-white rounded-xl shadow-lg border border-gray-100">
               <div className="p-8">
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                  Send Us a Message
-                </h3>
-                <p className="text-gray-600 mb-6">Fill out the form below and we'll get back to you within 24 hours.</p>
-                
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Send Us a Message</h3>
+                <p className="text-gray-600 mb-6">
+                  Fill out the form below and we'll get back to you within 24 hours.
+                </p>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Full Name */}
                     <div>
-                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                        Full Name *
-                      </label>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
                       <input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                          errors.name ? "border-red-500" : "border-gray-300"
+                        }`}
                       />
+                      {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                     </div>
+
+                    {/* Email */}
                     <div>
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                        Email Address *
-                      </label>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
                       <input
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        required
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                          errors.email ? "border-red-500" : "border-gray-300"
+                        }`}
                       />
+                      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Phone */}
                     <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
-                        Phone Number
-                      </label>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                       <input
                         id="phone"
-                        type="tel"
+                        type="number"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
+                          errors.phone ? "border-red-500" : "border-gray-300"
+                        }`}
                       />
+                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                     </div>
+
+                    {/* Company */}
                     <div>
-                      <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">
-                        Company Name
-                      </label>
+                      <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
                       <input
                         id="company"
                         value={formData.company}
-                        onChange={(e) => handleInputChange('company', e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200"
+                        onChange={(e) => handleInputChange("company", e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                       />
                     </div>
                   </div>
 
+                  {/* Project Type */}
                   <div>
-                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Type
-                    </label>
-                    <select 
-                      onChange={(e) => handleInputChange('projectType', e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white"
+                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">Project Type</label>
+                    <select
+                      onChange={(e) => handleInputChange("projectType", e.target.value)}
+                      value={formData.projectType}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 bg-white"
                     >
                       <option value="">Select project type</option>
                       <option value="commercial">Commercial Construction</option>
@@ -171,22 +209,24 @@ return (
                     </select>
                   </div>
 
+                  {/* Message */}
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">
-                      Project Details *
-                    </label>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Project Details *</label>
                     <textarea
                       id="message"
                       value={formData.message}
-                      onChange={(e) => handleInputChange('message', e.target.value)}
-                      required
+                      onChange={(e) => handleInputChange("message", e.target.value)}
                       placeholder="Tell us about your project requirements, timeline, and any specific needs..."
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 min-h-32"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 min-h-32 ${
+                        errors.message ? "border-red-500" : "border-gray-300"
+                      }`}
                     />
+                    {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
                   </div>
 
-                  <button 
-                    type="submit" 
+                  {/* Submit */}
+                  <button
+                    type="submit"
                     className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
                   >
                     Send Message

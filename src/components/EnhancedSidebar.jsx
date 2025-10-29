@@ -574,7 +574,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
                 }`}
             >
               <Home className="w-4 h-4" />
-              <span className="text-sm">Home</span>
+              <span className="text-sm">Files</span>
             </button>
           </nav>
 
@@ -584,7 +584,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search files and folders..."
+                placeholder="Search files..."
                 value={searchValue}
                 onChange={handleSearchChange}
                 className="pl-10 pr-8 py-1.5 h-9 w-full bg-input border-border text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
@@ -688,7 +688,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
             </button>
           </div>
           <div className="flex gap-2">
-            <Button
+            {/* <Button
               className="flex-1 bg-red-600 hover:bg-red-700 text-white 
              dark:bg-[#1e40af] dark:hover:bg-[#1d4ed8] dark:text-white 
              transition-all duration-200 shadow-sm dark:shadow-md"
@@ -696,21 +696,20 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
             >
               <Upload className="w-4 h-4 mr-2" />
               Upload
-            </Button>
+            </Button> */}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Logout"
-              onClick={handleLogout}
-              className={`
-                     flex-shrink-0 transition-colors rounded-md
-                     text-gray-600 hover:text-red-600 hover:bg-red-50
-                     dark:text-gray-300 dark:hover:text-[#60a5fa] dark:hover:bg-[#1e3a8a]/20
-  `}
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+           <Button
+  onClick={handleLogout}
+  className="
+   flex-1 bg-red-600 hover:bg-red-700 text-white 
+             dark:bg-[#1e40af] dark:hover:bg-[#1d4ed8] dark:text-white 
+             transition-all duration-200 shadow-sm dark:shadow-md
+  "
+>
+  <LogOut className="w-4 h-4" />
+  <span>Logout</span>
+</Button>
+
 
           </div>
         </div>

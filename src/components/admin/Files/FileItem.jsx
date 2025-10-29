@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+
+
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
@@ -104,6 +106,9 @@ export default function FileItem({
   const [iframeUrl, setIframeUrl] = useState(item.iframe_url || "");
   const [isUpdatingIframe, setIsUpdatingIframe] = useState(false);
   const { toast } = useToast();
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+const [itemToDelete, setItemToDelete] = useState(null);
+
   
   // Check if this is a UserRoot folder
   const isUserRoot = isUserRootFolder(item);
@@ -172,14 +177,14 @@ export default function FileItem({
     }
   };
 
-  const handleDeleteClick = (e) => {
-    e.stopPropagation();
-    if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
-      if (window.confirm(`Are you sure you want to delete "${item.name}"?`)) {
-        onDelete?.(item.id);
-      }
-    }
-  };
+ const handleDeleteClick = (e) => {
+  e.stopPropagation();
+  if (!isDeleting && !isDownloading && !isRenaming && !isMoving) {
+    setItemToDelete(item);
+    setShowDeleteDialog(true);
+  }
+};
+
 
   const handleRenameClick = (e) => {
     e.stopPropagation();
@@ -583,7 +588,37 @@ export default function FileItem({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        
       )}
+<Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+  <DialogContent className="sm:max-w-[400px]">
+    <DialogHeader>
+      <DialogTitle className="text-red-600">Delete File</DialogTitle>
+      <DialogDescription>
+        Are you sure you want to delete{" "}
+        <span className="font-semibold text-gray-900 dark:text-gray-100">
+          "{itemToDelete?.name}"
+        </span>
+        ? This action cannot be undone.
+      </DialogDescription>
+    </DialogHeader>
+
+    <DialogFooter className="flex justify-end gap-2">
+      <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>
+        Cancel
+      </Button>
+      <Button
+        variant="destructive"
+        onClick={() => {
+          onDelete?.(itemToDelete?.id);
+          setShowDeleteDialog(false);
+        }}
+      >
+        Delete
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       {/* Render sub-items if folder is expanded */}
       {item.type === 'folder' && isExpanded && item.items && (

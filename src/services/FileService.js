@@ -183,8 +183,12 @@ async uploadFile(files, parent_id) {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${localStorage.getItem('token')}`,
+   
+
     },
     body: formData,
+
+    //  signal: options.signal,
   });
 
   if (!response.ok) {
