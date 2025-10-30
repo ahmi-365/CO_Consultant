@@ -17,6 +17,8 @@ import {
   LogOut,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,6 +46,12 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+  const [folderContent, setFolderContent] = useState([]);
+  const [items, setItems] = useState([]);
+  
+
+
 
   // Drag and drop state
   const [dragOverFolder, setDragOverFolder] = useState(null);
@@ -499,7 +507,31 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     };
   }, []);
 
-  const stats = getTotalItems();
+ const [stats, setStats] = useState({
+  total: 0,
+  totalFolders: 0,
+  totalFiles: 0,
+});
+
+useEffect(() => {
+  if (!allItems || allItems.length === 0) {
+    setStats({ total: 0, totalFolders: 0, totalFiles: 0 });
+    return;
+  }
+
+  const folders = allItems.filter(i => i.type === "folder").length;
+  const files   = allItems.filter(i => i.type === "file").length;
+
+  setStats({
+    total: folders + files,
+    totalFolders: folders,
+    totalFiles: files,
+  });
+}, [allItems]);
+
+
+
+  // const stats = getTotalItems();
 
   const SidebarContent = ({ isMobileViewProp }) => (
     <div
@@ -542,11 +574,13 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           )}
         </div>
 
-        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-          {isLoading
-            ? "Loading..."
-            : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
-        </div>
+       <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+  {isLoading
+    ? "Loading..."
+    : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
+</div>
+
+
       </div>
 
 
@@ -698,7 +732,22 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               Upload
             </Button> */}
 
-           <Button
+
+            <button
+              onClick={handleLogout}
+              className={cn(
+                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-[#60a5fa] hover:bg-red-50 dark:hover:bg-[#1e3a8a]/30",
+                collapsed && "justify-center"
+              )}
+            >
+              <LogOut className="h-5 w-5" />
+              {!collapsed && "Logout"}
+            </button>
+
+
+
+            {/* <Button
   onClick={handleLogout}
   className="
    flex-1 bg-red-600 hover:bg-red-700 text-white 
@@ -708,7 +757,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
 >
   <LogOut className="w-4 h-4" />
   <span>Logout</span>
-</Button>
+</Button> */}
 
 
           </div>

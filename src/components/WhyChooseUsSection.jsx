@@ -9,22 +9,22 @@ import {
 
 const WhyChooseUsSection = () => {
   return (
-    <section className="py-16 bg-white">
-      <div className="container mx-auto px-6 lg:px-12">
+    <section className="py-10 bg-white mb-0">
+      <div className="container mx-auto px-4 lg:px-8 mb-0">
         {/* Section heading */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
+        <div className="text-center mb-10">
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">
             Why Choose Us?
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Because We Don’t Just Track Projects, We Organise Construction.
-            <br /> <span className="text-yellow-600 font-semibold">Intelligently.</span>
+            <br />
+            <span className="text-yellow-600 font-semibold">Intelligently.</span>
           </p>
         </div>
 
-        {/* Row 1 - First point + Image */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-16">
-          {/* Left: Point */}
+        {/* Row 1 */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-10">
           <InfoBlock
             icon={<Search className="w-6 h-6 text-white" />}
             title="Precision-Powered Tracking"
@@ -40,7 +40,6 @@ const WhyChooseUsSection = () => {
             }
           />
 
-          {/* Right: Image */}
           <div className="flex justify-center">
             <img
               src="../../Assets/Under construction-cuate.png"
@@ -51,7 +50,7 @@ const WhyChooseUsSection = () => {
         </div>
 
         {/* Row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           <InfoBlock
             icon={<BarChart3 className="w-6 h-6 text-white" />}
             title="Project-Specific Dashboards"
@@ -94,7 +93,7 @@ const WhyChooseUsSection = () => {
         </div>
 
         {/* Row 3 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
           <InfoBlock
             icon={<Folder className="w-6 h-6 text-white" />}
             title="Daily Trackers, Done Right"
@@ -132,24 +131,25 @@ const WhyChooseUsSection = () => {
           />
         </div>
 
-        {/* Row 4 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          <InfoBlock
-            icon={<Lock className="w-6 h-6 text-white" />}
-            title="Secure, Structured, Centralised"
-            description={
-              <>
-                Your data stays in one place. <b>Clean. Organised. Accessible. Secure.</b>
-                <p className="mt-2">
-                  We offer a single source of truth for your daily reports,
-                  claims documents, and delay analysis inputs — ensuring
-                  traceability from Day 1 to Final Account.
-                </p>
-              </>
-            }
-          />
-          {/* Right column empty to keep layout balanced */}
-          <div></div>
+        {/* Row 4 - Centered last card */}
+        <div className="flex justify-center">
+          <div className="w-full max-w-2xl">
+            <InfoBlock
+              icon={<Lock className="w-6 h-6 text-white" />}
+              title="Secure, Structured, Centralised"
+              description={
+                <>
+                  Your data stays in one place.{" "}
+                  <b>Clean. Organised. Accessible. Secure.</b>
+                  <p className="mt-2">
+                    We offer a single source of truth for your daily reports,
+                    claims documents, and delay analysis inputs — ensuring
+                    traceability from Day 1 to Final Account.
+                  </p>
+                </>
+              }
+            />
+          </div>
         </div>
       </div>
     </section>
@@ -158,7 +158,7 @@ const WhyChooseUsSection = () => {
 
 // Reusable InfoBlock
 const InfoBlock = ({ icon, title, description }) => (
-  <div className="bg-gray-50 p-6 rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-100">
+  <div className="bg-gray-50 p-5 rounded-2xl shadow-sm hover:shadow-md transition-shadow border border-gray-100">
     <div className="flex items-start gap-4">
       <div className="flex-shrink-0">
         <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center shadow">
@@ -166,8 +166,10 @@ const InfoBlock = ({ icon, title, description }) => (
         </div>
       </div>
       <div>
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
-        <div className="text-gray-700 text-base leading-relaxed">{description}</div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-1">{title}</h3>
+        <div className="text-gray-700 text-base leading-relaxed">
+          {description}
+        </div>
       </div>
     </div>
   </div>

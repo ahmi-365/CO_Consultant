@@ -49,7 +49,7 @@ const HeroSection = () => {
     </p>
 
     {/* Buttons */}
-    <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mt-8 md:mt-12">
+    <div className="flex flex-col sm:flex-row gap-6 justify-center items-center ">
       <Button 
         variant="hero" 
         className="min-w-48 bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 text-lg"

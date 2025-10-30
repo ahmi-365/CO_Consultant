@@ -96,9 +96,32 @@ const Footer = () => {
         </div>
 
         {/* Divider Line */}
-        <div className="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400 text-sm">
-          © {currentYear} CO Consultants. All rights reserved. | Licensed &
-          Insured Construction Management
+        <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col md:flex-row justify-between items-center text-gray-400 text-sm">
+          <p className="text-center md:text-left">
+            © {currentYear} CO Consultants. All rights reserved. | Licensed &
+            Insured Construction Management
+          </p>
+
+          {/* Policy Links */}
+          {/* Policy Links */}
+<div className="flex flex-wrap items-center justify-center md:justify-end gap-4 mt-4 md:mt-0 text-sm">
+  <a
+    href="/privacy-policy"
+    className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
+  >
+    Privacy Policy
+  </a>
+
+  <span className="text-gray-500 hidden md:inline">|</span>
+
+  <a
+    href="/terms-and-conditions"
+    className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
+  >
+    Terms & Conditions
+  </a>
+</div>
+
         </div>
       </div>
     </footer>

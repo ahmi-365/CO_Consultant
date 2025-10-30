@@ -26,60 +26,61 @@ const ContactSection = () => {
     setErrors(prev => ({ ...prev, [field]: "" })); // Clear error on change
   };
 
-  const validateForm = () => {
-    const newErrors = {};
+ const validateForm = () => {
+  const newErrors = {};
 
-    if (!formData.name.trim()) newErrors.name = "Full name is required.";
+  if (!formData.name.trim()) newErrors.name = "Full name is required.";
 
-    if (!formData.email.trim()) {
-      newErrors.email = "Email address is required.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address.";
-    }
+  if (!formData.email.trim()) {
+    newErrors.email = "Email address is required.";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    newErrors.email = "Please enter a valid email address.";
+  }
 
-    if (formData.phone.trim()) {
-      if (!/^\d+$/.test(formData.phone)) {
-        newErrors.phone = "Phone number must contain digits only.";
-      } else if (formData.phone.length < 7 || formData.phone.length > 15) {
-        newErrors.phone = "Phone number should be between 7–15 digits.";
-      }
-    }
+  // ✅ Phone number now compulsory
+  if (!formData.phone.trim()) {
+    newErrors.phone = "Phone number is required.";
+  } else if (!/^\d+$/.test(formData.phone)) {
+    newErrors.phone = "Phone number must contain digits only.";
+  } else if (formData.phone.length < 7 || formData.phone.length > 15) {
+    newErrors.phone = "Phone number should be between 7–15 digits.";
+  }
 
-    if (!formData.message.trim()) {
-      newErrors.message = "Please describe your project.";
-    }
+  // ❌ Message is optional now (no validation)
+  
+  return newErrors;
+};
 
-    return newErrors;
-  };
+const handleSubmit = (e) => {
+  e.preventDefault();
+  const newErrors = validateForm();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    const newErrors = validateForm();
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors(newErrors);
-      toast({
-        title: "Form not submitted!",
-        description: "Please fix the highlighted errors and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  if (Object.keys(newErrors).length > 0) {
+    setErrors(newErrors);
     toast({
-      title: "Message Sent!",
-      description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+      title: "Form not submitted!",
+      description: "Please fix the highlighted errors and try again.",
+      variant: "destructive",
     });
+    return;
+  }
 
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      company: "",
-      projectType: "",
-      message: ""
-    });
-  };
+  toast({
+    title: "Message Sent!",
+    description: "Thank you for contacting us. We'll get back to you within 24 hours.",
+  });
+
+  // ✅ Reset everything except projectType
+  setFormData((prev) => ({
+    name: "",
+    email: "",
+    phone: "",
+    company: "",
+    projectType: prev.projectType,
+    message: "",
+  }));
+};
+
 
   const contactInfo = [
     {
@@ -91,7 +92,7 @@ const ContactSection = () => {
   ];
 
   return (
-    <section id="contact" className="py-20 bg-gray-50">
+    <section id="contact" className="py-4 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
@@ -167,7 +168,7 @@ const ContactSection = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Phone */}
                     <div>
-                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
                       <input
                         id="phone"
                         type="number"
@@ -211,7 +212,7 @@ const ContactSection = () => {
 
                   {/* Message */}
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Project Details *</label>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Project Details </label>
                     <textarea
                       id="message"
                       value={formData.message}

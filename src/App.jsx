@@ -24,6 +24,8 @@ import { CustomerLayout } from "./pages/CustomerPanel/CustomerLayout";
 import { AuthGuard, RoleBasedRedirect } from "./pages/Auths/ProtectedRoute";
 import EnhancedFileList from "./components/EnhancedFileList";
 import CPDashboard from "./pages/CustomerPanel/CPDashboard";
+import PrivacyPolicy from "./components/PrivacyPolicy";
+import TermsAndConditions from "./components/TermsAndConditions";
 
 
 const queryClient = new QueryClient();
@@ -207,7 +209,8 @@ const App = () => (
           >
             <Route index element={<ProfilePage />} />
           </Route>
-
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditions />} />
           {/* Catch all */}
           <Route path="*" element={<NotFound />} />
         </Routes>

@@ -443,3 +443,18 @@
   transform: translateY(-2px);
   box-shadow: 0 8px 25px 0 hsl(var(--primary) / 0.5);
 }
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.35s ease-out forwards;
+}
