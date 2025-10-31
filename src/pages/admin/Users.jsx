@@ -212,7 +212,7 @@ const handleUpdateUser = async (userData) => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">User Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Manage team members and their permissions • {users.length} total users
+            Manage team members and their permissions 
           </p>
         </div>
 

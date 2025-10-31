@@ -40,3 +40,14 @@
 .read-the-docs {
   color: #888;
 }
+
+
+  .custom-selected-day {
+    background-color: #2563eb !important; /* blue-600 */
+    color: white !important;
+  }
+  .dark .custom-selected-day {
+    background-color: #3b82f6 !important; /* blue-500 */
+    color: white !important;
+  }
+

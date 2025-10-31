@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
+import {  useMemo } from "react";
+import { ArrowUpDown } from "lucide-react";
+
 import {
   Select,
   SelectContent,
@@ -176,12 +179,63 @@ export const UserListComponent = ({
     }
   };
 
+
+  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
+
+const handleSort = (key) => {
+  setSortConfig((prev) => {
+    if (prev.key === key) {
+      // Toggle asc ↔ desc
+      return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
+    }
+    return { key, direction: "asc" };
+  });
+};
+
+// 🔽 Create a sorted version of filteredUsers
+const sortedUsers = useMemo(() => {
+  let sortable = [...filteredUsers];
+  if (sortConfig.key) {
+    sortable.sort((a, b) => {
+      let aValue = "";
+      let bValue = "";
+
+      // Custom logic for each column
+      switch (sortConfig.key) {
+        case "name":
+          aValue = a.name?.toLowerCase() || "";
+          bValue = b.name?.toLowerCase() || "";
+          break;
+        case "email":
+          aValue = a.email?.toLowerCase() || "";
+          bValue = b.email?.toLowerCase() || "";
+          break;
+        case "role":
+          aValue = getUserRole(a)?.toLowerCase() || "";
+          bValue = getUserRole(b)?.toLowerCase() || "";
+          break;
+        case "created_at":
+          aValue = new Date(a.created_at);
+          bValue = new Date(b.created_at);
+          break;
+        default:
+          break;
+      }
+
+      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+      return 0;
+    });
+  }
+  return sortable;
+}, [filteredUsers, sortConfig]);
+
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex flex-col space-y-4 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
-            <CardTitle>All Users ({filteredUsers.length})</CardTitle>
+            <CardTitle>Existing Users </CardTitle>
             <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -213,12 +267,41 @@ export const UserListComponent = ({
           <div className="space-y-4">
             {/* ✅ Table Header - Desktop only */}
             <div className="hidden sm:grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-              <div className="col-span-3">User</div>
-              <div className="col-span-3">Email</div>
-              <div className="col-span-2">Role & Type</div>
-              <div className="col-span-2">Created</div>
-              <div className="col-span-1">Actions</div>
-            </div>
+  <div
+    onClick={() => handleSort("name")}
+    className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+  >
+    User
+    <ArrowUpDown className="h-3 w-3" />
+  </div>
+
+  <div
+    onClick={() => handleSort("email")}
+    className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+  >
+    Email
+    <ArrowUpDown className="h-3 w-3" />
+  </div>
+
+  <div
+    
+    className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+  >
+    Role & Type
+    
+  </div>
+
+  <div
+    
+    className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+  >
+    Created
+    
+  </div>
+
+  <div className="col-span-1">Actions</div>
+</div>
+
 
             {/* ✅ Table Content */}
             {filteredUsers.length === 0 ? (
@@ -229,7 +312,7 @@ export const UserListComponent = ({
                 </h3>
               </div>
             ) : (
-              filteredUsers.map((user) => {
+              sortedUsers.map((user) => {
                 const hasOneDrive = hasOneDriveIntegration(user);
 
                 return (
@@ -381,7 +464,7 @@ export const UserListComponent = ({
                         <div className="min-w-0">
                           <div className="font-medium text-sm truncate">{user.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            ID: {user.id}
+                            
                           </div>
                         </div>
                       </div>
@@ -501,6 +584,10 @@ export const UserListComponent = ({
             )}
           </div>
         </CardContent>
+        <div className="flex justify-end px-6 py-3 border-t text-sm text-muted-foreground">
+  Total Users: <span className="ml-1 font-medium text-foreground">{filteredUsers.length}</span>
+</div>
+        
       </Card>
 
       {/* ✅ User Details Modal */}

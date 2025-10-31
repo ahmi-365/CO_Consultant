@@ -43,7 +43,7 @@ export default function Profile() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || "";
   const PROFILE_UPDATE_ENDPOINT = `${API_BASE_URL}/profile/update`; // update API
   const DELETE_ACCOUNT_ENDPOINT = `${API_BASE_URL}/account/delete`; // delete API
-  const PASSWORD_CHANGE_ENDPOINT = `${API_BASE_URL}/profile/change-password`; // change password API
+  const PASSWORD_CHANGE_ENDPOINT = `${API_BASE_URL}/password/update`; // change password API
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -156,43 +156,79 @@ export default function Profile() {
   // Change password
   // -------------------------
   const handleChangePassword = async () => {
-    if (!oldPassword || !newPassword || !confirmNewPassword) {
-      toast({ title: "Missing fields", description: "Please fill all password fields." });
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      toast({ title: "Mismatch", description: "New password and confirm password do not match." });
-      return;
-    }
+  if (!oldPassword || !newPassword || !confirmNewPassword) {
+    toast({
+      title: "Missing fields",
+      description: "Please fill all password fields before saving.",
+    });
+    return;
+  }
 
-    setIsChangingPassword(true);
+  if (newPassword !== confirmNewPassword) {
+    toast({
+      title: "Password mismatch",
+      description: "New password and confirm password must be the same.",
+    });
+    return;
+  }
+
+  setIsChangingPassword(true);
+
+  try {
+    const res = await fetch(PASSWORD_CHANGE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        current_password: oldPassword,
+        new_password: newPassword,
+        new_password_confirmation: confirmNewPassword,
+      }),
+    });
+
+    // Try to parse response safely
+    let resData = {};
     try {
-      const res = await fetch(PASSWORD_CHANGE_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          old_password: oldPassword,
-          new_password: newPassword,
-          new_password_confirmation: confirmNewPassword,
-        }),
-      });
-
-      const resData = await res.json();
-      if (!res.ok) throw new Error(resData?.message || "Password change failed");
-
-      toast({ title: "Success", description: "Password updated successfully." });
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-    } catch (err) {
-      toast({ title: "Failed", description: err.message || "See console." });
-    } finally {
-      setIsChangingPassword(false);
+      resData = await res.json();
+    } catch {
+      throw new Error("Invalid response from server.");
     }
-  };
+
+    // Handle different error scenarios
+    if (!res.ok) {
+      let errorMsg = "Password change failed.";
+
+      if (res.status === 400) errorMsg = "Please check your input and try again.";
+      else if (res.status === 401) errorMsg = "Old password is incorrect.";
+      else if (res.status === 422) errorMsg = resData?.errors?.[0] || "Invalid password format.";
+      else if (res.status >= 500) errorMsg = "Server error. Please try again later.";
+      else if (resData?.message) errorMsg = resData.message;
+
+      throw new Error(errorMsg);
+    }
+
+    toast({
+      title: "Success",
+      description: "Password updated successfully.",
+    });
+
+    // Reset fields
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+  } catch (err) {
+    console.error("Password change error:", err);
+    toast({
+      title: "Failed to update password",
+      description: err.message || "An unexpected error occurred. Please try again.",
+    });
+  } finally {
+    setIsChangingPassword(false);
+  }
+};
+
 
   // -------------------------
   // Delete account
@@ -253,7 +289,9 @@ export default function Profile() {
                 Personal Information
               </CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-4">
+              {/* Profile Photo Section */}
               <div className="flex items-center gap-4 mb-6">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={profilePhotoPreview || ""} />
@@ -277,81 +315,160 @@ export default function Profile() {
                   >
                     Change Photo
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-2">JPG, PNG or GIF. Max size 2MB.</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    JPG, PNG or GIF. 
+                  </p>
                 </div>
               </div>
 
+              {/* Name & Last Name Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="Name">Name</Label>
-                  <Input id="Name" value={Name} onChange={(e) => setName(e.target.value)} />
+                  <Label htmlFor="Name">
+                    First Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="Name"
+                    value={Name}
+                    onChange={(e) => setName(e.target.value)}
+                    className={!Name ? "border-red-500 focus-visible:ring-red-500" : ""}
+                  />
+                  {!Name && (
+                    <p className="text-xs text-red-500 mt-1">Name is required</p>
+                  )}
                 </div>
+
                 <div>
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
                 </div>
               </div>
 
+              {/* Email Field */}
               <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Label htmlFor="email">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={!email ? "border-red-500 focus-visible:ring-red-500" : ""}
+                />
+                {!email && (
+                  <p className="text-xs text-red-500 mt-1">Email is required</p>
+                )}
               </div>
 
+              {/* Optional Phone Number */}
               <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" value={phone_number} onChange={(e) => setPhoneNumber(e.target.value)} />
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input
+                  id="phone"
+                  type="number"
+                  value={phone_number}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                // placeholder="e.g. 03001234567"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only numbers are allowed
+                </p>
               </div>
 
-              <Button onClick={handleSaveProfile} className="w-full px-4 py-2 rounded-lg font-semibold transition-all
-             text-white 
-             bg-red-500 hover:bg-red-600
-             dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white" disabled={isSaving}>
+
+
+              {/* Save Button */}
+              <Button
+                onClick={handleSaveProfile}
+                className="w-full px-4 py-2 rounded-lg font-semibold transition-all
+        text-white 
+        bg-red-500 hover:bg-red-600
+        dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white"
+                disabled={!Name || !email || isSaving}
+              >
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </CardContent>
           </Card>
 
+
           {/* Change Password */}
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">Change Password</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <Label htmlFor="oldPassword">Old Password</Label>
-                <Input
-                  id="oldPassword"
-                  type="password"
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="newPassword">New Password</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="confirmNewPassword">Confirm Password</Label>
-                <Input
-                  id="confirmNewPassword"
-                  type="password"
-                  value={confirmNewPassword}
-                  onChange={(e) => setConfirmNewPassword(e.target.value)}
-                />
-              </div>
-              <Button onClick={handleChangePassword} className="w-full px-4 py-2 rounded-lg font-semibold transition-all
-             text-white 
-             bg-red-500 hover:bg-red-600
-             dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white" disabled={isChangingPassword}>
-                {isChangingPassword ? "Changing..." : "Change Password"}
-              </Button>
-            </CardContent>
-          </Card>
+  <CardHeader>
+    <CardTitle className="flex items-center gap-2">Change Password</CardTitle>
+  </CardHeader>
+
+  <CardContent className="space-y-4">
+    {/* Old Password */}
+    <div>
+      <Label htmlFor="oldPassword">
+        Old Password <span className="text-red-500">*</span>
+      </Label>
+      <Input
+        id="oldPassword"
+        type="password"
+        value={oldPassword}
+        onChange={(e) => setOldPassword(e.target.value)}
+        className={!oldPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+      />
+      {!oldPassword && (
+        <p className="text-xs text-red-500 mt-1">Old password is required</p>
+      )}
+    </div>
+
+    {/* New Password */}
+    <div>
+      <Label htmlFor="newPassword">
+        New Password <span className="text-red-500">*</span>
+      </Label>
+      <Input
+        id="newPassword"
+        type="password"
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        className={!newPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+      />
+      {!newPassword && (
+        <p className="text-xs text-red-500 mt-1">New password is required</p>
+      )}
+    </div>
+
+    {/* Confirm Password */}
+    <div>
+      <Label htmlFor="confirmNewPassword">
+        Confirm Password <span className="text-red-500">*</span>
+      </Label>
+      <Input
+        id="confirmNewPassword"
+        type="password"
+        value={confirmNewPassword}
+        onChange={(e) => setConfirmNewPassword(e.target.value)}
+        className={!confirmNewPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
+      />
+      {!confirmNewPassword && (
+        <p className="text-xs text-red-500 mt-1">Please confirm your password</p>
+      )}
+    </div>
+
+    {/* Submit Button */}
+    <Button
+      onClick={handleChangePassword}
+      className="w-full px-4 py-2 rounded-lg font-semibold transition-all
+        text-white 
+        bg-red-500 hover:bg-red-600
+        dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white"
+      disabled={!oldPassword || !newPassword || !confirmNewPassword || isChangingPassword}
+    >
+      {isChangingPassword ? "Changing..." : "Change Password"}
+    </Button>
+  </CardContent>
+</Card>
+
         </div>
 
         <div className="space-y-6">
@@ -397,7 +514,7 @@ export default function Profile() {
               <Button variant="destructive" className="w-full" size="sm" onClick={() => setIsDeleteOpen(true)}>
                 Delete Account
               </Button>
-            </CardContent>
+            </CardContent>  
           </Card> */}
         </div>
       </div>
