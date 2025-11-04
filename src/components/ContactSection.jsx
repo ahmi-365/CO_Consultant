@@ -19,68 +19,110 @@ const ContactSection = () => {
   });
 
   const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+
+  const BASE_URL = "https://co-consultant.majesticsofts.com/api"; 
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setErrors(prev => ({ ...prev, [field]: "" })); // Clear error on change
   };
 
- const validateForm = () => {
-  const newErrors = {};
+  const validateForm = () => {
+    const newErrors = {};
 
-  if (!formData.name.trim()) newErrors.name = "Full name is required.";
+    if (!formData.name.trim()) newErrors.name = "Full name is required.";
 
-  if (!formData.email.trim()) {
-    newErrors.email = "Email address is required.";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    newErrors.email = "Please enter a valid email address.";
-  }
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
 
-  // ✅ Phone number now compulsory
-  if (!formData.phone.trim()) {
-    newErrors.phone = "Phone number is required.";
-  } else if (!/^\d+$/.test(formData.phone)) {
-    newErrors.phone = "Phone number must contain digits only.";
-  } else if (formData.phone.length < 7 || formData.phone.length > 15) {
-    newErrors.phone = "Phone number should be between 7–15 digits.";
-  }
+    // ✅ Phone number now compulsory
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required.";
+    } else if (!/^\d+$/.test(formData.phone)) {
+      newErrors.phone = "Phone number must contain digits only.";
+    } else if (formData.phone.length < 7 || formData.phone.length > 15) {
+      newErrors.phone = "Phone number should be between 7–15 digits.";
+    }
 
-  // ❌ Message is optional now (no validation)
-  
-  return newErrors;
-};
+    // ❌ Message is optional now (no validation)
+    
+    return newErrors;
+  };
 
-const handleSubmit = (e) => {
-  e.preventDefault();
-  const newErrors = validateForm();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const newErrors = validateForm();
 
-  if (Object.keys(newErrors).length > 0) {
-    setErrors(newErrors);
-    toast({
-      title: "Form not submitted!",
-      description: "Please fix the highlighted errors and try again.",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: "Form not submitted!",
+        description: "Please fix the highlighted errors and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  toast({
-    title: "Message Sent!",
-    description: "Thank you for contacting us. We'll get back to you within 24 hours.",
-  });
+    setIsSubmitting(true);
 
-  // ✅ Reset everything except projectType
-  setFormData((prev) => ({
-    name: "",
-    email: "",
-    phone: "",
-    company: "",
-    projectType: prev.projectType,
-    message: "",
-  }));
-};
+    try {
+      // Prepare data to match your API structure
+      const apiData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company_name: formData.company || "",
+        project_type: formData.projectType || "",
+        subject: `${formData.projectType || "General"} Inquiry`,
+        message: formData.message || ""
+      };
 
+      const response = await fetch(`${BASE_URL}/contact-us`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for reaching us. Expect to hear from us shortly.",
+      });
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        projectType: "",
+        message: "",
+      });
+
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Unable to send your message. Please try again or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const contactInfo = [
     {
@@ -103,29 +145,9 @@ const handleSubmit = (e) => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Contact Info */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {contactInfo.map((item, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300 p-6">
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-blue-400/10 rounded-full">
-                      <item.icon className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
-                      <p className="text-black font-medium">{item.info}</p>
-                      <p className="text-gray-600 text-sm">{item.subinfo}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+        <div className="max-w-4xl mx-auto">
           {/* Contact Form */}
-          <div className="lg:col-span-2">
+          <div>
             <div className="bg-white rounded-xl shadow-lg border border-gray-100">
               <div className="p-8">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">Send Us a Message</h3>
@@ -212,7 +234,7 @@ const handleSubmit = (e) => {
 
                   {/* Message */}
                   <div>
-                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Project Details </label>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Message: </label>
                     <textarea
                       id="message"
                       value={formData.message}
@@ -228,11 +250,26 @@ const handleSubmit = (e) => {
                   {/* Submit */}
                   <button
                     type="submit"
-                    className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg"
+                    disabled={isSubmitting}
+                    className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                   >
-                    Send Message
+                    {isSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
+              </div>
+            </div>
+          </div>
+
+          {/* Email Contact Info at Bottom */}
+          <div className="mt-12 text-center">
+            <div className="inline-flex items-center gap-3 bg-white rounded-xl shadow-lg border border-gray-100 px-8 py-4">
+              <div className="p-3 bg-blue-400/10 rounded-full">
+                <Mail className="w-5 h-5 text-blue-400" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-gray-900 text-sm">Email Us</h3>
+                <p className="text-black font-medium">admin@thecoconsultants.com</p>
+                <p className="text-gray-600 text-xs">We respond within 24hrs</p>
               </div>
             </div>
           </div>

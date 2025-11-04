@@ -51,8 +51,9 @@ return (
         {/* Title & Description - full width */}
         <div className="text-center max-w-3xl mx-auto mt-12 mb-16">
           <h2 className="text-3xl md:text-5xl font-bold leading-snug">
-            <span className="text-gray-900">Build Your Future with</span>{" "}
-            <span className="text-yellow-500">Precision</span>
+            <span className="text-gray-900">Why</span>{" "}
+            <span className="text-yellow-500">Construction</span>{" "}
+            <span className="text-gray-900">Data Matters</span>
           </h2>
           <p className="text-base md:text-lg text-gray-600 mt-4 leading-relaxed">
             Specializing in tailored solutions for your construction and

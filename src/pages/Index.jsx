@@ -19,12 +19,15 @@ const Index = () => {
           <HeroSection />
         </section>
         <ServicesSection />
+        <section id="data-matters">
+
         <PrecisionSection />
+        </section>
         <section id="why-choose-us">
           <WhyChooseUsSection />
         </section>
         <DataAnalyticsSection />
-        <ProjectsSection />
+        {/* <ProjectsSection /> */}
         {/* <ProcessSection /> */}
 
         <ContactSection />

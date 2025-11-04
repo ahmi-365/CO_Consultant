@@ -75,6 +75,8 @@ export default function FileManagement() {
   // const [files, setFiles] = useState([]);
   //   const [displayItems, setDisplayItems] = useState([]);
   // const [sortOption, setSortOption] = useState("");
+  // ADD YE LINE (baaki sab same rahega)
+  const [currentUserRole, setCurrentUserRole] = useState("");
 
 
 
@@ -157,6 +159,17 @@ export default function FileManagement() {
       throw error;
     }
   };
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setCurrentUserRole(payload.role || "user"); // admin, user, etc.
+      } catch (e) {
+        console.warn("Token decode failed");
+      }
+    }
+  }, []);
 
   const loadFiles = async (opts = {}) => {
     console.log("🔄 loadFiles called with opts:", opts);
@@ -193,7 +206,7 @@ export default function FileManagement() {
       console.log("📊 Data length:", data.length);
 
       // Apply filtering only when NOT searching
-     // Apply filtering only when NOT searching AND NOT filtering by user
+      // Apply filtering only when NOT searching AND NOT filtering by user
       const safeData = opts.search || selectedUser
         ? data
         : data.filter((f) => {
@@ -712,8 +725,8 @@ export default function FileManagement() {
                           <button
                             onClick={() => setSortOption(sortOption === "name" ? "" : "name")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${sortOption === "name"
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
                               }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -725,8 +738,8 @@ export default function FileManagement() {
                           <button
                             onClick={() => setSortOption(sortOption === "date" ? "" : "date")}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${sortOption === "date"
-                                ? "bg-primary text-primary-foreground shadow-sm"
-                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              ? "bg-primary text-primary-foreground shadow-sm"
+                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
                               }`}
                           >
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -815,6 +828,8 @@ export default function FileManagement() {
                                 isDownloading={isDownloading[item.id]}
                                 isRenaming={isRenaming[item.id]}
                                 onIframeUpdate={handleIframeUpdate}
+                                currentUserRole={currentUserRole}
+                                can={can}
                               />
                             </DragDropZone>
                           </div>

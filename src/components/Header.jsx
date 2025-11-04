@@ -60,7 +60,7 @@ const Header = () => {
     if (!user) {
       return "Login";
     } else if (user.roles && (user.roles.includes("admin") || user.roles.includes("manager"))) {
-      return "Dashboard";
+      return "CO Access";
     } else {
       return "File Manager";
     }
@@ -69,8 +69,9 @@ const Header = () => {
   const menuItems = [
     { label: "Home", id: "hero" },
     { label: "Services", id: "services" },
+    { label: "Why Data Matters", id: "data-matters" },
     { label: "Why Choose Us", id: "why-choose-us" },
-    { label: "Projects", id: "projects" },
+    // { label: "Projects", id: "projects" },
     { label: "Contact", id: "contact" },
   ];
 

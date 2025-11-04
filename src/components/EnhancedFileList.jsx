@@ -104,6 +104,14 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [showIframePanel, setShowIframePanel] = useState(true);
 
   const isRootFolder = true;
+  // FileItem.jsx ke top mein, imports ke neeche
+  const ADMIN_ROLES = ["admin", "superadmin"];
+
+  function can(item, action, role) {
+    if (ADMIN_ROLES.includes(role)) return true;
+    if (!item?.permissions) return false;
+    return !!item.permissions[action];
+  }
 
   // Determine if we should show tabs - NOW it can access selectedItemForIframe
   const shouldShowTabs = useMemo(
@@ -132,6 +140,48 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     trashing: {},
     refreshing: false,
   });
+
+  const [userPermissions, setUserPermissions] = useState({
+    star: false,
+    trash: false,
+    download: false,
+    move: false,
+    rename: false,
+  });
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    console.log("Loaded user permissions from localStorage:", storedUser);
+
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const perms = Array.isArray(parsedUser.permissions)
+          ? parsedUser.permissions
+          : [];
+        setUserPermissions(perms);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+      }
+    }
+  }, []);
+
+  // ✅ Check safely even if permissions not loaded yet
+  const canToggleStar =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("starred-files.toggle");
+  const canTrash =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.trash");
+  const canMove =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.move");
+  const canRename =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.rename");
+    const canDownload =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.download");
 
   // Check if device is mobile
   useEffect(() => {
@@ -213,6 +263,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       setActiveTab("file-manager");
     }
   }, [folderId]);
+
   const getCurrentFolderMetadata = useCallback(async () => {
     try {
       if (!folderId) {
@@ -248,131 +299,131 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     }
   }, [folderId]);
   // Load files function with enhanced folder details extraction
-const loadFiles = useCallback(
-  async (searchQuery = "") => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (searchQuery && searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
-
-      // 🔥 CRITICAL FIX: Always fetch ALL files first to build complete hierarchy
-      const allFilesResponse = await fileApi.listFiles(null, {}); // Always get all files
-      const allFilesData = allFilesResponse.data || allFilesResponse;
-      setAllFiles(allFilesData);
-
-      // Build complete folder hierarchy from ALL files
-      const hierarchyMap = new Map();
-      allFilesData.forEach((item) => {
-        if (item.type === "folder") {
-          hierarchyMap.set(item.id, {
-            id: item.id,
-            name: item.name,
-            parentId: item.parent_id,
-            type: item.type,
-            iframe_url: item.iframe_url,
-          });
+  const loadFiles = useCallback(
+    async (searchQuery = "") => {
+      try {
+        setLoading(true);
+        const params = {};
+        if (searchQuery && searchQuery.trim()) {
+          params.search = searchQuery.trim();
         }
-      });
-      setFolderHierarchy(hierarchyMap);
 
-      console.log('📚 Built hierarchy with', hierarchyMap.size, 'folders');
-      console.log('🔍 Looking for folder', folderId, ':', hierarchyMap.get(parseInt(folderId)));
+        // 🔥 CRITICAL FIX: Always fetch ALL files first to build complete hierarchy
+        const allFilesResponse = await fileApi.listFiles(null, {}); // Always get all files
+        const allFilesData = allFilesResponse.data || allFilesResponse;
+        setAllFiles(allFilesData);
 
-      // Now handle search or filtering
-      let response;
-      if (searchQuery && searchQuery.trim()) {
-        // If searching, get search results
-        response = await fileApi.listFiles(null, { search: searchQuery.trim() });
-      } else {
-        // If viewing a specific folder, get its children
-        response = await fileApi.listFiles(folderId, {});
-      }
+        // Build complete folder hierarchy from ALL files
+        const hierarchyMap = new Map();
+        allFilesData.forEach((item) => {
+          if (item.type === "folder") {
+            hierarchyMap.set(item.id, {
+              id: item.id,
+              name: item.name,
+              parentId: item.parent_id,
+              type: item.type,
+              iframe_url: item.iframe_url,
+            });
+          }
+        });
+        setFolderHierarchy(hierarchyMap);
 
-      const filesData = response.data || response;
+        console.log('📚 Built hierarchy with', hierarchyMap.size, 'folders');
+        console.log('🔍 Looking for folder', folderId, ':', hierarchyMap.get(parseInt(folderId)));
 
-      // Filter files based on folder
-      let filteredFiles = filesData;
-      if (!folderId) {
-        // Root folder - show only root-level items
-        const existingIds = new Set(allFilesData.map((item) => item.id));
-        filteredFiles = allFilesData.filter(
-          (item) => !existingIds.has(item.parent_id)
-        );
-
-        // Check for root-level iframe
-        if (response.iframe_url) {
-          console.log('✅ Root has iframe:', response.iframe_url);
-          setRootIframeUrl(response.iframe_url);
-          setSelectedItemForIframe({
-            id: 'root-iframe',
-            name: 'Root Embedded Content',
-            iframe_url: response.iframe_url,
-            type: 'root',
-            is_iframe: true
-          });
-          setShowIframePanel(true);
+        // Now handle search or filtering
+        let response;
+        if (searchQuery && searchQuery.trim()) {
+          // If searching, get search results
+          response = await fileApi.listFiles(null, { search: searchQuery.trim() });
         } else {
-          setRootIframeUrl(null);
-          setShowIframePanel(false);
-          setSelectedItemForIframe(null);
+          // If viewing a specific folder, get its children
+          response = await fileApi.listFiles(folderId, {});
         }
-      } else {
-        // Nested folder - filter children
-        filteredFiles = filesData.filter(
-          (item) => item.parent_id && item.parent_id.toString() === folderId
-        );
 
-        // Get current folder metadata from hierarchy
-        const currentFolderData = hierarchyMap.get(parseInt(folderId));
+        const filesData = response.data || response;
 
-        if (currentFolderData) {
-          console.log('📁 Found folder in hierarchy:', currentFolderData);
+        // Filter files based on folder
+        let filteredFiles = filesData;
+        if (!folderId) {
+          // Root folder - show only root-level items
+          const existingIds = new Set(allFilesData.map((item) => item.id));
+          filteredFiles = allFilesData.filter(
+            (item) => !existingIds.has(item.parent_id)
+          );
 
-          // Set as current folder
-          setCurrentFolder(currentFolderData);
-
-          // Check for iframe
-          if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
-            console.log('✅ Folder has iframe:', currentFolderData.iframe_url);
-            setRootIframeUrl(currentFolderData.iframe_url);
+          // Check for root-level iframe
+          if (response.iframe_url) {
+            console.log('✅ Root has iframe:', response.iframe_url);
+            setRootIframeUrl(response.iframe_url);
             setSelectedItemForIframe({
-              id: currentFolderData.id,
-              name: currentFolderData.name,
-              iframe_url: currentFolderData.iframe_url,
-              type: 'folder',
+              id: 'root-iframe',
+              name: 'Root Embedded Content',
+              iframe_url: response.iframe_url,
+              type: 'root',
               is_iframe: true
             });
             setShowIframePanel(true);
           } else {
-            console.log('❌ Folder has no iframe');
             setRootIframeUrl(null);
             setShowIframePanel(false);
             setSelectedItemForIframe(null);
           }
         } else {
-          console.log('⚠️ Folder not found in hierarchy');
-          setCurrentFolder(null);
-          setRootIframeUrl(null);
-          setShowIframePanel(false);
-          setSelectedItemForIframe(null);
+          // Nested folder - filter children
+          filteredFiles = filesData.filter(
+            (item) => item.parent_id && item.parent_id.toString() === folderId
+          );
+
+          // Get current folder metadata from hierarchy
+          const currentFolderData = hierarchyMap.get(parseInt(folderId));
+
+          if (currentFolderData) {
+            console.log('📁 Found folder in hierarchy:', currentFolderData);
+
+            // Set as current folder
+            setCurrentFolder(currentFolderData);
+
+            // Check for iframe
+            if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
+              console.log('✅ Folder has iframe:', currentFolderData.iframe_url);
+              setRootIframeUrl(currentFolderData.iframe_url);
+              setSelectedItemForIframe({
+                id: currentFolderData.id,
+                name: currentFolderData.name,
+                iframe_url: currentFolderData.iframe_url,
+                type: 'folder',
+                is_iframe: true
+              });
+              setShowIframePanel(true);
+            } else {
+              console.log('❌ Folder has no iframe');
+              setRootIframeUrl(null);
+              setShowIframePanel(false);
+              setSelectedItemForIframe(null);
+            }
+          } else {
+            console.log('⚠️ Folder not found in hierarchy');
+            setCurrentFolder(null);
+            setRootIframeUrl(null);
+            setShowIframePanel(false);
+            setSelectedItemForIframe(null);
+          }
         }
+
+        setFiles(filteredFiles);
+
+      } catch (error) {
+        console.error("Error loading files:", error);
+        toast.error("Error loading files");
+        setFiles([]);
+        setAllFiles([]);
+      } finally {
+        setLoading(false);
       }
-
-      setFiles(filteredFiles);
-
-    } catch (error) {
-      console.error("Error loading files:", error);
-      toast.error("Error loading files");
-      setFiles([]);
-      setAllFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  },
-  [folderId]
-);
+    },
+    [folderId]
+  );
 
   // useEffect(() => {
   //   loadCurrentFolderIframe();
@@ -521,81 +572,81 @@ const loadFiles = useCallback(
     );
   };
 
- const getCurrentFolder = () => {
-  if (!folderId) {
-    return {
-      id: null,
-      name: "My Files",
-      path: "/",
-      fullPath: "My Files",
-    };
-  }
+  const getCurrentFolder = () => {
+    if (!folderId) {
+      return {
+        id: null,
+        name: "My Files",
+        path: "/",
+        fullPath: "My Files",
+      };
+    }
 
-  const parsedFolderId = parseInt(folderId);
+    const parsedFolderId = parseInt(folderId);
 
-  // ✅ FIRST: Check folderHierarchy Map (most reliable)
-  if (folderHierarchy.has(parsedFolderId)) {
-    const folderInfo = folderHierarchy.get(parsedFolderId);
-    const folderPath = buildFolderPath(parsedFolderId);
-    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+    // ✅ FIRST: Check folderHierarchy Map (most reliable)
+    if (folderHierarchy.has(parsedFolderId)) {
+      const folderInfo = folderHierarchy.get(parsedFolderId);
+      const folderPath = buildFolderPath(parsedFolderId);
+      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
-    return {
-      id: folderInfo.id,
-      name: folderInfo.name, // ✅ "File one" from hierarchy
-      path: `/folder/${folderInfo.id}`,
-      fullPath: fullPath,
-    };
-  }
+      return {
+        id: folderInfo.id,
+        name: folderInfo.name, // ✅ "File one" from hierarchy
+        path: `/folder/${folderInfo.id}`,
+        fullPath: fullPath,
+      };
+    }
 
-  // ✅ SECOND: Check currentFolder state
-  if (currentFolder && currentFolder.id === parsedFolderId) {
-    const folderPath = buildFolderPath(currentFolder.id);
-    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+    // ✅ SECOND: Check currentFolder state
+    if (currentFolder && currentFolder.id === parsedFolderId) {
+      const folderPath = buildFolderPath(currentFolder.id);
+      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
-    return {
-      id: currentFolder.id,
-      name: currentFolder.name, // ✅ Should have "File one"
-      path: `/folder/${currentFolder.id}`,
-      fullPath: fullPath,
-    };
-  }
+      return {
+        id: currentFolder.id,
+        name: currentFolder.name, // ✅ Should have "File one"
+        path: `/folder/${currentFolder.id}`,
+        fullPath: fullPath,
+      };
+    }
 
-  // ✅ THIRD: Search in allFiles array for the folder itself
-  const folderItem = allFiles.find(
-    (item) => item.id === parsedFolderId && item.type === 'folder'
-  );
+    // ✅ THIRD: Search in allFiles array for the folder itself
+    const folderItem = allFiles.find(
+      (item) => item.id === parsedFolderId && item.type === 'folder'
+    );
 
-  if (folderItem) {
-    const folderPath = buildFolderPath(parsedFolderId);
-    const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
+    if (folderItem) {
+      const folderPath = buildFolderPath(parsedFolderId);
+      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
+      return {
+        id: parsedFolderId,
+        name: folderItem.name, // ✅ "File one" from API
+        path: `/folder/${parsedFolderId}`,
+        fullPath: fullPath.length > "My Files".length ? fullPath : `My Files / ${folderItem.name}`,
+      };
+    }
+
+    // ✅ FOURTH: Fallback - search for any item with this ID
+    const anyItem = allFiles.find(item => item.id === parsedFolderId);
+    if (anyItem) {
+      return {
+        id: parsedFolderId,
+        name: anyItem.name || `Folder ${folderId}`, // ✅ Use API name
+        path: `/folder/${parsedFolderId}`,
+        fullPath: `My Files / ${anyItem.name || `Folder ${folderId}`}`,
+      };
+    }
+
+    // ✅ Last resort fallback (only if API data is missing)
     return {
       id: parsedFolderId,
-      name: folderItem.name, // ✅ "File one" from API
-      path: `/folder/${parsedFolderId}`,
-      fullPath: fullPath.length > "My Files".length ? fullPath : `My Files / ${folderItem.name}`,
+      name: `Folder ${folderId}`,
+      path: `/folder/${folderId}`,
+      fullPath: `My Files / Folder ${folderId}`,
     };
-  }
-
-  // ✅ FOURTH: Fallback - search for any item with this ID
-  const anyItem = allFiles.find(item => item.id === parsedFolderId);
-  if (anyItem) {
-    return {
-      id: parsedFolderId,
-      name: anyItem.name || `Folder ${folderId}`, // ✅ Use API name
-      path: `/folder/${parsedFolderId}`,
-      fullPath: `My Files / ${anyItem.name || `Folder ${folderId}`}`,
-    };
-  }
-
-  // ✅ Last resort fallback (only if API data is missing)
-  return {
-    id: parsedFolderId,
-    name: `Folder ${folderId}`,
-    path: `/folder/${folderId}`,
-    fullPath: `My Files / Folder ${folderId}`,
   };
-};
 
   // Memoize current folder info for modal
   const currentFolderInfo = useMemo(
@@ -1285,16 +1336,7 @@ const loadFiles = useCallback(
                                         align="end"
                                         className="w-48 bg-popover border border-border"
                                       >
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleStarFile(item.id);
-                                          }}
-                                          disabled={actionLoading.starring[item.id]}
-                                        >
-                                          <Star className="w-4 h-4 mr-2" />
-                                          {item.is_starred ? "Unstar" : "Star"}
-                                        </DropdownMenuItem>
+
 
                                         {item.type === "file" && (
                                           <DropdownMenuItem
@@ -1802,16 +1844,6 @@ const loadFiles = useCallback(
                                           align="end"
                                           className="w-48 bg-popover border border-border"
                                         >
-                                          <DropdownMenuItem
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleStarFile(item.id);
-                                            }}
-                                            disabled={actionLoading.starring[item.id]}
-                                          >
-                                            <Star className="w-4 h-4 mr-2" />
-                                            {item.is_starred ? "Unstar" : "Star"}
-                                          </DropdownMenuItem>
 
                                           {item.type === "file" && (
                                             <DropdownMenuItem
@@ -1975,7 +2007,7 @@ const loadFiles = useCallback(
 
 
                                     <div className="flex items-center gap-1">
-                                      {item.type === "file" && (
+                                      {item.type === "file" && canDownload && ((
                                         <Button
                                           variant="ghost"
                                           size="sm"
@@ -1989,7 +2021,7 @@ const loadFiles = useCallback(
                                             <Download className="w-4 h-4" />
                                           )}
                                         </Button>
-                                      )}
+                                      ))}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -2000,15 +2032,23 @@ const loadFiles = useCallback(
                                           align="end"
                                           className="w-48 bg-popover border border-border"
                                         >
-                                          <DropdownMenuItem
-                                            onClick={() => handleStarFile(item.id)}
-                                            disabled={actionLoading.starring[item.id]}
-                                          >
-                                            <Star className="w-4 h-4 mr-2" />
-                                            {item.is_starred ? "Unstar" : "Star"}
-                                          </DropdownMenuItem>
+                                          {canToggleStar && (
+                                            <DropdownMenuItem
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (canToggleStar) {
+                                                  handleStarFile(item.id);
+                                                } else {
+                                                  alert("You don’t have permission to star files.");
+                                                }
+                                              }}
+                                              disabled={!canToggleStar || actionLoading.starring[item.id]}
+                                            >
+                                              <Star className="w-4 h-4 mr-2" />
+                                              {item.is_starred ? "Unstar" : "Star"}
+                                            </DropdownMenuItem>)}
 
-                                          {item.type === "file" && (
+                                          {item.type === "file" &&   (
                                             <DropdownMenuItem
                                               onClick={() => handleDownloadFile(item.id, item.name)}
                                               disabled={actionLoading.downloading[item.id]}
@@ -2017,33 +2057,34 @@ const loadFiles = useCallback(
                                               Download
                                             </DropdownMenuItem>
                                           )}
-
-                                          <DropdownMenuItem
-                                            onClick={() => {
-                                              setFileToTrash(item); // Store selected file
-                                              setShowConfirmPopup(true); // Open confirmation popup
-                                            }}
-                                            disabled={actionLoading.trashing[item.id]}
-                                            className="text-destructive focus:text-destructive"
-                                          >
-                                            <Trash2 className="w-4 h-4 mr-2" />
-                                            Move to Trash
-                                          </DropdownMenuItem>
-
-
-                                          <DropdownMenuItem
-                                            onClick={() => handleMoveFile(item.id, item.name)}
-                                          >
-                                            <ArrowRightLeft className="w-4 h-4 mr-2" />
-                                            Move
-                                          </DropdownMenuItem>
-
-                                          <DropdownMenuItem
-                                            onClick={() => handleRenameItem(item)}
-                                          >
-                                            <Edit className="w-4 h-4 mr-2" />
-                                            Rename
-                                          </DropdownMenuItem>
+                                            {canTrash && (
+                                              <DropdownMenuItem
+                                                onClick={() => {
+                                                  setFileToTrash(item); // Store selected file
+                                                  setShowConfirmPopup(true); // Open confirmation popup
+                                                }}
+                                                disabled={actionLoading.trashing[item.id]}
+                                                className="text-destructive focus:text-destructive"
+                                              >
+                                                <Trash2 className="w-4 h-4 mr-2" />
+                                                Move to Trash
+                                              </DropdownMenuItem>
+                                            )}
+                                          {canMove && (
+                                            <DropdownMenuItem
+                                              onClick={() => handleMoveFile(item.id, item.name)}
+                                            >
+                                              <ArrowRightLeft className="w-4 h-4 mr-2" />
+                                              Move
+                                            </DropdownMenuItem>)}
+                                          {canRename && (
+                                            <DropdownMenuItem
+                                              onClick={() => handleRenameItem(item)}
+                                            >
+                                              <Edit className="w-4 h-4 mr-2" />
+                                              Rename
+                                            </DropdownMenuItem>
+                                          )}
                                         </DropdownMenuContent>
                                       </DropdownMenu>
                                     </div>
@@ -2078,17 +2119,18 @@ const loadFiles = useCallback(
           </SheetHeader>
 
           <div className="grid grid-cols-2 gap-3 mt-6 pb-6">
-            <Button
-              variant="outline"
-              onClick={() => handleStarFile(selectedItemForActions?.id)}
-              disabled={actionLoading.starring[selectedItemForActions?.id]}
-              className="flex items-center gap-2 h-12"
-            >
-              <Star className="w-4 h-4" />
-              {selectedItemForActions?.is_starred ? "Unstar" : "Star"}
-            </Button>
-
-            {selectedItemForActions?.type === "file" && (
+            {canToggleStar && (
+              <Button
+                variant="outline"
+                onClick={() => handleStarFile(selectedItemForActions?.id)}
+                disabled={actionLoading.starring[selectedItemForActions?.id]}
+                className="flex items-center gap-2 h-12"
+              >
+                <Star className="w-4 h-4" />
+                {selectedItemForActions?.is_starred ? "Unstar" : "Star"}
+              </Button>
+            )}
+            {selectedItemForActions?.type === "file" && canDownload && ( (
               <Button
                 variant="outline"
                 onClick={() =>
@@ -2103,40 +2145,43 @@ const loadFiles = useCallback(
                 <Download className="w-4 h-4" />
                 Download
               </Button>
+            ))}
+            {canMove && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  handleMoveFile(
+                    selectedItemForActions?.id,
+                    selectedItemForActions?.name
+                  )
+                }
+                className="flex items-center gap-2 h-12"
+              >
+                <ArrowRightLeft className="w-4 h-4" />
+                Move
+              </Button>
             )}
+            {canRename && (
+              <Button
+                variant="outline"
+                onClick={() => handleRenameItem(selectedItemForActions)}
+                className="flex items-center gap-2 h-12"
+              >
+                <Edit className="w-4 h-4" />
+                Rename
+              </Button>
+            )}
+            {canTrash && (
 
-            <Button
-              variant="outline"
-              onClick={() =>
-                handleMoveFile(
-                  selectedItemForActions?.id,
-                  selectedItemForActions?.name
-                )
-              }
-              className="flex items-center gap-2 h-12"
-            >
-              <ArrowRightLeft className="w-4 h-4" />
-              Move
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => handleRenameItem(selectedItemForActions)}
-              className="flex items-center gap-2 h-12"
-            >
-              <Edit className="w-4 h-4" />
-              Rename
-            </Button>
-
-            <Button
-              variant="destructive"
-              onClick={() => handleTrashFile(selectedItemForActions?.id)}
-              disabled={actionLoading.trashing[selectedItemForActions?.id]}
-              className="flex items-center gap-2 h-12 col-span-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Move to Trash
-            </Button>
+              <Button
+                variant="destructive"
+                onClick={() => handleTrashFile(selectedItemForActions?.id)}
+                disabled={actionLoading.trashing[selectedItemForActions?.id]}
+                className="flex items-center gap-2 h-12 col-span-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Move to Trash
+              </Button>)}
           </div>
         </SheetContent>
       </Sheet>
