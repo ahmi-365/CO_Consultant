@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import {  useMemo } from "react";
-import { ArrowUpDown } from "lucide-react";
+import { useMemo } from "react";
+import { ArrowUpDown, Edit, Eye, Trash } from "lucide-react";
 
 import {
   Select,
@@ -182,53 +182,53 @@ export const UserListComponent = ({
 
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
 
-const handleSort = (key) => {
-  setSortConfig((prev) => {
-    if (prev.key === key) {
-      // Toggle asc ↔ desc
-      return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
-    }
-    return { key, direction: "asc" };
-  });
-};
-
-// 🔽 Create a sorted version of filteredUsers
-const sortedUsers = useMemo(() => {
-  let sortable = [...filteredUsers];
-  if (sortConfig.key) {
-    sortable.sort((a, b) => {
-      let aValue = "";
-      let bValue = "";
-
-      // Custom logic for each column
-      switch (sortConfig.key) {
-        case "name":
-          aValue = a.name?.toLowerCase() || "";
-          bValue = b.name?.toLowerCase() || "";
-          break;
-        case "email":
-          aValue = a.email?.toLowerCase() || "";
-          bValue = b.email?.toLowerCase() || "";
-          break;
-        case "role":
-          aValue = getUserRole(a)?.toLowerCase() || "";
-          bValue = getUserRole(b)?.toLowerCase() || "";
-          break;
-        case "created_at":
-          aValue = new Date(a.created_at);
-          bValue = new Date(b.created_at);
-          break;
-        default:
-          break;
+  const handleSort = (key) => {
+    setSortConfig((prev) => {
+      if (prev.key === key) {
+        // Toggle asc ↔ desc
+        return { key, direction: prev.direction === "asc" ? "desc" : "asc" };
       }
-
-      if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
-      if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
-      return 0;
+      return { key, direction: "asc" };
     });
-  }
-  return sortable;
-}, [filteredUsers, sortConfig]);
+  };
+
+  // 🔽 Create a sorted version of filteredUsers
+  const sortedUsers = useMemo(() => {
+    let sortable = [...filteredUsers];
+    if (sortConfig.key) {
+      sortable.sort((a, b) => {
+        let aValue = "";
+        let bValue = "";
+
+        // Custom logic for each column
+        switch (sortConfig.key) {
+          case "name":
+            aValue = a.name?.toLowerCase() || "";
+            bValue = b.name?.toLowerCase() || "";
+            break;
+          case "email":
+            aValue = a.email?.toLowerCase() || "";
+            bValue = b.email?.toLowerCase() || "";
+            break;
+          case "role":
+            aValue = getUserRole(a)?.toLowerCase() || "";
+            bValue = getUserRole(b)?.toLowerCase() || "";
+            break;
+          case "created_at":
+            aValue = new Date(a.created_at);
+            bValue = new Date(b.created_at);
+            break;
+          default:
+            break;
+        }
+
+        if (aValue < bValue) return sortConfig.direction === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortable;
+  }, [filteredUsers, sortConfig]);
 
   return (
     <>
@@ -267,40 +267,40 @@ const sortedUsers = useMemo(() => {
           <div className="space-y-4">
             {/* ✅ Table Header - Desktop only */}
             <div className="hidden sm:grid grid-cols-12 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
-  <div
-    onClick={() => handleSort("name")}
-    className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
-  >
-    User
-    <ArrowUpDown className="h-3 w-3" />
-  </div>
+              <div
+                onClick={() => handleSort("name")}
+                className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+              >
+                User
+                <ArrowUpDown className="h-3 w-3" />
+              </div>
 
-  <div
-    onClick={() => handleSort("email")}
-    className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
-  >
-    Email
-    <ArrowUpDown className="h-3 w-3" />
-  </div>
+              <div
+                onClick={() => handleSort("email")}
+                className="col-span-3 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+              >
+                Email
+                <ArrowUpDown className="h-3 w-3" />
+              </div>
 
-  <div
-    
-    className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
-  >
-    Role & Type
-    
-  </div>
+              <div
 
-  <div
-    
-    className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
-  >
-    Created
-    
-  </div>
+                className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+              >
+                Role & Type
 
-  <div className="col-span-1">Actions</div>
-</div>
+              </div>
+
+              <div
+
+                className="col-span-2 flex items-center gap-1 cursor-pointer hover:text-foreground transition"
+              >
+                Created
+
+              </div>
+
+              <div className="col-span-1">Actions</div>
+            </div>
 
 
             {/* ✅ Table Content */}
@@ -464,7 +464,7 @@ const sortedUsers = useMemo(() => {
                         <div className="min-w-0">
                           <div className="font-medium text-sm truncate">{user.name}</div>
                           <div className="text-xs text-muted-foreground">
-                            
+
                           </div>
                         </div>
                       </div>
@@ -498,85 +498,84 @@ const sortedUsers = useMemo(() => {
                         </div>
                       </div>
 
-                      {/* Actions */}
-                      <div className="col-span-1">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
+
+
+
+
+                      <div className="col-span-2 flex justify-end items-center gap-2">
+                        {/* View */}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleViewDetails(user)}
+                          title="View Details"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+
+                        {/* Edit */}
+                        <UserForm
+                          mode="edit"
+                          initialData={{
+                            id: user.id,
+                            name: user.name,
+                            email: user.email,
+                            password: "",
+                            role: user.roles?.[0]?.name || "user",
+                          }}
+                          onSubmit={(updatedUser) =>
+                            handleUpdateUser({
+                              id: updatedUser.id,
+                              name: updatedUser.name,
+                              email: updatedUser.email,
+                              password: updatedUser.password || undefined,
+                              role: updatedUser.role,
+                            })
+                          }
+                          isLoading={updatingUserId === user.id}
+                          trigger={
+                            <Button variant="outline" size="icon" title="Edit User">
+                              <Edit className="h-4 w-4" />
                             </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => handleViewDetails(user)}>
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                              <UserForm
-                                mode="edit"
-                                initialData={{
-                                  id: user.id,
-                                  name: user.name,
-                                  email: user.email,
-                                  password: "",
-                                  role: user.roles?.[0]?.name || "user",
-                                }}
-                                onSubmit={(updatedUser) =>
-                                  handleUpdateUser({
-                                    id: updatedUser.id,
-                                    name: updatedUser.name,
-                                    email: updatedUser.email,
-                                    password: updatedUser.password || undefined,
-                                    role: updatedUser.role,
-                                  })
-                                }
-                                isLoading={updatingUserId === user.id} // Add this line
-                                trigger={
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="w-full justify-start"
-                                  >
-                                    Edit User
-                                  </Button>
-                                }
-                              />
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <DropdownMenuItem
-                                  className="text-destructive focus:text-destructive"
-                                  onSelect={(e) => e.preventDefault()}
-                                >
-                                  Delete User
-                                </DropdownMenuItem>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete{" "}
-                                    <strong>{user.name}</strong>? This action cannot
-                                    be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                    onClick={() => handleDeleteUser(user.id)}
-                                    disabled={deleteUserMutation.isPending}
-                                  >
-                                    {deleteUserMutation.isPending
-                                      ? "Deleting..."
-                                      : "Delete"}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                          }
+                        />
+
+                        {/* Delete */}
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              title="Delete User"
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete User</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete{" "}
+                                <strong>{user.name}</strong>? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                onClick={() => handleDeleteUser(user.id)}
+                                disabled={deleteUserMutation.isPending}
+                              >
+                                {deleteUserMutation.isPending ? "Deleting..." : "Delete"}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
+
+
+
+
                     </div>
                   </div>
                 );
@@ -585,9 +584,9 @@ const sortedUsers = useMemo(() => {
           </div>
         </CardContent>
         <div className="flex justify-end px-6 py-3 border-t text-sm text-muted-foreground">
-  Total Users: <span className="ml-1 font-medium text-foreground">{filteredUsers.length}</span>
-</div>
-        
+          Total Users: <span className="ml-1 font-medium text-foreground">{filteredUsers.length}</span>
+        </div>
+
       </Card>
 
       {/* ✅ User Details Modal */}

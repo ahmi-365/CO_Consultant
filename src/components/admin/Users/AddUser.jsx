@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { User, Mail, Plus, Loader2, AlertCircle, Folder, File, FolderOpen, X, Shield } from "lucide-react";
+import { User, Mail, Plus, Loader2, AlertCircle, Folder, File, FolderOpen, X, Shield, Edit } from "lucide-react";
 import { FolderSelectionModal } from '../../FolderSelectionModal';
 
 // roleService remains unchanged
@@ -251,8 +251,8 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogTrigger asChild>
           {mode === "edit" ? (
-            <Button variant="ghost" size="sm" >
-              Edit
+            <Button variant="outline" size="icon" >
+              <Edit className="h-4 w-4" />
             </Button>
           ) : (
             <Button>
