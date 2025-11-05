@@ -43,6 +43,7 @@ import { fileApi, getCachedFiles } from "@/services/FileService";
 import { useToast } from "@/hooks/use-toast";
 import SearchUser from "../../components/admin/Files/SearchUser";
 import MoveFileDialog from '@/components/MoveFileDialog';
+import { Pagination } from "../../components/ui/pagination"
 
 export default function FileManagement() {
   const [files, setFiles] = useState([]);
@@ -71,11 +72,11 @@ export default function FileManagement() {
   const [itemToMove, setItemToMove] = useState(null);
   const [validationError, setValidationError] = useState("");
   const [sortOption, setSortOption] = useState(""); // "name" or "date"
-  // const [displayItems, setDisplayItems] = useState([]);
-  // const [files, setFiles] = useState([]);
-  //   const [displayItems, setDisplayItems] = useState([]);
-  // const [sortOption, setSortOption] = useState("");
-  // ADD YE LINE (baaki sab same rahega)
+  // Add these new state variables after your existing useState declarations
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
   const [currentUserRole, setCurrentUserRole] = useState("");
 
 
@@ -87,8 +88,8 @@ export default function FileManagement() {
 
 
   useEffect(() => {
-    loadFiles();
-  }, [currentPath, selectedUser]);
+    loadFiles({ page: currentPage });
+  }, [currentPath, selectedUser, currentPage, itemsPerPage]);
   useEffect(() => {
     if (newFolderName.trim()) {
       setValidationError(validateFolderName(newFolderName));
@@ -181,6 +182,9 @@ export default function FileManagement() {
       const params = {
         ...(selectedUser ? { user_id: selectedUser } : {}),
         ...(opts.search ? { search: opts.search } : {}),
+        // ADD PAGINATION PARAMS
+        page: opts.page || currentPage,
+        per_page: itemsPerPage,
       };
 
       const options = {
@@ -192,10 +196,28 @@ export default function FileManagement() {
       const response = await fileApi.listFiles(currentParentId, params, options);
       console.log("✅ Full API Response:", response);
 
-      // SIMPLIFIED response handling
+      // Handle response with pagination metadata
       let data = [];
-      if (Array.isArray(response)) {
+      let paginationData = {
+        total: 0,
+        current_page: 1,
+        per_page: itemsPerPage,
+        last_page: 1
+      };
+
+      if (response.items) {
+        // New format with pagination
+        data = response.items;
+        paginationData = {
+          total: response.total || 0,
+          current_page: response.current_page || 1,
+          per_page: response.per_page || itemsPerPage,
+          last_page: response.last_page || 1
+        };
+      } else if (Array.isArray(response)) {
+        // Old format - array
         data = response;
+        paginationData.total = response.length;
       } else if (response?.data) {
         data = Array.isArray(response.data) ? response.data : [response.data];
       } else if (response?.files) {
@@ -203,9 +225,8 @@ export default function FileManagement() {
       }
 
       console.log("📊 Extracted data:", data);
-      console.log("📊 Data length:", data.length);
+      console.log("📊 Pagination data:", paginationData);
 
-      // Apply filtering only when NOT searching
       // Apply filtering only when NOT searching AND NOT filtering by user
       const safeData = opts.search || selectedUser
         ? data
@@ -218,7 +239,13 @@ export default function FileManagement() {
         });
 
       console.log("🎯 Final files to display:", safeData);
+
+      // UPDATE STATE WITH PAGINATION INFO
       setFiles(safeData);
+      setTotalItems(paginationData.total);
+      setTotalPages(paginationData.last_page);
+      setCurrentPage(paginationData.current_page);
+
     } catch (error) {
       console.error("❌ Failed to load files:", error);
       toast({
@@ -227,11 +254,24 @@ export default function FileManagement() {
         variant: "destructive",
       });
       setFiles([]);
+      setTotalItems(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
-
+  const handleItemsPerPageChange = (value) => {
+    setItemsPerPage(parseInt(value));
+    setCurrentPage(1); // Reset to page 1
+    loadFiles({ page: 1, per_page: parseInt(value) });
+  };
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    loadFiles({ page: newPage });
+    // Scroll to top of file list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
     try {
@@ -334,6 +374,7 @@ export default function FileManagement() {
   const handleFileSelect = (item) => {
     if (item.type === "folder") {
       setCurrentPath([...currentPath, { id: item.id, name: item.name }]);
+      setCurrentPage(1); // RESET TO PAGE 1
     }
     setSelectedItem(item);
   };
@@ -547,11 +588,12 @@ export default function FileManagement() {
 
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
-      // Root level
       setCurrentPath([]);
     } else {
       setCurrentPath(currentPath.slice(0, index + 1));
     }
+    // RESET PAGINATION
+    setCurrentPage(1);
   };
 
   const handleSync = async () => {
@@ -710,79 +752,98 @@ export default function FileManagement() {
                       Files & Folders
                     </CardTitle>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                      {/* User Filter */}
-                      <div className="w-full sm:w-auto">
-                        <SearchUser
-                          selectedUser={selectedUser}
-                          onUserSelect={setSelectedUser}
-                        />
-                      </div>
+                   <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto">
+  {/* User Filter */}
+  <div className="w-full lg:w-auto">
+    <SearchUser
+      selectedUser={selectedUser}
+      onUserSelect={setSelectedUser}
+    />
+  </div>
+  
+  <div className="flex items-center gap-2 w-full lg:w-auto">
+    <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
+    <Select
+      value={itemsPerPage.toString()}
+      onValueChange={handleItemsPerPageChange}
+    >
+      <SelectTrigger className="w-[100px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="10">10</SelectItem>
+        <SelectItem value="20">20</SelectItem>
+        <SelectItem value="50">50</SelectItem>
+        <SelectItem value="100">100</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+  
+  {/* Smart Sort Toggle - Only shows if files exist */}
+  {files.length > 1 && (
+    <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm rounded-full p-1 border border-border/50 shadow-sm w-full lg:w-auto justify-center lg:justify-start">
+      <button
+        onClick={() => setSortOption(sortOption === "name" ? "" : "name")}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          sortOption === "name"
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+        Name
+      </button>
 
-                      {/* Smart Sort Toggle - Only shows if files exist */}
-                      {files.length > 1 && (
-                        <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm rounded-full p-1 border border-border/50 shadow-sm">
-                          <button
-                            onClick={() => setSortOption(sortOption === "name" ? "" : "name")}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${sortOption === "name"
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              }`}
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-                            </svg>
-                            Name
-                          </button>
+      <button
+        onClick={() => setSortOption(sortOption === "date" ? "" : "date")}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          sortOption === "date"
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Date
+      </button>
 
-                          <button
-                            onClick={() => setSortOption(sortOption === "date" ? "" : "date")}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${sortOption === "date"
-                              ? "bg-primary text-primary-foreground shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                              }`}
-                          >
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            Date
-                          </button>
+      {/* Clear Sort Button - Only if sorted */}
+      {sortOption && (
+        <button
+          onClick={() => setSortOption("")}
+          className="ml-1 p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+          title="Clear sorting"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  )}
 
-                          {/* Clear Sort Button - Only if sorted */}
-                          {sortOption && (
-                            <button
-                              onClick={() => setSortOption("")}
-                              className="ml-1 p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-                              title="Clear sorting"
-                            >
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          )}
-                        </div>
-                      )}
-
-
-                      {/* Search Input */}
-                      <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-                          placeholder={searchTerm ? "Searching..." : "Search files..."}
-                          className="pl-9 w-full border-border bg-background"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        {searchTerm && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSearchTerm("")}
-                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+  {/* Search Input */}
+  <div className="relative w-full lg:w-64">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    <Input
+      placeholder={searchTerm ? "Searching..." : "Search files..."}
+      className="pl-9 w-full border-border bg-background"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+    {searchTerm && (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setSearchTerm("")}
+        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+      >
+        <X className="h-3 w-3" />
+      </Button>
+    )}
+  </div>
+</div>
                   </div>
                 </CardHeader>
 
@@ -828,7 +889,7 @@ export default function FileManagement() {
                                 isDownloading={isDownloading[item.id]}
                                 isRenaming={isRenaming[item.id]}
                                 onIframeUpdate={handleIframeUpdate}
-                                
+                                currentUserRole={currentUserRole}
                               />
                             </DragDropZone>
                           </div>
@@ -837,6 +898,16 @@ export default function FileManagement() {
                     )}
                   </div>
                 </CardContent>
+
+                {/* ADD PAGINATION HERE */}
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  itemsPerPage={itemsPerPage}
+                  totalItems={totalItems}
+                  isLoading={loading}
+                />
               </Card>
             </div>
           </div>
