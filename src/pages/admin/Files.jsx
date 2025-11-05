@@ -828,8 +828,7 @@ export default function FileManagement() {
                                 isDownloading={isDownloading[item.id]}
                                 isRenaming={isRenaming[item.id]}
                                 onIframeUpdate={handleIframeUpdate}
-                                currentUserRole={currentUserRole}
-                                can={can}
+                                
                               />
                             </DragDropZone>
                           </div>
