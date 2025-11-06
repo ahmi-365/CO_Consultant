@@ -12,15 +12,15 @@ const services = [
       "Quality control at every stage",
       "Technical expertise and innovation",
       "3D modeling & visualization",
-      "Cutting-edge machinery integration",
-      "Sustainable & eco-friendly practices",
+      "Cutting edge machinery integration",
+      "Sustainable & eco friendly practices",
     ],
   },
   {
     number: 3,
     title: "Strategic Project Management",
     description:
-      "Our approachable team ensures timely and budget-friendly delivery of your projects, while maintaining clear communication and proactive strategies to overcome challenges with ease.",
+      "Our approachable team ensures timely and budget friendly delivery of your projects, while maintaining clear communication and proactive strategies to overcome challenges with ease.",
     icon: Target,
     features: [
       "Timeline optimization",
@@ -32,7 +32,7 @@ const services = [
   },
   {
     number: 2,
-    title: "Client-Centric Solutions",
+    title: "Client Centric Solutions",
     description:
       "We prioritize your needs to offer a custom approach that elevates your projects.",
     icon: Users,

@@ -2,8 +2,8 @@ import { MapPin, Phone, Mail, Clock } from "lucide-react";
 
 const Footer = () => {
   const servicesItems = [
-    { label: "All-in-One Services", id: "hero" },
-    { label: "Real-Time Tracking", id: "services" },
+    { label: "All in One Services", id: "hero" },
+    { label: "Real Time Tracking", id: "services" },
     { label: "Productivity Estimation", id: "why-choose-us" },
     { label: "Secure Cloud Access", id: "projects" },
     { label: "Performance Analytics", id: "contact" },
@@ -30,12 +30,12 @@ const Footer = () => {
               <h3 className="text-2xl font-bold text-white">About Us</h3>
             </div>
             <p className="leading-relaxed text-gray-300">
-              CO Consultants is a construction-focused project management and
+              CO Consultants is a construction focused project management and
               analytics consultancy based in Dubai, UAE. With over a decade of
               experience across the GCC, Europe, and Central Asia, we help
               contractors, developers, and consultants turn daily field data into
-              strategic project insights. We bridge the gap between on-site
-              operations and decision-making through smart digitization.
+              strategic project insights. We bridge the gap between on site
+              operations and decision making through smart digitization.
             </p>
           </div>
 

@@ -23,6 +23,7 @@ import {
   Code,
   PanelLeftClose,
   PanelLeftOpen,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -91,6 +92,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [showConfirmPopup, setShowConfirmPopup] = useState(false);
   const [fileToTrash, setFileToTrash] = useState(null);
   const [showTrashPopup, setShowTrashPopup] = useState(false);
+  const [error, setError] = useState("");
+  const [nameError, setNameError] = useState("");
+  const [duplicateWarning, setDuplicateWarning] = useState("");
+  const [isNameValid, setIsNameValid] = useState(false);
 
 
 
@@ -179,7 +184,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const canRename =
     Array.isArray(userPermissions) &&
     userPermissions.includes("files.rename");
-    const canDownload =
+  const canDownload =
     Array.isArray(userPermissions) &&
     userPermissions.includes("files.download");
 
@@ -789,45 +794,45 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const handleRenameItem = (item) => {
     setSelectedItemForRename(item);
     setNewName(item.name);
+    setNameError("");
+    setDuplicateWarning("");
+    setIsNameValid(true); // Default valid if same name
+    validateName(item.name); // ← AB VALIDATION CHALEGA!
     setRenameModalOpen(true);
-    if (isMobile) {
-      setShowMobileActions(false);
-    }
   };
-
   const handleRenameSubmit = async () => {
-    if (!selectedItemForRename || !newName.trim()) {
-      toast.error("Please enter a valid name");
-      return;
-    }
+    if (!selectedItemForRename || !newName.trim() || !isNameValid) return;
 
     setRenaming(true);
+
     try {
-      const response = await fileApi.renameItem(
-        selectedItemForRename.id,
-        newName.trim()
-      );
-      if (response.status === "ok") {
-        toast.success(
-          `${selectedItemForRename.type === "folder" ? "Folder" : "File"
-          } renamed successfully`
-        );
+      const response = await fileApi.renameItem(selectedItemForRename.id, newName.trim());
+
+      if (response.status === "ok" || response.success) {
+        toast.success(`${selectedItemForRename.type === "folder" ? "Folder" : "File"} renamed!`);
         setRenameModalOpen(false);
-        setSelectedItemForRename(null);
-        setNewName("");
+        resetRenameForm();
         loadFiles();
         window.dispatchEvent(new CustomEvent("refreshSidebar"));
       } else {
-        toast.error("Failed to rename item");
+        const msg = response.message?.toLowerCase() || "";
+        if (msg.includes("exists") || msg.includes("duplicate")) {
+          setDuplicateWarning("This name is already taken.");
+        } else {
+          setNameError("Server error: " + response.message);
+        }
       }
     } catch (error) {
-      console.error("Error renaming item:", error);
-      toast.error("Error renaming item");
+      const msg = error.response?.data?.message?.toLowerCase() || "";
+      if (msg.includes("exists") || msg.includes("duplicate")) {
+        setDuplicateWarning("This name is already taken.");
+      } else {
+        setNameError("Failed to rename. Try again.");
+      }
     } finally {
       setRenaming(false);
     }
   };
-
   const handleRefresh = async () => {
     setActionLoading((prev) => ({ ...prev, refreshing: true }));
     try {
@@ -1062,6 +1067,52 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     </Card>
   );
 
+  const validateName = (name) => {
+    setNameError("");
+    setDuplicateWarning("");
+    setIsNameValid(false);
+
+    if (!name.trim()) {
+      setNameError("empty");
+      return;
+    }
+
+    if (name.length > 100) {
+      setNameError("100");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9 _.-]+$/.test(name)) {
+      setNameError("allowed");
+      return;
+    }
+
+    // Duplicate check in current folder
+    const currentFolderFiles = files.filter(f =>
+      (!folderId && !f.parent_id) ||
+      (f.parent_id?.toString() === folderId)
+    );
+
+    const isDuplicate = currentFolderFiles.some(f =>
+      f.id !== selectedItemForRename.id &&
+      f.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setDuplicateWarning("An item with this name already exists in this folder.");
+      return;
+    }
+
+    setIsNameValid(true);
+  };
+
+  const resetRenameForm = () => {
+    setNewName("");
+    setNameError("");
+    setDuplicateWarning("");
+    setIsNameValid(false);
+    setSelectedItemForRename(null);
+  };
   return (
     <div className="flex flex-col h-full">
       {/* HEADER - Mobile responsive single row */}
@@ -1478,7 +1529,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     {formatDate(item.updated_at)}
                                   </TableCell>
                                   <TableCell className="hidden sm:table-cell text-muted-foreground">
-                                    {item.type === "folder" ? "-" : formatFileSize(item.size)}
+                                    {item.size ? formatFileSize(item.size) : "-"}
+
                                   </TableCell>
                                   <TableCell className="hidden lg:table-cell">
                                     <div className="flex gap-1">
@@ -1985,7 +2037,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     {formatDate(item.updated_at)}
                                   </TableCell>
                                   <TableCell className="hidden sm:table-cell text-muted-foreground">
-                                    {item.type === "folder" ? "-" : formatFileSize(item.size)}
+                                    {item.size ? formatFileSize(item.size) : "-"}
+
                                   </TableCell>
 
 
@@ -2048,7 +2101,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                               {item.is_starred ? "Unstar" : "Star"}
                                             </DropdownMenuItem>)}
 
-                                          {item.type === "file" &&   (
+                                          {item.type === "file" && (
                                             <DropdownMenuItem
                                               onClick={() => handleDownloadFile(item.id, item.name)}
                                               disabled={actionLoading.downloading[item.id]}
@@ -2057,19 +2110,19 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                               Download
                                             </DropdownMenuItem>
                                           )}
-                                            {canTrash && (
-                                              <DropdownMenuItem
-                                                onClick={() => {
-                                                  setFileToTrash(item); // Store selected file
-                                                  setShowConfirmPopup(true); // Open confirmation popup
-                                                }}
-                                                disabled={actionLoading.trashing[item.id]}
-                                                className="text-destructive focus:text-destructive"
-                                              >
-                                                <Trash2 className="w-4 h-4 mr-2" />
-                                                Move to Trash
-                                              </DropdownMenuItem>
-                                            )}
+                                          {canTrash && (
+                                            <DropdownMenuItem
+                                              onClick={() => {
+                                                setFileToTrash(item); // Store selected file
+                                                setShowConfirmPopup(true); // Open confirmation popup
+                                              }}
+                                              disabled={actionLoading.trashing[item.id]}
+                                              className="text-destructive focus:text-destructive"
+                                            >
+                                              <Trash2 className="w-4 h-4 mr-2" />
+                                              Move to Trash
+                                            </DropdownMenuItem>
+                                          )}
                                           {canMove && (
                                             <DropdownMenuItem
                                               onClick={() => handleMoveFile(item.id, item.name)}
@@ -2130,7 +2183,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 {selectedItemForActions?.is_starred ? "Unstar" : "Star"}
               </Button>
             )}
-            {selectedItemForActions?.type === "file" && canDownload && ( (
+            {selectedItemForActions?.type === "file" && canDownload && ((
               <Button
                 variant="outline"
                 onClick={() =>
@@ -2187,38 +2240,77 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       </Sheet>
 
       {/* Rename Modal - Mobile optimized */}
+      {/* Rename Modal - FULL VALIDATION + MESSAGES IN POPUP */}
       <Dialog open={renameModalOpen} onOpenChange={setRenameModalOpen}>
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
             <DialogTitle className="text-lg">
-              Rename{" "}
-              {selectedItemForRename?.type === "folder" ? "Folder" : "File"}
+              Rename {selectedItemForRename?.type === "folder" ? "Folder" : "File"}
             </DialogTitle>
             <DialogDescription>
-              Enter a new name for "{selectedItemForRename?.name}"
+              Enter a new name for "<span className="font-medium">{selectedItemForRename?.name}</span>"
             </DialogDescription>
           </DialogHeader>
+
           <div className="space-y-4">
-            <Input
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              placeholder="Enter new name..."
-              onKeyPress={(e) => e.key === "Enter" && handleRenameSubmit()}
-              className="text-base" // Better for mobile
-            />
+            <div className="space-y-2">
+              <Input
+                value={newName}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setNewName(value);
+                  validateName(value);
+                }}
+                placeholder="Enter new name..."
+                onKeyPress={(e) => e.key === "Enter" && isNameValid && !renaming && handleRenameSubmit()}
+                className={`text-base ${nameError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                autoFocus
+              />
+
+              {/* ALL VALIDATION MESSAGES - ONE BY ONE */}
+              {nameError && (
+                <div className="text-sm text-red-600 space-y-1">
+                  {nameError.includes("empty") && (
+                    <p className="flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" /> Name cannot be empty.
+                    </p>
+                  )}
+                  {nameError.includes("100") && (
+                    <p className="flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" /> Name too long (max 100 characters).
+                    </p>
+                  )}
+                  {nameError.includes("allowed") && (
+                    <p className="flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" /> Only letters, numbers, space, <code className="bg-red-100 px-1 rounded">_</code>, <code className="bg-red-100 px-1 rounded">-</code>, <code className="bg-red-100 px-1 rounded">.</code> allowed.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {duplicateWarning && (
+                <p className="text-sm text-orange-600 flex items-center gap-1">
+                  <AlertTriangle className="h-3.5 w-3.5" /> {duplicateWarning}
+                </p>
+              )}
+            </div>
           </div>
+
           <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
-              onClick={() => setRenameModalOpen(false)}
+              onClick={() => {
+                setRenameModalOpen(false);
+                resetRenameForm();
+              }}
               className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button
               onClick={handleRenameSubmit}
-              disabled={renaming}
-              className="w-full sm:w-auto"
+              disabled={renaming || !!nameError || !newName.trim() || !!duplicateWarning}
+              className="w-full sm:w-auto flex items-center justify-center"
             >
               {renaming ? (
                 <>
@@ -2232,6 +2324,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* File Upload Modal */}
       <FileUploadModal

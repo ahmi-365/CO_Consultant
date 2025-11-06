@@ -27,11 +27,11 @@ const WhyChooseUsSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center mb-10">
           <InfoBlock
             icon={<Search className="w-6 h-6 text-white" />}
-            title="Precision-Powered Tracking"
+            title="Precision Powered Tracking"
             description={
               <>
                 We integrate <b>Bluetooth RTLS, QR Codes, and RFID systems</b>{" "}
-                to enable real-time, site-wide tracking of manpower and
+                to enable real time, site wide tracking of manpower and
                 equipment. <br />
                 <span className="text-yellow-600 font-medium">
                   No guesswork, just ground truth.
@@ -56,7 +56,7 @@ const WhyChooseUsSection = () => {
             title="Project-Specific Dashboards"
             description={
               <>
-                We do not use one-size-fits-all templates. Every dashboard we
+                We do not use one size fits all templates. Every dashboard we
                 deliver is:
                 <ul className="list-disc ml-6 mt-2 text-gray-600">
                   <li>Tailored to your project needs</li>
@@ -68,7 +68,7 @@ const WhyChooseUsSection = () => {
                 </ul>
                 <p className="mt-2">
                   Whether you’re managing a megaproject or an industrial
-                  retrofit, our analytics adapt to your site — not the other way
+                  retrofit, our analytics adapt to your site   not the other way
                   around.
                 </p>
               </>
@@ -99,9 +99,9 @@ const WhyChooseUsSection = () => {
             title="Daily Trackers, Done Right"
             description={
               <>
-                We provide plug-and-play daily reporting templates that your
-                site teams can use effortlessly. Whether Excel-based or
-                IoT-connected, our templates ensure:
+                We provide plug and play daily reporting templates that your
+                site teams can use effortlessly. Whether Excel based or
+                IoT connected, our templates ensure:
                 <ul className="list-disc ml-6 mt-2 text-gray-600">
                   <li>Accurate manpower logs</li>
                   <li>Equipment utilization insights</li>
@@ -116,14 +116,14 @@ const WhyChooseUsSection = () => {
             title="Local Experience, Global Standards"
             description={
               <>
-                With over a decade of hands-on project management experience
+                With over a decade of hands on project management experience
                 across:
                 <p className="mt-2 font-semibold text-gray-700">
                   🇦🇪 UAE • 🇹🇷 Turkey • 🇶🇦 Qatar • 🇷🇺 Russia • 🇸🇦 Saudi Arabia • 🇮🇶 Iraq • 🇰🇿
                   Kazakhstan • 🇯🇴 Jordan • 🇪🇸 Spain
                 </p>
                 <p className="mt-2">
-                  We understand what clients, contractors, and consultants need — and how to align them around{" "}
+                  We understand what clients, contractors, and consultants need  and how to align them around{" "}
                   <b>facts, not friction.</b>
                 </p>
               </>
@@ -143,7 +143,7 @@ const WhyChooseUsSection = () => {
                   <b>Clean. Organised. Accessible. Secure.</b>
                   <p className="mt-2">
                     We offer a single source of truth for your daily reports,
-                    claims documents, and delay analysis inputs — ensuring
+                    claims documents, and delay analysis inputs  ensuring
                     traceability from Day 1 to Final Account.
                   </p>
                 </>

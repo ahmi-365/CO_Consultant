@@ -216,7 +216,7 @@ const ContactSection = () => {
                   </div>
 
                   {/* Project Type */}
-                  <div>
+                  {/* <div>
                     <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">Project Type</label>
                     <select
                       onChange={(e) => handleInputChange("projectType", e.target.value)}
@@ -230,7 +230,7 @@ const ContactSection = () => {
                       <option value="renovation">Renovation/Remodeling</option>
                       <option value="other">Other</option>
                     </select>
-                  </div>
+                  </div> */}
 
                   {/* Message */}
                   <div>

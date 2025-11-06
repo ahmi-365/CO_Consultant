@@ -37,14 +37,14 @@ const HeroSection = () => {
         {/* Heading */}
         <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
           Smart Construction Management.{" "}
-          <span className="text-yellow-400">Real-Time.</span>{" "}
+          <span className="text-yellow-400">Real Time.</span>{" "}
           <span className="text-blue-400">Reliable</span>{" "}
           <span className="text-yellow-400">Results.</span>
         </h1>
 
         {/* Paragraph */}
         <p className="text-xl md:text-2xl mb-16 max-w-3xl mx-auto leading-relaxed text-gray-200 dark:text-gray-300">
-          From daily reporting to productivity estimation — we give you the
+          From daily reporting to productivity estimation we give you the
           tools to manage projects efficiently and securely.
         </p>
 

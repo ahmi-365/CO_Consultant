@@ -4,15 +4,15 @@ import { BarChart3, MapPin, Clock, Shield, TrendingUp, Zap } from "lucide-react"
 const services = [
   {
     icon: MapPin,
-    title: "Real-Time Tracking System", 
+    title: "Real Time Tracking System", 
     description: "Bluetooth enabled precise location monitoring for manpower & equipment .",
     features: ["Live Site Monitoring", "HSE Management", "No Room to Human Error"]
   },
   {
     icon: BarChart3,
     title: "Daily Reporting",
-    description: "Track progress everyday with comprehensive project insights and real-time dasboards.",
-    features: ["Real-time Progress Tracking", "Automated Report Generation", "Performance Analytics"]
+    description: "Track progress everyday with comprehensive project insights and real time dasboards.",
+    features: ["Real time Progress Tracking", "Automated Report Generation", "Performance Analytics"]
   },
   {
     icon: TrendingUp,
@@ -23,8 +23,8 @@ const services = [
   {
     icon: Clock,
     title: "Productivity Estimation",
-    description: "Forecast resources, time, and costs accurately with AI-powered analytics and predictive modeling.",
-    features: ["AI-Powered Forecasting", "Resource Optimization", "Cost Prediction Models"]
+    description: "Forecast resources, time, and costs accurately with AI powered analytics and predictive modeling.",
+    features: ["AI Powered Forecasting", "Resource Optimization", "Cost Prediction Models"]
   },
   {
     icon: Zap,
@@ -35,8 +35,8 @@ const services = [
   {
     icon: Shield,
     title: "Secure Cloud Access",
-    description: "Enterprise-grade data protection with encrypted storage and multi-layer security protocols.",
-    features: ["256-bit Encryption", "Multi-Factor Authentication", "Compliance Ready"]
+    description: "Enterprise grade data protection with encrypted storage and multi layer security protocols.",
+    features: ["256 bit Encryption", "Multi Factor Authentication", "Compliance Ready"]
   }
 ];
 
@@ -55,10 +55,10 @@ return (
             <BarChart3 className="w-8 h-8 text-blue-400" />
           </div>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
-            All-in-One Services
+            All in One Services
           </h2>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-            Cutting-edge construction management solutions designed to streamline your projects from conception to completion
+            Cutting edge construction management solutions designed to streamline your projects from conception to completion
           </p>
         </div>
         

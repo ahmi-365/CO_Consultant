@@ -67,6 +67,7 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
     role: "", // This needs to be the role name string (e.g., "admin")
     folders: [], // Will be array of IDs for API submission
   });
+  
 
   /**
    * Effect 1: Handles initial data population on open (mode="edit") or reset (mode="add").
@@ -420,34 +421,31 @@ export function UserForm({ onSubmit, isLoading = false, initialData, mode = "add
               )}
 
               {/* Password */}
-              <div className="space-y-2 col-span-3">
-                <Label htmlFor="password">
-                  Password {mode === "add" ? "*" : ""}
-                </Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, password: e.target.value }))
-                  }
-                  required={mode === "add"}
-                  className={fieldErrors.password ? "border-red-500" : ""}
-                  autoComplete="new-password"
-                />
-                {fieldErrors.password && (
-                  <p className="text-xs text-red-500">{fieldErrors.password[0]}</p>
-                )}
-                {mode === "add" ? (
+              {mode === "add" && (
+                <div className="space-y-2 col-span-3">
+                  <Label htmlFor="password">
+                    Password *
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, password: e.target.value }))
+                    }
+                    required
+                    className={fieldErrors.password ? "border-red-500" : ""}
+                    autoComplete="new-password"
+                  />
+                  {fieldErrors.password && (
+                    <p className="text-xs text-red-500">{fieldErrors.password[0]}</p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     Set an initial password for the new user
                   </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground">
-                    Leave empty to keep current password
-                  </p>
-                )}
-              </div>
+                </div>
+              )}
+
             </div>
 
             {/* Buttons */}

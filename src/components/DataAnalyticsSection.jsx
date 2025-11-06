@@ -4,7 +4,7 @@ const analyticsFeatures = [
   {
     title: "Data Collection",
     description:
-      "Comprehensive data gathering from manual entries and IoT Bluetooth devices for real-time manpower tracking.",
+      "Comprehensive data gathering from manual entries and IoT Bluetooth devices for real time manpower tracking.",
     icon: Database,
   },
   {
@@ -39,7 +39,7 @@ const DataAnalyticsSection = () => {
             </h2>
 
             <p className="text-base md:text-lg text-gray-600 mb-4 leading-snug max-w-2xl">
-              From collection to claims – our workflow turns data into actionable insights.
+              From collection to claims our workflow turns data into actionable insights.
             </p>
 
             <div className="space-y-3">
