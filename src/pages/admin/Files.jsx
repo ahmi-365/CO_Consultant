@@ -72,15 +72,13 @@ export default function FileManagement() {
   const [itemToMove, setItemToMove] = useState(null);
   const [validationError, setValidationError] = useState("");
   const [sortOption, setSortOption] = useState(""); // "name" or "date"
-  // Add these new state variables after your existing useState declarations
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [currentUserRole, setCurrentUserRole] = useState("");
+// Replace these state declarations
+const [currentPage, setCurrentPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+const [totalItems, setTotalItems] = useState(0);
+const [itemsPerPage, setItemsPerPage] = useState(10);
 
-
-
+  const [currentUserRole, setCurrentUserRole] = useState(""); 
 
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null); // ← ADD THIS LINE
   const { toast } = useToast();
@@ -172,106 +170,127 @@ export default function FileManagement() {
     }
   }, []);
 
-  const loadFiles = async (opts = {}) => {
-    console.log("🔄 loadFiles called with opts:", opts);
-    setLoading(true);
+const loadFiles = async (opts = {}) => {
+  console.log("🔄 loadFiles called with opts:", opts);
+  setLoading(true);
 
-    try {
-      const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+  try {
+    const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
 
-      const params = {
-        ...(selectedUser ? { user_id: selectedUser } : {}),
-        ...(opts.search ? { search: opts.search } : {}),
-        // ADD PAGINATION PARAMS
-        page: opts.page || currentPage,
-        per_page: itemsPerPage,
+    const params = {
+      ...(selectedUser ? { user_id: selectedUser } : {}),
+      ...(opts.search ? { search: opts.search } : {}),
+      // PAGINATION PARAMS - Use opts values or current state
+      page: opts.page || currentPage,
+      per_page: opts.per_page || itemsPerPage,
+    };
+
+    const options = {
+      force: opts.force || !!selectedUser || !!opts.search,
+    };
+
+    console.log("📡 API call params:", { currentParentId, params, options });
+
+    const response = await fileApi.listadminFiles(currentParentId, params, options);
+    console.log("✅ Full API Response:", response);
+
+    // Handle response with pagination metadata
+    let data = [];
+    let paginationData = {
+      total: 0,
+      current_page: 1,
+      per_page: itemsPerPage,
+      last_page: 1
+    };
+
+    // Check for pagination in response
+    if (response.pagination) {
+      // Your API response structure
+      data = response.data || [];
+      paginationData = {
+        total: response.pagination.total || 0,
+        current_page: parseInt(response.pagination.page) || 1,
+        per_page: parseInt(response.pagination.per_page) || itemsPerPage,
+        last_page: response.pagination.total_pages || 1
       };
-
-      const options = {
-        force: opts.force || !!selectedUser || !!opts.search,
+    } else if (response.items) {
+      // Alternative pagination format
+      data = response.items;
+      paginationData = {
+        total: response.total || 0,
+        current_page: response.current_page || 1,
+        per_page: response.per_page || itemsPerPage,
+        last_page: response.last_page || 1
       };
-
-      console.log("📡 API call params:", { currentParentId, params, options });
-
-      const response = await fileApi.listFiles(currentParentId, params, options);
-      console.log("✅ Full API Response:", response);
-
-      // Handle response with pagination metadata
-      let data = [];
-      let paginationData = {
-        total: 0,
-        current_page: 1,
-        per_page: itemsPerPage,
-        last_page: 1
-      };
-
-      if (response.items) {
-        // New format with pagination
-        data = response.items;
-        paginationData = {
-          total: response.total || 0,
-          current_page: response.current_page || 1,
-          per_page: response.per_page || itemsPerPage,
-          last_page: response.last_page || 1
-        };
-      } else if (Array.isArray(response)) {
-        // Old format - array
-        data = response;
-        paginationData.total = response.length;
-      } else if (response?.data) {
-        data = Array.isArray(response.data) ? response.data : [response.data];
-      } else if (response?.files) {
-        data = Array.isArray(response.files) ? response.files : [response.files];
-      }
-
-      console.log("📊 Extracted data:", data);
-      console.log("📊 Pagination data:", paginationData);
-
-      // Apply filtering only when NOT searching AND NOT filtering by user
-      const safeData = opts.search || selectedUser
-        ? data
-        : data.filter((f) => {
-          if (currentParentId === null) {
-            return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
-          } else {
-            return f.parent_id === currentParentId;
-          }
-        });
-
-      console.log("🎯 Final files to display:", safeData);
-
-      // UPDATE STATE WITH PAGINATION INFO
-      setFiles(safeData);
-      setTotalItems(paginationData.total);
-      setTotalPages(paginationData.last_page);
-      setCurrentPage(paginationData.current_page);
-
-    } catch (error) {
-      console.error("❌ Failed to load files:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load files",
-        variant: "destructive",
-      });
-      setFiles([]);
-      setTotalItems(0);
-      setTotalPages(1);
-    } finally {
-      setLoading(false);
+    } else if (Array.isArray(response)) {
+      // Old format - array
+      data = response;
+      paginationData.total = response.length;
+    } else if (response?.data) {
+      data = Array.isArray(response.data) ? response.data : [response.data];
+    } else if (response?.files) {
+      data = Array.isArray(response.files) ? response.files : [response.files];
     }
-  };
-  const handleItemsPerPageChange = (value) => {
-    setItemsPerPage(parseInt(value));
-    setCurrentPage(1); // Reset to page 1
-    loadFiles({ page: 1, per_page: parseInt(value) });
-  };
-  const handlePageChange = (newPage) => {
-    if (newPage < 1 || newPage > totalPages) return;
-    setCurrentPage(newPage);
-    loadFiles({ page: newPage });
-    // Scroll to top of file list
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+
+    console.log("📊 Extracted data:", data);
+    console.log("📊 Pagination data:", paginationData);
+
+    // Apply filtering only when NOT searching AND NOT filtering by user
+    const safeData = opts.search || selectedUser
+      ? data
+      : data.filter((f) => {
+        if (currentParentId === null) {
+          return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
+        } else {
+          return f.parent_id === currentParentId;
+        }
+      });
+
+    console.log("🎯 Final files to display:", safeData);
+
+    // UPDATE STATE WITH PAGINATION INFO
+    setFiles(safeData);
+    setTotalItems(paginationData.total);
+    setTotalPages(paginationData.last_page);
+    
+    // Only update currentPage if explicitly provided in opts
+    if (opts.page !== undefined) {
+      setCurrentPage(paginationData.current_page);
+    }
+    
+    // Update itemsPerPage if changed
+    if (opts.per_page !== undefined) {
+      setItemsPerPage(paginationData.per_page);
+    }
+
+  } catch (error) {
+    console.error("❌ Failed to load files:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load files",
+      variant: "destructive",
+    });
+    setFiles([]);
+    setTotalItems(0);
+    setTotalPages(1);
+    setCurrentPage(1);
+  } finally {
+    setLoading(false);
+  }
+};
+const handleItemsPerPageChange = (value) => {
+  const newPerPage = parseInt(value);
+  setItemsPerPage(newPerPage);
+  setCurrentPage(1); // Reset to page 1
+  loadFiles({ page: 1, per_page: newPerPage });
+};
+ const handlePageChange = (newPage) => {
+  if (newPage < 1 || newPage > totalPages) return;
+  setCurrentPage(newPage);
+  loadFiles({ page: newPage });
+  // Scroll to top of file list
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
     try {
@@ -899,15 +918,16 @@ export default function FileManagement() {
                   </div>
                 </CardContent>
 
-                {/* ADD PAGINATION HERE */}
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={handlePageChange}
-                  itemsPerPage={itemsPerPage}
-                  totalItems={totalItems}
-                  isLoading={loading}
-                />
+                 <div className="border-t">
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={handlePageChange}
+      itemsPerPage={itemsPerPage}
+      totalItems={totalItems}
+      isLoading={loading}
+    />
+  </div>
               </Card>
             </div>
           </div>

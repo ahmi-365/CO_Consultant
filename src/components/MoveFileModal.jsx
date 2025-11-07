@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Folder, FolderOpen } from "lucide-react";
+import { Folder, FolderOpen, ChevronRight, ChevronDown, Loader2 } from "lucide-react";
 import { fileApi } from "../services/FileService";
 import { toast } from "sonner";
 
@@ -18,7 +18,7 @@ export default function MoveFileModal({
   onClose,
   fileId,
   fileName,
-  currentFolderId,
+  currentFolderId, // The folder where the file is currently located
   onFileMoved,
 }) {
   const [folders, setFolders] = useState([]);
@@ -26,96 +26,69 @@ export default function MoveFileModal({
   const [selectedFolderId, setSelectedFolderId] = useState("");
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [isMoving, setIsMoving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       loadFolders();
+      setSelectedFolderId("");
+      setExpandedFolders(new Set());
+      setSearchQuery("");
     }
   }, [isOpen]);
 
   const loadFolders = async () => {
     try {
-      const response = await fileApi.listFiles();
-      if (Array.isArray(response)) {
-        const foldersWithState = response
-          .filter(
-            (item) =>
-              item.type === "folder" &&
-              item.id !== currentFolderId &&
-              item.id !== fileId
-          )
-          .map((folder) => ({
-            ...folder,
-            children: [],
-            isExpanded: false,
-            isLoading: false,
-          }));
-        setFolders(foldersWithState);
+      setIsLoading(true);
+      const response = await fileApi.getFolderTree();
+      
+      console.log('MoveModal - Folder tree response:', response);
+      
+      if (response.status === "ok" && Array.isArray(response.data)) {
+        // Process the folder tree and exclude the current folder
+        const processedFolders = processFolderTree(response.data, currentFolderId);
+        setFolders(processedFolders);
+      } else if (Array.isArray(response)) {
+        const processedFolders = processFolderTree(response, currentFolderId);
+        setFolders(processedFolders);
+      } else {
+        console.error('Unexpected response format:', response);
+        toast.error("Unexpected folder structure format");
       }
     } catch (error) {
       console.error("❌ Error loading folders:", error);
       toast.error("Error loading folders");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const loadSubfolders = async (folderId) => {
-    try {
-      const response = await fileApi.listFiles(folderId);
-      if (Array.isArray(response)) {
-        setFolders((prevFolders) =>
-          updateFolderInTree(prevFolders, folderId, {
-            children: response
-              .filter(
-                (item) =>
-                  item.type === "folder" &&
-                  item.id !== currentFolderId &&
-                  item.id !== fileId
-              )
-              .map((folder) => ({
-                ...folder,
-                children: [],
-                isExpanded: false,
-                isLoading: false,
-              })),
-            isLoading: false,
-          })
-        );
-      }
-    } catch (error) {
-      console.error(`❌ Error loading subfolders for ${folderId}:`, error);
-      toast.error("Error loading subfolders");
-    }
-  };
-
-  const updateFolderInTree = (folders, folderId, updates) => {
-    return folders.map((folder) => {
-      if (folder.id === folderId) {
-        return { ...folder, ...updates };
-      }
-      if (folder.children && folder.children.length > 0) {
-        return {
+  // Function to process the folder tree and exclude the current folder
+  const processFolderTree = (folders, excludeFolderId) => {
+    const filterFolders = (folderList) => {
+      return folderList
+        .filter(folder => folder.id !== excludeFolderId) // Exclude current folder
+        .map(folder => ({
           ...folder,
-          children: updateFolderInTree(folder.children, folderId, updates),
-        };
-      }
-      return folder;
-    });
+          type: folder.type || "folder",
+          children: folder.children ? filterFolders(folder.children) : []
+        }))
+        .filter(folder => {
+          // Also exclude any folders that have the fileId (in case it's a folder being moved)
+          return folder.id !== fileId;
+        });
+    };
+
+    return filterFolders(folders);
   };
 
-  const toggleFolder = async (folderId) => {
+  const toggleFolder = (folderId) => {
     const newExpanded = new Set(expandedFolders);
-    const isCurrentlyExpanded = newExpanded.has(folderId);
-
-    if (isCurrentlyExpanded) {
+    if (newExpanded.has(folderId)) {
       newExpanded.delete(folderId);
     } else {
       newExpanded.add(folderId);
-      setFolders((prevFolders) =>
-        updateFolderInTree(prevFolders, folderId, { isLoading: true })
-      );
-      await loadSubfolders(folderId);
     }
-
     setExpandedFolders(newExpanded);
   };
 
@@ -128,7 +101,13 @@ export default function MoveFileModal({
     setIsMoving(true);
     try {
       const response = await fileApi.moveItem(fileId, selectedFolderId);
-      if (response.status === "success") {
+      
+      // Check for various success response formats
+      const isSuccess = response.status === 'success' || 
+                       response.status === 'ok' || 
+                       response.success === true;
+
+      if (isSuccess) {
         toast.success(response.message || "File moved successfully");
         onFileMoved();
         onClose();
@@ -137,7 +116,7 @@ export default function MoveFileModal({
       }
     } catch (error) {
       console.error("❌ Error moving file:", error);
-      toast.error("Error moving file");
+      toast.error(error.response?.data?.message || "Error moving file");
     } finally {
       setIsMoving(false);
     }
@@ -146,41 +125,84 @@ export default function MoveFileModal({
   const renderFolder = (folder, level = 0) => {
     const isExpanded = expandedFolders.has(folder.id);
     const isSelected = selectedFolderId === folder.id;
+    const hasChildren = folder.children && folder.children.length > 0;
 
     return (
       <div key={folder.id} className="space-y-1">
-        <div
-          className={`flex items-center gap-2 px-2 py-1 text-sm w-full text-left rounded transition-colors cursor-pointer ${
-            isSelected ? "bg-panel text-panel-foreground" : "hover:bg-muted"
-          }`}
-          style={{ marginLeft: `${level * 16}px` }}
-          onClick={() => setSelectedFolderId(folder.id)}
-        >
-          {isExpanded ? (
-            <FolderOpen className="w-4 h-4" />
-          ) : (
-            <Folder className="w-4 h-4" />
-          )}
-          <span className="truncate">{folder.name}</span>
+        <div className="flex items-center">
+          {/* Indentation for hierarchy level */}
+          <div style={{ width: `${level * 16}px` }} className="flex-shrink-0" />
+
+          {/* Expand/Collapse button */}
+          <button
+            onClick={() => toggleFolder(folder.id)}
+            className="p-0.5 hover:bg-accent rounded transition-colors flex-shrink-0 mr-1"
+            disabled={!hasChildren}
+          >
+            {hasChildren ? (
+              isExpanded ? (
+                <ChevronDown className="w-3 h-3 text-muted-foreground" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-muted-foreground" />
+              )
+            ) : (
+              <div className="w-3 h-3" />
+            )}
+          </button>
+
+          {/* Folder button */}
+          <button
+            onClick={() => setSelectedFolderId(folder.id)}
+            className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors ${
+              isSelected 
+                ? "bg-primary text-primary-foreground font-medium" 
+                : "hover:bg-accent"
+            }`}
+          >
+            {isExpanded && hasChildren ? (
+              <FolderOpen className="w-4 h-4 flex-shrink-0" />
+            ) : (
+              <Folder className="w-4 h-4 flex-shrink-0" />
+            )}
+            <span className="truncate" title={folder.name}>
+              {folder.name}
+            </span>
+          </button>
         </div>
 
-        {isExpanded &&
-          folder.children &&
-          folder.children.map((child) => renderFolder(child, level + 1))}
+        {/* Render children if folder is expanded and has children */}
+        {isExpanded && hasChildren && (
+          <div className="space-y-1">
+            {folder.children.map((child) => renderFolder(child, level + 1))}
+          </div>
+        )}
       </div>
     );
   };
 
-  // 🔍 Filter folders by search
-  const filterFolders = (folders) => {
-    return folders
-      .filter((f) =>
-        f.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
-      )
-      .map((f) => ({
-        ...f,
-        children: filterFolders(f.children || []),
-      }));
+  // Filter folders by search query
+  const filterFolders = (folders, query) => {
+    if (!query) return folders;
+
+    const filterRecursive = (folderList) => {
+      return folderList
+        .map(folder => {
+          const matches = folder.name.toLowerCase().includes(query.toLowerCase());
+          const childrenMatches = filterRecursive(folder.children || []);
+          
+          // If this folder matches or has children that match, include it
+          if (matches || childrenMatches.length > 0) {
+            return {
+              ...folder,
+              children: childrenMatches
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+    };
+
+    return filterRecursive(folders);
   };
 
   const handleClose = () => {
@@ -190,7 +212,7 @@ export default function MoveFileModal({
     onClose();
   };
 
-  const filteredFolders = searchQuery ? filterFolders(folders) : folders;
+  const filteredFolders = searchQuery ? filterFolders(folders, searchQuery) : folders;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -202,10 +224,10 @@ export default function MoveFileModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* 🔎 Search Bar */}
+        {/* Search Bar */}
         <Input
           type="text"
-          placeholder="Search folder..."
+          placeholder="Search folders..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="mb-3"
@@ -213,11 +235,16 @@ export default function MoveFileModal({
 
         <ScrollArea className="h-64 w-full border rounded-md p-2">
           <div className="space-y-1">
-            {filteredFolders.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-6">
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                <span className="text-sm text-muted-foreground">Loading folders...</span>
+              </div>
+            ) : filteredFolders.length > 0 ? (
               filteredFolders.map((folder) => renderFolder(folder))
             ) : (
               <p className="text-sm text-muted-foreground text-center py-6">
-                No folders found.
+                {searchQuery ? "No matching folders found." : "No folders available."}
               </p>
             )}
           </div>
@@ -227,8 +254,18 @@ export default function MoveFileModal({
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleMove} disabled={!selectedFolderId || isMoving}>
-            {isMoving ? "Moving..." : "Move File"}
+          <Button 
+            onClick={handleMove} 
+            disabled={!selectedFolderId || isMoving}
+          >
+            {isMoving ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                Moving...
+              </>
+            ) : (
+              "Move File"
+            )}
           </Button>
         </div>
       </DialogContent>

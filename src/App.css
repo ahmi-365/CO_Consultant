@@ -4,7 +4,20 @@
   padding: 2rem;
   text-align: center;
 }
+/* Hide default cursor everywhere */
+* {
+  cursor: none !important;
+}
 
+/* Ensure the custom cursor works on all elements */
+html, body {
+  cursor: none !important;
+}
+
+/* Optional: Keep text selection cursor for better UX */
+::selection {
+  background: rgba(0, 0, 0, 0.1);
+}
 .logo {
   height: 6em;
   padding: 1.5em;

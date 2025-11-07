@@ -67,7 +67,7 @@ import NewFolderModal from "./NewFolderModal";
 import { starService } from "../services/Starredservice";
 import { trashService } from "../services/trashservice";
 import EmptyState from "@/components/ui/EmptyState";
-
+import { Pagination } from "@/components/ui/pagination";
 export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const { folderId } = useParams();
   const navigate = useNavigate();
@@ -96,8 +96,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [nameError, setNameError] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState("");
   const [isNameValid, setIsNameValid] = useState(false);
-
-
+const [pagination, setPagination] = useState({
+  currentPage: 1,
+  perPage: 10, // Changed from 25 to 10
+  totalItems: 0,
+  totalPages: 1
+});
 
 
   // Tab state
@@ -153,10 +157,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     move: false,
     rename: false,
   });
-
+// Add this useEffect after your existing useEffects (around line 400)
+useEffect(() => {
+  loadFiles(activeSearchQuery);
+}, [pagination.currentPage, pagination.perPage]);
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    console.log("Loaded user permissions from localStorage:", storedUser);
 
     if (storedUser) {
       try {
@@ -199,173 +205,96 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
     return () => window.removeEventListener("resize", checkIsMobile);
   }, []);
-
-  const loadCurrentFolderIframe = useCallback(async () => {
+  // Load files function with enhanced folder details extraction
+const loadFiles = useCallback(
+  async (searchQuery = "") => {
     try {
-      console.log('🎯 Fetching folder metadata for iframe...', folderId);
+      setLoading(true);
+      const params = {
+        page: pagination.currentPage,
+        per_page: pagination.perPage
+      };
 
-      // Get all files data
-      const response = await fileApi.listFiles(folderId || null);
-      console.log('📦 Full API Response:', response);
+      if (searchQuery && searchQuery.trim()) {
+        params.search = searchQuery.trim();
+      }
 
-      // If in root folder (no folderId)
+      // Fetch ALL files for hierarchy building
+      const allFilesResponse = await fileApi.listadminFiles(null, {});
+      const allFilesData = allFilesResponse.data || allFilesResponse;
+      setAllFiles(allFilesData);
+
+      // Build complete folder hierarchy
+      const hierarchyMap = new Map();
+      allFilesData.forEach((item) => {
+        if (item.type === "folder") {
+          hierarchyMap.set(item.id, {
+            id: item.id,
+            name: item.name,
+            parentId: item.parent_id,
+            type: item.type,
+            iframe_url: item.iframe_url,
+          });
+        }
+      });
+      setFolderHierarchy(hierarchyMap);
+
+      // Now fetch paginated data for current folder
+      let response;
+      if (searchQuery && searchQuery.trim()) {
+        response = await fileApi.listadminFiles(null, params);
+      } else {
+        response = await fileApi.listadminFiles(folderId, params);
+      }
+
+      const filesData = response.data || response;
+      
+      // Update pagination state
+      setPagination(prev => ({
+        ...prev,
+        totalItems: response.pagination?.total || filesData.length,
+        totalPages: response.pagination?.total_pages || 1
+      }));
+
+      // Filter files based on folder
+      let filteredFiles = filesData;
       if (!folderId) {
-        // Check for root-level iframe_url in response
-        const rootIframe = response.iframe_url;
-        if (rootIframe) { // 👈 NO is_iframe check for root
-          console.log('✅ Found root iframe (no flag check for root):', rootIframe);
-          setRootIframeUrl(rootIframe);
+        const existingIds = new Set(allFilesData.map((item) => item.id));
+        filteredFiles = allFilesData.filter(
+          (item) => !existingIds.has(item.parent_id)
+        );
+
+        if (response.iframe_url) {
+          setRootIframeUrl(response.iframe_url);
           setSelectedItemForIframe({
             id: 'root-iframe',
             name: 'Root Embedded Content',
-            iframe_url: rootIframe,
-            type: 'root', // 👈 Changed from 'iframe' to 'root'
+            iframe_url: response.iframe_url,
+            type: 'root',
             is_iframe: true
           });
           setShowIframePanel(true);
-          setActiveTab("embedded-frame");
         } else {
-          console.log('❌ No root iframe found');
           setRootIframeUrl(null);
           setShowIframePanel(false);
           setSelectedItemForIframe(null);
-          setActiveTab("file-manager");
         }
       } else {
-        // For nested folders - find current folder in the data array
-        const filesData = response.data || response;
-        const currentFolderData = filesData.find(
-          item => item.id === parseInt(folderId) && item.type === 'folder'
+        filteredFiles = filesData.filter(
+          (item) => item.parent_id && item.parent_id.toString() === folderId
         );
 
-        console.log('🔍 Looking for folder:', folderId);
-        console.log('📁 Found folder data:', currentFolderData);
+        const currentFolderData = hierarchyMap.get(parseInt(folderId));
+        if (currentFolderData) {
+          setCurrentFolder(currentFolderData);
 
-        if (currentFolderData?.iframe_url && currentFolderData?.is_iframe === true) { // 👈 Add check
-          console.log('✅ Found nested folder iframe:', currentFolderData.iframe_url);
-          setRootIframeUrl(currentFolderData.iframe_url);
-          setSelectedItemForIframe({
-            id: currentFolderData.id,
-            name: currentFolderData.name,
-            iframe_url: currentFolderData.iframe_url,
-            is_iframe: true // 👈 Add flag
-          });
-          setShowIframePanel(true);
-          setActiveTab("embedded-frame");
-        } else {
-          console.log('❌ No iframe found for this folder');
-          setRootIframeUrl(null);
-          setShowIframePanel(false);
-          setSelectedItemForIframe(null);
-          setActiveTab("file-manager");
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error fetching folder iframe:', error);
-      setRootIframeUrl(null);
-      setShowIframePanel(false);
-      setSelectedItemForIframe(null);
-      setActiveTab("file-manager");
-    }
-  }, [folderId]);
-
-  const getCurrentFolderMetadata = useCallback(async () => {
-    try {
-      if (!folderId) {
-        // Root folder
-        const response = await fileApi.listFiles(null);
-        return {
-          id: 'root',
-          name: 'My Files',
-          iframe_url: response.iframe_url,
-          type: 'root'
-        };
-      } else {
-        // Nested folder - need to fetch parent to get current folder details
-        const response = await fileApi.listFiles(null); // Get all files
-        const allFiles = response.data || response;
-
-        // Find current folder in all files
-        const findFolder = (files, targetId) => {
-          for (const file of files) {
-            if (file.id === targetId && file.type === 'folder') {
-              return file;
-            }
-          }
-          return null;
-        };
-
-        const folderData = findFolder(allFiles, parseInt(folderId));
-        return folderData;
-      }
-    } catch (error) {
-      console.error('Error getting current folder metadata:', error);
-      return null;
-    }
-  }, [folderId]);
-  // Load files function with enhanced folder details extraction
-  const loadFiles = useCallback(
-    async (searchQuery = "") => {
-      try {
-        setLoading(true);
-        const params = {};
-        if (searchQuery && searchQuery.trim()) {
-          params.search = searchQuery.trim();
-        }
-
-        // 🔥 CRITICAL FIX: Always fetch ALL files first to build complete hierarchy
-        const allFilesResponse = await fileApi.listFiles(null, {}); // Always get all files
-        const allFilesData = allFilesResponse.data || allFilesResponse;
-        setAllFiles(allFilesData);
-
-        // Build complete folder hierarchy from ALL files
-        const hierarchyMap = new Map();
-        allFilesData.forEach((item) => {
-          if (item.type === "folder") {
-            hierarchyMap.set(item.id, {
-              id: item.id,
-              name: item.name,
-              parentId: item.parent_id,
-              type: item.type,
-              iframe_url: item.iframe_url,
-            });
-          }
-        });
-        setFolderHierarchy(hierarchyMap);
-
-        console.log('📚 Built hierarchy with', hierarchyMap.size, 'folders');
-        console.log('🔍 Looking for folder', folderId, ':', hierarchyMap.get(parseInt(folderId)));
-
-        // Now handle search or filtering
-        let response;
-        if (searchQuery && searchQuery.trim()) {
-          // If searching, get search results
-          response = await fileApi.listFiles(null, { search: searchQuery.trim() });
-        } else {
-          // If viewing a specific folder, get its children
-          response = await fileApi.listFiles(folderId, {});
-        }
-
-        const filesData = response.data || response;
-
-        // Filter files based on folder
-        let filteredFiles = filesData;
-        if (!folderId) {
-          // Root folder - show only root-level items
-          const existingIds = new Set(allFilesData.map((item) => item.id));
-          filteredFiles = allFilesData.filter(
-            (item) => !existingIds.has(item.parent_id)
-          );
-
-          // Check for root-level iframe
-          if (response.iframe_url) {
-            console.log('✅ Root has iframe:', response.iframe_url);
-            setRootIframeUrl(response.iframe_url);
+          if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
+            setRootIframeUrl(currentFolderData.iframe_url);
             setSelectedItemForIframe({
-              id: 'root-iframe',
-              name: 'Root Embedded Content',
-              iframe_url: response.iframe_url,
-              type: 'root',
+              id: currentFolderData.id,
+              name: currentFolderData.name,
+              iframe_url: currentFolderData.iframe_url,
+              type: 'folder',
               is_iframe: true
             });
             setShowIframePanel(true);
@@ -375,60 +304,26 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
             setSelectedItemForIframe(null);
           }
         } else {
-          // Nested folder - filter children
-          filteredFiles = filesData.filter(
-            (item) => item.parent_id && item.parent_id.toString() === folderId
-          );
-
-          // Get current folder metadata from hierarchy
-          const currentFolderData = hierarchyMap.get(parseInt(folderId));
-
-          if (currentFolderData) {
-            console.log('📁 Found folder in hierarchy:', currentFolderData);
-
-            // Set as current folder
-            setCurrentFolder(currentFolderData);
-
-            // Check for iframe
-            if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
-              console.log('✅ Folder has iframe:', currentFolderData.iframe_url);
-              setRootIframeUrl(currentFolderData.iframe_url);
-              setSelectedItemForIframe({
-                id: currentFolderData.id,
-                name: currentFolderData.name,
-                iframe_url: currentFolderData.iframe_url,
-                type: 'folder',
-                is_iframe: true
-              });
-              setShowIframePanel(true);
-            } else {
-              console.log('❌ Folder has no iframe');
-              setRootIframeUrl(null);
-              setShowIframePanel(false);
-              setSelectedItemForIframe(null);
-            }
-          } else {
-            console.log('⚠️ Folder not found in hierarchy');
-            setCurrentFolder(null);
-            setRootIframeUrl(null);
-            setShowIframePanel(false);
-            setSelectedItemForIframe(null);
-          }
+          setCurrentFolder(null);
+          setRootIframeUrl(null);
+          setShowIframePanel(false);
+          setSelectedItemForIframe(null);
         }
-
-        setFiles(filteredFiles);
-
-      } catch (error) {
-        console.error("Error loading files:", error);
-        toast.error("Error loading files");
-        setFiles([]);
-        setAllFiles([]);
-      } finally {
-        setLoading(false);
       }
-    },
-    [folderId]
-  );
+
+      setFiles(filteredFiles);
+
+    } catch (error) {
+      console.error("Error loading files:", error);
+      toast.error("Error loading files");
+      setFiles([]);
+      setAllFiles([]);
+    } finally {
+      setLoading(false);
+    }
+  },
+  [folderId, pagination.currentPage, pagination.perPage]
+);
 
   // useEffect(() => {
   //   loadCurrentFolderIframe();
@@ -446,22 +341,21 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     return srcMatch ? srcMatch[1] : iframeCode;
   };
 
-  const handleIframeClick = (item) => {
-    // Root items don't need is_iframe check
-    if (item.type === 'root' || item.type === 'iframe') {
-      if (item.iframe_url) {
-        setSelectedItemForIframe(item);
-        setActiveTab("embedded-frame");
-      }
-    } else {
-      // For folders/files, check is_iframe flag
-      if (item.iframe_url && item.is_iframe === true) {
-        setSelectedItemForIframe(item);
-        setActiveTab("embedded-frame");
-      }
-    }
-  };
+// Pagination handlers
+const handlePageChange = (newPage) => {
+  setPagination(prev => ({
+    ...prev,
+    currentPage: newPage
+  }));
+};
 
+const handleItemsPerPageChange = (newPerPage) => {
+  setPagination(prev => ({
+    ...prev,
+    perPage: newPerPage,
+    currentPage: 1 // Reset to first page when changing items per page
+  }));
+};
   const getPreviewUrl = () => {
     if (!selectedItemForIframe?.iframe_url) return rootIframeUrl || "";
     return extractSrcFromIframe(selectedItemForIframe.iframe_url);
@@ -495,13 +389,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     const handleFileUploaded = () => loadFiles();
     const handleFilesMoved = () => loadFiles();
     const handleRefreshFileList = () => {
-      console.log("Refreshing file list...");
       loadFiles();
     };
 
     // Fixed global search event handler
     const handleGlobalSearch = (event) => {
-      console.log("Global search triggered:", event.detail);
       const { query } = event.detail || {};
 
       // Clear existing timer
@@ -857,7 +749,6 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
     try {
       const response = await trashService.moveToTrash(fileId);
-      console.log("🗑️ Trash response:", response);
 
       if (response.success) {
         toast.success(response.message || "File moved to trash");
@@ -1714,27 +1605,43 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 )}
 
               {/* File List Panel - Always full width on mobile */}
-              <div className={showIframePanel ? "flex-1" : "flex-1 p-3"}>
-                <div className="space-y-4">
-                  {loading ? (
-                    <div className="flex items-center justify-center h-64">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
-                    </div>
-                  ) : (
-                    <>
-                      {filteredFiles.length === 0 ? (
-                        <EmptyState />
-                      ) : (
-                        <div className="space-y-3">
-                          {filteredFiles.map((item) => (
-                            <MobileCardView key={item.id} item={item} />
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
+             {/* File List Panel - Always full width on mobile */}
+<div className={showIframePanel ? "flex-1" : "flex-1 p-3"}>
+  <div className="space-y-4">
+    {loading ? (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
+      </div>
+    ) : (
+      <>
+        {filteredFiles.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            <div className="space-y-3">
+              {filteredFiles.map((item) => (
+                <MobileCardView key={item.id} item={item} />
+              ))}
+            </div>
+            
+            {/* Add Pagination for Mobile */}
+            {!loading && filteredFiles.length > 0 && (
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={pagination.perPage}
+                totalItems={pagination.totalItems}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                isLoading={loading}
+              />
+            )}
+          </>
+        )}
+      </>
+    )}
+  </div>
+</div>
             </div>
           ) : (
             /* Desktop Layout - Full width iframe above file list in root folder */
@@ -2146,12 +2053,23 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                               ))}
                             </TableBody>
                           </Table>
+                          
                         )}
                       </>
                     )}
                   </>
                 )}
               </div>
+              {/* Add this right after the Table closing tag or Grid view closing div */}
+  <Pagination
+    currentPage={pagination.currentPage}
+    totalPages={pagination.totalPages}
+    onPageChange={handlePageChange}
+    itemsPerPage={pagination.perPage}
+    totalItems={pagination.totalItems}
+    onItemsPerPageChange={handleItemsPerPageChange}
+    isLoading={loading}
+  />
             </div>
           )}
         </div>
@@ -2240,7 +2158,6 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       </Sheet>
 
       {/* Rename Modal - Mobile optimized */}
-      {/* Rename Modal - FULL VALIDATION + MESSAGES IN POPUP */}
       <Dialog open={renameModalOpen} onOpenChange={setRenameModalOpen}>
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>

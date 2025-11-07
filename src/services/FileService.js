@@ -94,6 +94,53 @@ class FileCache {
 const fileCache = new FileCache();
 
 export const fileApi = {
+// Update the listFiles and listadminFiles methods in FileService.js
+
+async listadminFiles(parent_id, params = {}, options = {}) {
+  const queryParams = new URLSearchParams();
+  
+  if (parent_id && !params.search) {
+    queryParams.append('parent_id', parent_id);
+  }
+  if (params.id) queryParams.append('id', params.id);
+  if (params.search) queryParams.append('search', params.search);
+  if (params.user_id) queryParams.append('user_id', params.user_id);
+  
+  // Add pagination parameters
+  if (params.page) queryParams.append('page', params.page);
+  if (params.per_page) queryParams.append('per_page', params.per_page);
+
+  const url = `${API_URL}/onedrive/list${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('text/html')) {
+      throw new Error('Authentication failed or server error. Please check your login status.');
+    }
+    throw new Error(`Failed to fetch files: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  
+  // Handle paginated response structure
+  return {
+    data: Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [],
+    pagination: data.pagination || {
+      current_page: params.page || 1,
+      per_page: params.per_page || 10,
+      total: data.total || 0,
+      total_pages: data.total_pages || 1
+    }
+  };
+},
+
+
 async listFiles(parent_id, params = {}, options = {}) {
   const queryParams = new URLSearchParams();
 if (parent_id && !params.search) {
@@ -140,6 +187,24 @@ async getRootMetadata() {
   // Return the full response object to get iframe_url
   return data;
 },
+async getFolderTree() {
+  const url = `${API_URL}/onedrive/list-tree`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch root metadata: ${response.status}`);
+  }
+
+  const data = await response.json();
+  // Return the full response object to get iframe_url
+  return data;
+},
+
   async createFolder(name, parent_id) {
     const response = await fetch(`${API_URL}/onedrive/folders/create`, {
       method: 'POST',

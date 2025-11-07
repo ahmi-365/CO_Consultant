@@ -38,7 +38,7 @@ const MoveFileDialog = ({
   currentPath = []
 }) => {
   const [availableFolders, setAvailableFolders] = useState([]);
-  const [moveDestination, setMoveDestination] = useState("");
+  const [moveDestination, setMoveDestination] = useState("root"); // Default to root
   const [files, setFiles] = useState([]);
   const [isMoving, setIsMoving] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -47,113 +47,108 @@ const MoveFileDialog = ({
   const [selectedPath, setSelectedPath] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-
-
-
-
-
-
-
   const { toast } = useToast();
-// Load all folders recursively to build folder tree
-const loadAllFolders = async () => {
-  setLoadingFolders(true);
-  try {
-    const folders = await loadFiles({});
-    
-    // Filter only folders and build hierarchy
-    const onlyFolders = folders.filter(item => item.type === 'folder');
-    
-    // Add depth and path information
-    const foldersWithDepth = onlyFolders.map(folder => ({
-      ...folder,
-      depth: 0, // You'd calculate this based on parent_id hierarchy
-      pathString: folder.name // Simple path, could be enhanced
-    }));
-    
-    setAllFolders(foldersWithDepth);
-    setAvailableFolders(foldersWithDepth);
-  } catch (error) {
-    console.error("Failed to load folders:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load folders",
-      variant: "destructive",
-    });
-    setAvailableFolders([]);
-  } finally {
-    setLoadingFolders(false);
-  }
-};
 
-const loadFiles = async (opts = {}) => {
-  console.log("🔄 loadFiles called with opts:", opts);
-  setLoading(true);
-
-  try {
-    const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
-
-    const params = {
-      ...(opts.search ? { search: opts.search } : {}),
-    };
-
-    const options = {
-      force: opts.force || !!opts.search,
-    };
-
-    console.log("📡 API call params:", { currentParentId, params, options });
-
-    const response = await fileApi.listFiles(currentParentId, params, options);
-    console.log("✅ Full API Response:", response);
-
-    // SIMPLIFIED response handling
-    let data = [];
-    if (Array.isArray(response)) {
-      data = response;
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data];
-    } else if (response?.files) {
-      data = Array.isArray(response.files) ? response.files : [response.files];
+  // Load all folders recursively to build folder tree
+  const loadAllFolders = async () => {
+    setLoadingFolders(true);
+    try {
+      const folders = await loadFiles({});
+      
+      // Filter only folders and build hierarchy
+      const onlyFolders = folders.filter(item => item.type === 'folder');
+      
+      // Add depth and path information
+      const foldersWithDepth = onlyFolders.map(folder => ({
+        ...folder,
+        depth: 0, // You'd calculate this based on parent_id hierarchy
+        pathString: folder.name // Simple path, could be enhanced
+      }));
+      
+      setAllFolders(foldersWithDepth);
+      setAvailableFolders(foldersWithDepth);
+    } catch (error) {
+      console.error("Failed to load folders:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load folders",
+        variant: "destructive",
+      });
+      setAvailableFolders([]);
+    } finally {
+      setLoadingFolders(false);
     }
+  };
 
-    console.log("📊 Extracted data:", data);
-    console.log("📊 Data length:", data.length);
+  const loadFiles = async (opts = {}) => {
+    console.log("🔄 loadFiles called with opts:", opts);
+    setLoading(true);
 
-    // Apply filtering only when NOT searching
-    const safeData = opts.search
-      ? data
-      : data.filter((f) => {
-          if (currentParentId === null) {
-            return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
-          } else {
-            return f.parent_id === currentParentId;
-          }
-        });
+    try {
+      const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
 
-    console.log("🎯 Final files to display:", safeData);
-    setFiles(safeData);
-    
-    // Return the data for loadAllFolders to use
-    return safeData;
+      const params = {
+        ...(opts.search ? { search: opts.search } : {}),
+      };
 
-  } catch (error) {
-    console.error("❌ Failed to load files:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load files",
-      variant: "destructive",
-    });
-    setFiles([]);
-    return []; // Return empty array on error
-  } finally {
-    setLoading(false);
-  }
-};
+      const options = {
+        force: opts.force || !!opts.search,
+      };
+
+      console.log("📡 API call params:", { currentParentId, params, options });
+
+      const response = await fileApi.listFiles(currentParentId, params, options);
+      console.log("✅ Full API Response:", response);
+
+      // SIMPLIFIED response handling
+      let data = [];
+      if (Array.isArray(response)) {
+        data = response;
+      } else if (response?.data) {
+        data = Array.isArray(response.data) ? response.data : [response.data];
+      } else if (response?.files) {
+        data = Array.isArray(response.files) ? response.files : [response.files];
+      }
+
+      console.log("📊 Extracted data:", data);
+      console.log("📊 Data length:", data.length);
+
+      // Apply filtering only when NOT searching
+      const safeData = opts.search
+        ? data
+        : data.filter((f) => {
+            if (currentParentId === null) {
+              return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
+            } else {
+              return f.parent_id === currentParentId;
+            }
+          });
+
+      console.log("🎯 Final files to display:", safeData);
+      setFiles(safeData);
+      
+      // Return the data for loadAllFolders to use
+      return safeData;
+
+    } catch (error) {
+      console.error("❌ Failed to load files:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load files",
+        variant: "destructive",
+      });
+      setFiles([]);
+      return []; // Return empty array on error
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Load folders when dialog opens
   useEffect(() => {
     if (isOpen) {
       loadAllFolders();
-      setMoveDestination("");
+      setMoveDestination("root"); // Default to root when dialog opens
       setSelectedPath([]);
     }
   }, [isOpen, itemToMove]);
@@ -187,15 +182,7 @@ const loadFiles = async (opts = {}) => {
       return;
     }
 
-    if (!moveDestination && moveDestination !== "root") {
-      console.error("No destination selected");
-      toast({
-        title: "Error",
-        description: "Please select a destination folder",
-        variant: "destructive",
-      });
-      return;
-    }
+    // No validation needed for moveDestination - it defaults to "root"
 
     setIsMoving(true);
     try {
@@ -214,7 +201,7 @@ const loadFiles = async (opts = {}) => {
 
       toast({
         title: "Success",
-        description: `${itemToMove.name} moved successfully`,
+        description: `${itemToMove.name} moved ${moveDestination === "root" ? "to root" : "to folder"} successfully`,
       });
 
       // Call success callback if provided
@@ -234,8 +221,9 @@ const loadFiles = async (opts = {}) => {
       setIsMoving(false);
     }
   };
+
   const handleCancel = () => {
-    setMoveDestination("");
+    setMoveDestination("root"); // Reset to root on cancel
     setSelectedPath([]);
     onClose();
   };
@@ -252,14 +240,22 @@ const loadFiles = async (opts = {}) => {
     }
   };
 
-const getDestinationPath = () => {
-  if (!moveDestination) return "";
-  if (moveDestination === "root") return "Root";
+  const getDestinationPath = () => {
+    if (moveDestination === "root") return "Root";
 
-  const selectedFolder = allFolders.find(f => f.id === moveDestination);
-  // Use 'name' instead of 'pathString' which doesn't exist
-  return selectedFolder ? selectedFolder.name : "Unknown";
-};
+    const selectedFolder = allFolders.find(f => f.id === moveDestination);
+    // Use 'name' instead of 'pathString' which doesn't exist
+    return selectedFolder ? selectedFolder.name : "Unknown";
+  };
+
+  // Determine move button text based on destination
+  const getMoveButtonText = () => {
+    if (moveDestination === "root") {
+      return "Move to Root";
+    } else {
+      return "Move to Folder";
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleCancel}>
@@ -308,7 +304,6 @@ const getDestinationPath = () => {
           )}
 
           {/* Destination selector */}
-          {/* Destination selector */}
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground">Move to:</label>
 
@@ -327,15 +322,19 @@ const getDestinationPath = () => {
                 <span className="ml-2 text-muted-foreground">Loading folders...</span>
               </div>
             ) : (
-<ScrollArea className="h-60 border rounded-md p-2"> {/* Changed from max-h-60 to h-60 */}                <div
-                  className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent ${moveDestination === "root" ? "bg-accent" : ""
-                    }`}
+              <ScrollArea className="h-60 border rounded-md p-2">
+                {/* Root Folder Option - Always visible and pre-selected */}
+                <div
+                  className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent ${
+                    moveDestination === "root" ? "bg-accent border border-blue-300" : ""
+                  }`}
                   onClick={() => setMoveDestination("root")}
                 >
                   <Home className="h-4 w-4 text-gray-500" />
-                  <span>Root Folder</span>
+                  <span className="font-medium">Root Folder</span>
                 </div>
 
+                {/* Available Folders */}
                 {(availableFolders || [])
                   .filter((folder) =>
                     folder?.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -343,8 +342,9 @@ const getDestinationPath = () => {
                   .map((folder) => (
                     <div
                       key={folder.id}
-                      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent ${moveDestination === folder.id ? "bg-accent" : ""
-                        }`}
+                      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent ${
+                        moveDestination === folder.id ? "bg-accent border border-blue-300" : ""
+                      }`}
                       onClick={() => setMoveDestination(folder.id)}
                       style={{ paddingLeft: `${folder.depth * 12}px` }}
                     >
@@ -352,37 +352,37 @@ const getDestinationPath = () => {
                       <span className="truncate">{folder.name}</span>
                     </div>
                   ))}
-                  {(availableFolders || []).filter((folder) =>
-  folder?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-).length === 0 && !loadingFolders && (
-  <div className="text-sm text-muted-foreground text-center py-4">
-    No folders found.
-  </div>
-)}
-
+                
+                {(availableFolders || []).filter((folder) =>
+                  folder?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+                ).length === 0 && !loadingFolders && (
+                  <div className="text-sm text-muted-foreground text-center py-4">
+                    No folders found.
+                  </div>
+                )}
               </ScrollArea>
-              
             )}
           </div>
 
-
-
           {/* Selected destination preview */}
-          {moveDestination && (
-            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-              <div className="flex items-center gap-2 text-sm">
-                <span className="text-muted-foreground">To:</span>
-                <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
-                  {moveDestination === "root" ? (
-                    <Home className="h-4 w-4" />
-                  ) : (
-                    <FolderOpen className="h-4 w-4" />
-                  )}
-                  {getDestinationPath()}
-                </div>
+          <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-muted-foreground">Destination:</span>
+              <div className="flex items-center gap-2 text-green-600 dark:text-green-400 font-medium">
+                {moveDestination === "root" ? (
+                  <Home className="h-4 w-4" />
+                ) : (
+                  <FolderOpen className="h-4 w-4" />
+                )}
+                {getDestinationPath()}
               </div>
             </div>
-          )}
+            <div className="text-xs text-muted-foreground mt-1">
+              {moveDestination === "root" 
+                ? "Item will be moved to the root folder" 
+                : "Item will be moved to the selected folder"}
+            </div>
+          </div>
         </div>
 
         <DialogFooter className="flex gap-2">
@@ -396,7 +396,7 @@ const getDestinationPath = () => {
           </Button>
           <Button
             onClick={handleMove}
-            disabled={!moveDestination || isMoving || loadingFolders}
+            disabled={isMoving || loadingFolders}
             className="flex-1 bg-blue-600 hover:bg-blue-700"
           >
             {isMoving ? (
@@ -407,7 +407,7 @@ const getDestinationPath = () => {
             ) : (
               <>
                 <Move className="h-4 w-4 mr-2" />
-                Move
+                {getMoveButtonText()}
               </>
             )}
           </Button>
