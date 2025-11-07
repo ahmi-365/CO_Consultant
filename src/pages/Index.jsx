@@ -9,6 +9,7 @@ import ProjectsSection from "@/components/ProjectsSection";
 import ContactSection from "@/components/ContactSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
+import { HoleBackground } from "../components/backgrounds/Holebackgound";
 
 const Index = () => {
   return (
@@ -20,7 +21,7 @@ const Index = () => {
         </section>
         <ServicesSection />
         <section id="data-matters">
-
+<HoleBackground/>
         <PrecisionSection />
         </section>
         <section id="why-choose-us">

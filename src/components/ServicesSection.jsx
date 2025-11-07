@@ -5,43 +5,25 @@ const services = [
   {
     icon: MapPin,
     title: "Real Time Tracking System", 
-    description: "Bluetooth enabled precise location monitoring for manpower & equipment .",
-    features: ["Live Site Monitoring", "HSE Management", "No Room to Human Error"]
+    description: "Bluetooth enabled precise location monitoring for manpower & equipment with advanced geofencing capabilities and real-time alerts for enhanced site security and operational efficiency.",
+    features: ["Live Site Monitoring", "HSE Management", "No Room to Human Error", "Geofencing Alerts"]
   },
   {
     icon: BarChart3,
     title: "Daily Reporting",
-    description: "Track progress everyday with comprehensive project insights and real time dasboards.",
-    features: ["Real time Progress Tracking", "Automated Report Generation", "Performance Analytics"]
+    description: "Track progress everyday with comprehensive project insights and real-time dashboards. Automated reporting system that captures every detail from workforce productivity to material utilization with AI-powered analytics.",
+    // features: [] // No features for center card
   },
   {
     icon: TrendingUp,
     title: "Performance Analytics",
-    description: "Advanced analytics and insights to optimize project performance and identify improvement opportunities.",
-    features: ["Custom Dashboards", "Trend Analysis", "Predictive Insights"]
-  },
-  {
-    icon: Clock,
-    title: "Productivity Estimation",
-    description: "Forecast resources, time, and costs accurately with AI powered analytics and predictive modeling.",
-    features: ["AI Powered Forecasting", "Resource Optimization", "Cost Prediction Models"]
-  },
-  {
-    icon: Zap,
-    title: "Single Hub for All Data",
-    description: "Collect once, access everywhere. Simplify collaboration with a single source of truth.",
-    features: ["Single Point Data Collection", "Unified Data Access", "Seamless Integration"]
-  },
-  {
-    icon: Shield,
-    title: "Secure Cloud Access",
-    description: "Enterprise grade data protection with encrypted storage and multi layer security protocols.",
-    features: ["256 bit Encryption", "Multi Factor Authentication", "Compliance Ready"]
+    description: "Advanced analytics and insights to optimize project performance and identify improvement opportunities with predictive modeling and trend analysis.",
+    features: ["Custom Dashboards", "Trend Analysis", "Predictive Insights", "KPI Monitoring"]
   }
 ];
 
 const ServicesSection = () => {
-return (
+  return (
     <section id="services" className="py-20 bg-gray-50 relative overflow-hidden">
       {/* Background Decoration */}
       <div className="absolute inset-0 opacity-5">
@@ -62,70 +44,65 @@ return (
           </p>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start max-w-6xl mx-auto">
           {services.map((service, index) => (
             <Card 
               key={index} 
-              className="group hover:shadow-xl transition-all duration-500 hover:-translate-y-3 border-0 shadow-lg bg-white/80 backdrop-blur-sm hover:bg-white relative overflow-hidden"
+              className={`
+                group hover:shadow-xl transition-all duration-500 hover:-translate-y-3 
+                border-0 shadow-lg bg-white/80 backdrop-blur-sm hover:bg-white 
+                relative overflow-hidden
+                ${index === 1 ? 'h-[480px] lg:mt-8' : 'h-[420px] lg:mt-16'}
+              `}
             >
               <div className="absolute inset-0 bg-gradient-to-br from-blue-400/5 via-transparent to-yellow-400/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
-              <CardContent className="p-8 text-center relative">
+              <CardContent className="p-8 text-center relative h-full flex flex-col">
                 <div className="mb-6 flex justify-center">
                   <div className="relative">
-                    <div className="p-6 rounded-2xl bg-gradient-to-br from-blue-400/10 to-blue-400/20 group-hover:from-blue-400/20 group-hover:to-blue-400/30 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3">
-                      <service.icon className="w-10 h-10 text-blue-400 group-hover:scale-110 transition-transform duration-300" />
+                    <div className={`p-6 rounded-2xl bg-gradient-to-br from-blue-400/10 to-blue-400/20 group-hover:from-blue-400/20 group-hover:to-blue-400/30 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 ${
+                      index === 1 ? 'p-7' : 'p-6'
+                    }`}>
+                      <service.icon className={`text-blue-400 group-hover:scale-110 transition-transform duration-300 ${
+                        index === 1 ? 'w-12 h-12' : 'w-10 h-10'
+                      }`} />
                     </div>
                     <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full opacity-0 group-hover:opacity-100 group-hover:animate-bounce transition-all duration-500 delay-200"></div>
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold mb-4 text-gray-900 group-hover:text-blue-400 transition-colors duration-300">
+                <h3 className={`font-bold mb-4 text-gray-900 group-hover:text-blue-400 transition-colors duration-300 ${
+                  index === 1 ? 'text-2xl' : 'text-xl'
+                }`}>
                   {service.title}
                 </h3>
                 
-                <p className="text-gray-600 leading-relaxed mb-6">
+                <p className={`text-gray-600 leading-relaxed mb-6 flex-grow ${
+                  index === 1 ? 'text-lg' : 'text-base'
+                }`}>
                   {service.description}
                 </p>
 
-                <div className="space-y-2">
-                  {service.features.map((feature, featureIndex) => (
-                    <div 
-                      key={featureIndex}
-                      className="flex items-center justify-center gap-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors duration-300"
-                    >
-                      <div className="w-1.5 h-1.5 bg-blue-400 rounded-full group-hover:bg-yellow-400 transition-colors duration-300"></div>
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
+                {/* Conditional rendering for features */}
+                {service.features && service.features.length > 0 && (
+                  <div className="space-y-2">
+                    {service.features.map((feature, featureIndex) => (
+                      <div 
+                        key={featureIndex}
+                        className="flex items-center justify-center gap-2 text-sm text-gray-600 group-hover:text-gray-900 transition-colors duration-300"
+                      >
+                        <div className="w-1.5 h-1.5 bg-blue-400 rounded-full group-hover:bg-yellow-400 transition-colors duration-300"></div>
+                        <span>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-yellow-400 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left"></div>
               </CardContent>
             </Card>
           ))}
         </div>
-
-        {/* <div className="text-center mt-16">
-          <p className="text-lg text-gray-600 mb-6">
-            Need a custom solution for your specific requirements?
-          </p>
-          <button
-            onClick={() => {
-              const contactSection = document.getElementById("contact");
-              if (contactSection) {
-                contactSection.scrollIntoView({ behavior: "smooth" });
-              }
-            }}
-            className="inline-block p-1 bg-gradient-to-r from-blue-400 to-yellow-400 rounded-full transition-transform duration-300 hover:scale-105 focus:outline-none"
-          >
-            <div className="bg-white px-8 py-3 rounded-full">
-              <span className="text-gray-900 font-semibold">
-                Contact us for a personalized consultation
-              </span>
-            </div>
-          </button>
-        </div> */}
       </div>
     </section>
   );
