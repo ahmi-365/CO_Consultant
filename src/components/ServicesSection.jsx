@@ -103,6 +103,27 @@ const ServicesSection = () => {
             </Card>
           ))}
         </div>
+        
+       <div className="text-center mt-16">
+          <p className="text-lg text-gray-600 mb-6">
+            Need a custom solution for your specific requirements?
+          </p>
+          <button
+            onClick={() => {
+              const contactSection = document.getElementById("contact");
+              if (contactSection) {
+                contactSection.scrollIntoView({ behavior: "smooth" });
+              }
+            }}
+            className="inline-block p-1 bg-gradient-to-r from-blue-400 to-yellow-400 rounded-full transition-transform duration-300 hover:scale-105 focus:outline-none"
+          >
+            <div className="bg-white px-8 py-3 rounded-full">
+              <span className="text-gray-900 font-semibold">
+                Contact us for a personalized consultation
+              </span>
+            </div>
+          </button>
+        </div> 
       </div>
     </section>
   );

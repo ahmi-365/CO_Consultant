@@ -14,7 +14,11 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState("all"); // single dropdown only
   const { toast } = useToast();
   const queryClient = useQueryClient();
-const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [updatingUserId, setUpdatingUserId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+
 
   // Fetch all users
   const { data, isLoading, isError, error } = useQuery({
@@ -100,51 +104,51 @@ const [updatingUserId, setUpdatingUserId] = useState(null);
 
 
 
-const handleUpdateUser = async (userData) => {
-  if (!userData.id) {
-    return { success: false, message: "User ID is required" };
-  }
-  
-  // Set loading state
-  setUpdatingUserId(userData.id);
-  
-  try {
-    const result = await userService.update(userData.id, userData);
-    
-    if (result && result.success !== false) {
-      queryClient.invalidateQueries({ queryKey: ["users"] });
-      toast({ 
-        title: "Success", 
-        description: "User updated successfully" 
-      });
-      return { success: true };
-    } else {
+  const handleUpdateUser = async (userData) => {
+    if (!userData.id) {
+      return { success: false, message: "User ID is required" };
+    }
+
+    // Set loading state
+    setUpdatingUserId(userData.id);
+
+    try {
+      const result = await userService.update(userData.id, userData);
+
+      if (result && result.success !== false) {
+        queryClient.invalidateQueries({ queryKey: ["users"] });
+        toast({
+          title: "Success",
+          description: "User updated successfully"
+        });
+        return { success: true };
+      } else {
+        return {
+          success: false,
+          message: result?.message || "Failed to update user",
+          errors: result?.errors || {},
+        };
+      }
+    } catch (error) {
+      console.error("Update user error:", error);
+
+      if (error?.response?.data) {
+        return {
+          success: false,
+          message: error.response.data.message || "Failed to update user",
+          errors: error.response.data.errors || {},
+        };
+      }
+
       return {
         success: false,
-        message: result?.message || "Failed to update user",
-        errors: result?.errors || {},
+        message: error?.message || "Failed to update user",
       };
+    } finally {
+      // Clear loading state
+      setUpdatingUserId(null);
     }
-  } catch (error) {
-    console.error("Update user error:", error);
-    
-    if (error?.response?.data) {
-      return {
-        success: false,
-        message: error.response.data.message || "Failed to update user",
-        errors: error.response.data.errors || {},
-      };
-    }
-    
-    return {
-      success: false,
-      message: error?.message || "Failed to update user",
-    };
-  } finally {
-    // Clear loading state
-    setUpdatingUserId(null);
-  }
-};
+  };
 
   // Helpers
   const getUserRole = (user) => {
@@ -212,7 +216,7 @@ const handleUpdateUser = async (userData) => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">User Management</h1>
           <p className="text-sm sm:text-base text-muted-foreground mt-1">
-            Manage team members and their permissions 
+            Manage team members and their permissions
           </p>
         </div>
 
@@ -234,9 +238,14 @@ const handleUpdateUser = async (userData) => {
         roleFilter={roleFilter}
         setRoleFilter={setRoleFilter}
         filteredUsers={filteredUsers}
-        handleUpdateUser={handleUpdateUser} 
+        handleUpdateUser={handleUpdateUser}
         updatingUserId={updatingUserId}
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
       />
+
     </div>
   );
 };

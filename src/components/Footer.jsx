@@ -2,12 +2,17 @@ import { MapPin, Phone, Mail, Clock } from "lucide-react";
 
 const Footer = () => {
   const servicesItems = [
-    { label: "All in One Services", id: "hero" },
-    { label: "Real Time Tracking", id: "services" },
-    { label: "Productivity Estimation", id: "why-choose-us" },
-    { label: "Secure Cloud Access", id: "projects" },
-    { label: "Performance Analytics", id: "contact" },
-    { label: "Workflow Automation", id: "workflow-automation" },
+    { label: "Real Time Tracking System", id: "services" },
+    { label: "Daily Reports", id: "services" },
+    { label: "Performance Analytics", id: "services" },
+  ];
+
+  const quickLinks = [
+    { label: "Home", id: "hero" },
+    { label: "Services", id: "services" },
+    { label: "Why Data Matters", id: "data-matters" },
+    { label: "Why Choose Us", id: "why-choose-us" },
+    { label: "Contact", id: "contact" },
   ];
 
   const currentYear = new Date().getFullYear();
@@ -54,6 +59,25 @@ const Footer = () => {
                 </li>
               ))}
             </ul>
+
+            {/* Quick Links below Services */}
+            {/* Quick Links below Services */}
+<div className="mt-8">
+  <h3 className="text-xl font-bold mb-4 text-white">Quick Links</h3>
+  <ul className="grid grid-cols-2 gap-2">
+    {quickLinks.map((link, idx) => (
+      <li key={idx}>
+        <a
+          href={`#${link.id}`}
+          className="hover:text-yellow-400 hover:underline transition-colors duration-200"
+        >
+          {link.label}
+        </a>
+      </li>
+    ))}
+  </ul>
+</div>
+
           </div>
 
           {/* Contact Info */}
@@ -103,25 +127,23 @@ const Footer = () => {
           </p>
 
           {/* Policy Links */}
-          {/* Policy Links */}
-<div className="flex flex-wrap items-center justify-center md:justify-end gap-4 mt-4 md:mt-0 text-sm">
-  <a
-    href="/privacy-policy"
-    className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
-  >
-    Privacy Policy
-  </a>
+          <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 mt-4 md:mt-0 text-sm">
+            <a
+              href="/privacy-policy"
+              className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
+            >
+              Privacy Policy
+            </a>
 
-  <span className="text-gray-500 hidden md:inline">|</span>
+            <span className="text-gray-500 hidden md:inline">|</span>
 
-  <a
-    href="/terms-and-conditions"
-    className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
-  >
-    Terms & Conditions
-  </a>
-</div>
-
+            <a
+              href="/terms-and-conditions"
+              className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
+            >
+              Terms & Conditions
+            </a>
+          </div>
         </div>
       </div>
     </footer>

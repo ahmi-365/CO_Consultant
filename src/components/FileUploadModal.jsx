@@ -111,7 +111,7 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
         return uploadedFile;
       } catch (error) {
         clearInterval(progressInterval);
-        
+
         if (error.name === "AbortError") {
           console.log(`✅ Upload cancelled: ${uploadingFile.name}`);
           setUploadingFiles((prev) =>
@@ -141,7 +141,7 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
     try {
       // Wait for all uploads to complete
       const results = await Promise.allSettled(uploadPromises);
-      
+
       // Filter out successful uploads (excluding cancelled ones)
       const successfulUploads = results
         .filter(result => result.status === 'fulfilled' && result.value !== null)
@@ -149,17 +149,17 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
         .flat();
 
       // Count completed vs cancelled
-      const completedCount = uploadingFilesList.filter(f => 
+      const completedCount = uploadingFilesList.filter(f =>
         !f.controller.signal.aborted
       ).length;
-      const cancelledCount = uploadingFilesList.filter(f => 
+      const cancelledCount = uploadingFilesList.filter(f =>
         f.controller.signal.aborted
       ).length;
 
       if (completedCount > 0) {
         toast.success(`${completedCount} file${completedCount > 1 ? "s" : ""} uploaded successfully!`);
       }
-      
+
       if (cancelledCount > 0) {
         toast.info(`${cancelledCount} upload${cancelledCount > 1 ? "s" : ""} cancelled.`);
       }
@@ -253,11 +253,10 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
         <div className="space-y-4">
           {/* Upload Area */}
           <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
-              isDragOver
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDragOver
                 ? "border-panel bg-panel/5"
                 : "border-muted-foreground/25 hover:border-panel/50"
-            }`}
+              }`}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
@@ -322,15 +321,14 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
                       <div className="flex items-center gap-2">
                         <Progress
                           value={file.progress}
-                          className={`flex-1 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${
-                            file.status === "error"
+                          className={`flex-1 h-2 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700 ${file.status === "error"
                               ? "[&>div]:bg-red-500"
                               : file.status === "completed"
                                 ? "[&>div]:bg-green-500"
                                 : file.status === "cancelled"
                                   ? "[&>div]:bg-gray-500"
                                   : "[&>div]:bg-blue-500"
-                          }`}
+                            }`}
                         />
                         <span className="text-xs min-w-0">
                           {file.status === "error"
@@ -356,7 +354,7 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
                         </Button>
                       )}
 
-                      {(file.status === "uploading" || file.status === "error") && (
+                      {file.status === "error" && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -367,6 +365,7 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
                         </Button>
                       )}
                     </div>
+
                   </div>
                 ))}
               </div>

@@ -21,8 +21,8 @@ const Index = () => {
         </section>
         <ServicesSection />
         <section id="data-matters">
-<HoleBackground/>
-        <PrecisionSection />
+          <HoleBackground />
+          <PrecisionSection />
         </section>
         <section id="why-choose-us">
           <WhyChooseUsSection />
