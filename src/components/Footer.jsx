@@ -8,7 +8,7 @@ const Footer = () => {
   ];
 
   const quickLinks = [
-    { label: "Home", id: "hero" },
+    // { label: "Home", id: "hero" },
     { label: "Services", id: "services" },
     { label: "Why Data Matters", id: "data-matters" },
     { label: "Why Choose Us", id: "why-choose-us" },
@@ -89,7 +89,7 @@ const Footer = () => {
                 <span>Dubai, UAE</span>
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* <div className="flex items-center gap-3">
                 <Phone className="w-5 h-5 text-yellow-400" />
                 <a
                   href="tel:+15551234567"
@@ -97,15 +97,15 @@ const Footer = () => {
                 >
                   +1 (555) 123-4567
                 </a>
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-3">
                 <Mail className="w-5 h-5 text-yellow-400" />
                 <a
-                  href="mailto:info@thecoconsultants.com"
+                  href="mailto:admin@thecoconsultants.com"
                   className="hover:text-yellow-400 transition-colors duration-200"
                 >
-                  info@thecoconsultants.com
+                  admin@thecoconsultants.com
                 </a>
               </div>
 

@@ -10,10 +10,12 @@ import ContactSection from "@/components/ContactSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
 import { HoleBackground } from "../components/backgrounds/Holebackgound";
-
+import SmoothFollower from "@/components/SmoothFollower";
 const Index = () => {
   return (
     <div className="min-h-screen">
+              <SmoothFollower />
+      
       <Header />
       <main>
         <section id="hero">

@@ -150,7 +150,8 @@ const showToast = (type, title, description) => {
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Sign in</h1>
               <p className="text-sm text-gray-600 mt-1">
-                Access your consulting dashboard and client management tools
+                Please log in to access your Project Management Workspace.
+All your files & dashboards. One Secure Portal.
               </p>
             </div>
 
