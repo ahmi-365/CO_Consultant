@@ -71,7 +71,7 @@ const Header = () => {
     { label: "Services", id: "services" },
     { label: "Why Data Matters", id: "data-matters" },
     { label: "Why Choose Us", id: "why-choose-us" },
-    // { label: "Projects", id: "projects" },
+    { label: "Our Workflow", id: "workflow" },
     { label: "Contact", id: "contact" },
   ];
 
@@ -98,11 +98,24 @@ const Header = () => {
             </div>
             {/* Show company name only when scrolled or on mobile */}
             <span
-              className={`text-2xl font-bold text-white transition-opacity duration-300 md:opacity-100 ${isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
-                }`}
-            >
-              CO Consultants
-            </span>
+  className={`text-2xl font-bold text-white transition-opacity duration-300 md:opacity-100 ${
+    isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
+  }`}
+  style={{ fontFamily: "'Oswald', sans-serif" }}
+>
+  CO Consultants 
+</span>
+
+{/* <span
+  className={`block text-sm text-gray-300 tracking-wide mt-1 transition-opacity duration-300 md:opacity-100 ${
+    isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
+  }`}
+  style={{ fontFamily: "'Oswald', sans-serif" }}
+>
+  Construction Organised. Decisions Unlocked.
+</span> */}
+
+
           </div>
 
           {/* Desktop Navigation */}

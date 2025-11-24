@@ -71,7 +71,7 @@ const DataAnalyticsSection = () => {
             </h3>
             <div className="bg-gradient-to-br from-blue-400/10 to-blue-900/10 rounded-xl overflow-hidden h-80">
               <img
-                src="/lovable-uploads/bgremoved2.png"
+                src="/Image1.png"
                 alt="Data Analytics Workflow - Complete process from data collection through processing to interactive dashboards and claims management"
                 className="w-full h-full object-contain p-2"
               />

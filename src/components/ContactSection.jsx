@@ -256,12 +256,7 @@ const ContactSection = () => {
                     {isSubmitting ? "Sending..." : "Send Message"}
                   </button>
                 </form>
-              </div>
-            </div>
-          </div>
-
-          {/* Email Contact Info at Bottom */}
-          <div className="mt-12 text-center">
+                <div className="mt-12 text-center">
             <div className="inline-flex items-center gap-3 bg-white rounded-xl shadow-lg border border-gray-100 px-8 py-4">
               <div className="p-3 bg-blue-400/10 rounded-full">
                 <Mail className="w-5 h-5 text-blue-400" />
@@ -269,10 +264,16 @@ const ContactSection = () => {
               <div className="text-left">
                 <h3 className="font-semibold text-gray-900 text-sm">Email Us</h3>
                 <p className="text-black font-medium">admin@thecoconsultants.com</p>
-                <p className="text-gray-600 text-xs">We respond within 24hrs</p>
+                
               </div>
             </div>
           </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Email Contact Info at Bottom */}
+          
         </div>
       </div>
     </section>

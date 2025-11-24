@@ -27,10 +27,10 @@ const Index = () => {
         <section id="why-choose-us">
           <WhyChooseUsSection />
         </section>
+        <section id="workflow">
         <DataAnalyticsSection />
-        {/* <ProjectsSection /> */}
-        {/* <ProcessSection /> */}
-
+        </section>
+        
         <ContactSection />
         <CTASection />
       </main>
