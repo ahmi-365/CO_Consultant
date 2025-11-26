@@ -24,7 +24,7 @@ const { toast } = useToast();
     const user = authService.getUser();
 
     if (token && user) {
-      if (user.is_admin === "1") {
+    if (user.is_admin === 1 || user.is_admin === "1") { // ✅ Fixed: Check both types
         navigate("/dash", { replace: true });
       } else {
         navigate("/filemanager", { replace: true });
@@ -81,14 +81,18 @@ const { toast } = useToast();
 
     return error;
   };
+  const handleBlur = (fieldName, value) => {
+  const error = validateField(fieldName, value);
+  if (error) {
+    setErrors((prev) => ({ ...prev, [fieldName]: error }));
+  }
+};
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // ✅ Validate form
   const newErrors = validateForm();
   setErrors(newErrors);
 
-  // ❌ If there are validation errors, show toast for the first error
   if (Object.keys(newErrors).length > 0) {
     toast({
       title: "Login Failed",
@@ -98,14 +102,14 @@ const handleSubmit = async (e) => {
     return;
   }
 
-  setIsLoading(true); // show loader
+  setIsLoading(true);
 
   try {
-    // ✅ Call login API
     const response = await authService.login({ email, password });
+    
+    console.log('Login response:', response); // Debug log
 
     if (response.success) {
-      // ✅ Success toast
       toast({
         title: "Login Successful",
         description: "Redirecting to your dashboard...",
@@ -113,32 +117,31 @@ const handleSubmit = async (e) => {
       });
 
       const user = authService.getUser();
+      console.log('Retrieved user:', user); // Debug log
+      console.log('Is admin?', user.is_admin, typeof user.is_admin); // Debug log
+      
       const from = location.state?.from?.pathname || null;
 
-      // ✅ Redirect after short delay
       setTimeout(() => {
-        if (from) navigate(from, { replace: true });
-        else if (user.is_admin === "1") navigate("/dash", { replace: true });
-        else navigate("/filemanager", { replace: true });
+        if (from) {
+          navigate(from, { replace: true });
+} else if (user.is_admin === 1 || user.is_admin === "1") { // Check both number and string          console.log('Navigating to /dash'); // Debug log
+          navigate("/dash", { replace: true });
+        } else {
+          console.log('Navigating to /filemanager'); // Debug log
+          navigate("/filemanager", { replace: true });
+        }
       }, 1500);
-
-    } else {
-      // ❌ Login failed toast
-      toast({
-        title: "Login Failed",
-        description: response.message || "Invalid credentials",
-        variant: "destructive",
-      });
     }
   } catch (error) {
-    // ❌ Unexpected error toast
+    console.error('Login error:', error); // Debug log
     toast({
       title: "Unexpected Error",
       description: "Please try again later",
       variant: "destructive",
     });
   } finally {
-    setIsLoading(false); // hide loader
+    setIsLoading(false);
   }
 };
 
