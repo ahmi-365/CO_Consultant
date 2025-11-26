@@ -49,100 +49,117 @@ const MoveFileDialog = ({
 
   const { toast } = useToast();
 
-  // Load all folders recursively to build folder tree
-  const loadAllFolders = async () => {
-    setLoadingFolders(true);
-    try {
-      const folders = await loadFiles({});
-      
-      // Filter only folders and build hierarchy
-      const onlyFolders = folders.filter(item => item.type === 'folder');
-      
-      // Add depth and path information
-      const foldersWithDepth = onlyFolders.map(folder => ({
-        ...folder,
-        depth: 0, // You'd calculate this based on parent_id hierarchy
-        pathString: folder.name // Simple path, could be enhanced
-      }));
-      
-      setAllFolders(foldersWithDepth);
-      setAvailableFolders(foldersWithDepth);
-    } catch (error) {
-      console.error("Failed to load folders:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load folders",
-        variant: "destructive",
+const loadAllFolders = async () => {
+  setLoadingFolders(true);
+  try {
+    const folders = await loadFiles({});
+    
+    // ✅ UPDATED: Filter only folders (all folders, regardless of parent_id)
+    const onlyFolders = folders.filter(item => item.type === 'folder');
+    
+    // ✅ UPDATED: Build proper hierarchy with depth calculation
+    const buildHierarchy = (folderId, depth = 0) => {
+      return onlyFolders
+        .filter(f => {
+          // Root level: parent_id is 1, null, or 2
+          if (folderId === null) {
+            return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2 || f.parent_id === "1" || f.parent_id === "2";
+          }
+          return f.parent_id === folderId || f.parent_id === String(folderId);
+        })
+        .map(folder => ({
+          ...folder,
+          depth: depth,
+          pathString: folder.name
+        }));
+    };
+    
+    // Get all folders flattened with proper depth
+    const allFoldersFlat = [];
+    const processFolder = (folderId, depth) => {
+      const children = buildHierarchy(folderId, depth);
+      children.forEach(child => {
+        allFoldersFlat.push(child);
+        // Recursively process children
+        processFolder(child.id, depth + 1);
       });
-      setAvailableFolders([]);
-    } finally {
-      setLoadingFolders(false);
+    };
+    
+    // Start from root (null)
+    processFolder(null, 0);
+    
+    console.log("📁 All folders loaded:", allFoldersFlat);
+    
+    setAllFolders(allFoldersFlat);
+    setAvailableFolders(allFoldersFlat);
+  } catch (error) {
+    console.error("Failed to load folders:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load folders",
+      variant: "destructive",
+    });
+    setAvailableFolders([]);
+  } finally {
+    setLoadingFolders(false);
+  }
+};
+
+ const loadFiles = async (opts = {}) => {
+  console.log("🔄 loadFiles called with opts:", opts);
+  setLoading(true);
+
+  try {
+    // ✅ CHANGED: Don't pass currentParentId for move dialog - we want ALL folders
+    const params = {
+      ...(opts.search ? { search: opts.search } : {}),
+    };
+
+    const options = {
+      force: opts.force || !!opts.search,
+    };
+
+    console.log("📡 API call params:", { params, options });
+
+    // ✅ CHANGED: Pass null to get all files/folders
+    const response = await fileApi.listFiles(null, params, options);
+    console.log("✅ Full API Response:", response);
+
+    // SIMPLIFIED response handling
+    let data = [];
+    if (Array.isArray(response)) {
+      data = response;
+    } else if (response?.data) {
+      data = Array.isArray(response.data) ? response.data : [response.data];
+    } else if (response?.files) {
+      data = Array.isArray(response.files) ? response.files : [response.files];
     }
-  };
 
-  const loadFiles = async (opts = {}) => {
-    console.log("🔄 loadFiles called with opts:", opts);
-    setLoading(true);
+    console.log("📊 Extracted data:", data);
+    console.log("📊 Data length:", data.length);
 
-    try {
-      const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+    // ✅ REMOVED: No filtering - use all data from backend
+    const safeData = data;
 
-      const params = {
-        ...(opts.search ? { search: opts.search } : {}),
-      };
+    console.log("🎯 Final files to display:", safeData);
+    setFiles(safeData);
+    
+    // Return the data for loadAllFolders to use
+    return safeData;
 
-      const options = {
-        force: opts.force || !!opts.search,
-      };
-
-      console.log("📡 API call params:", { currentParentId, params, options });
-
-      const response = await fileApi.listFiles(currentParentId, params, options);
-      console.log("✅ Full API Response:", response);
-
-      // SIMPLIFIED response handling
-      let data = [];
-      if (Array.isArray(response)) {
-        data = response;
-      } else if (response?.data) {
-        data = Array.isArray(response.data) ? response.data : [response.data];
-      } else if (response?.files) {
-        data = Array.isArray(response.files) ? response.files : [response.files];
-      }
-
-      console.log("📊 Extracted data:", data);
-      console.log("📊 Data length:", data.length);
-
-      // Apply filtering only when NOT searching
-      const safeData = opts.search
-        ? data
-        : data.filter((f) => {
-            if (currentParentId === null) {
-              return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
-            } else {
-              return f.parent_id === currentParentId;
-            }
-          });
-
-      console.log("🎯 Final files to display:", safeData);
-      setFiles(safeData);
-      
-      // Return the data for loadAllFolders to use
-      return safeData;
-
-    } catch (error) {
-      console.error("❌ Failed to load files:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load files",
-        variant: "destructive",
-      });
-      setFiles([]);
-      return []; // Return empty array on error
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    console.error("❌ Failed to load files:", error);
+    toast({
+      title: "Error",
+      description: "Failed to load files",
+      variant: "destructive",
+    });
+    setFiles([]);
+    return []; // Return empty array on error
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Load folders when dialog opens
   useEffect(() => {
@@ -152,75 +169,119 @@ const MoveFileDialog = ({
       setSelectedPath([]);
     }
   }, [isOpen, itemToMove]);
+const handleMove = async () => {
+  console.log("handleMove started with:", {
+    itemToMove,
+    moveDestination,
+  });
 
-  const handleMove = async () => {
-    console.log("handleMove started with:", {
-      itemToMove,
-      moveDestination,
-      hasItemToMove: !!itemToMove,
-      itemId: itemToMove?.id,
-      itemName: itemToMove?.name
+  if (!itemToMove || !itemToMove.id) {
+    toast({
+      title: "Error",
+      description: "No item selected to move",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // ✅ UPDATED: Use 1 for root instead of null
+  const currentParentId = itemToMove.parent_id;
+  const newParentId = moveDestination === "root" ? 1 : moveDestination; // Changed from null to 1
+
+  // Check if trying to move to same location
+  if (currentParentId === newParentId) {
+    toast({
+      title: "Invalid Move",
+      description: "Item is already in this location",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Prevent moving folder into itself
+  if (itemToMove.type === 'folder' && moveDestination === itemToMove.id) {
+    toast({
+      title: "Invalid Move",
+      description: "Cannot move a folder into itself",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  // Prevent moving folder into its own child
+  if (itemToMove.type === 'folder') {
+    const isMovingIntoChild = await checkIfDestinationIsChild(itemToMove.id, newParentId);
+    if (isMovingIntoChild) {
+      toast({
+        title: "Invalid Move",
+        description: "Cannot move a folder into its own subfolder",
+        variant: "destructive",
+      });
+      return;
+    }
+  }
+
+  setIsMoving(true);
+  try {
+    const result = await fileApi.moveItem(itemToMove.id, newParentId);
+    
+    toast({
+      title: "Success",
+      description: `${itemToMove.name} moved successfully`,
     });
 
-    if (!itemToMove) {
-      console.error("No itemToMove provided");
-      toast({
-        title: "Error",
-        description: "No item selected to move",
-        variant: "destructive",
-      });
-      return;
+    if (onMoveSuccess) {
+      await onMoveSuccess(itemToMove, newParentId);
     }
 
-    if (!itemToMove.id) {
-      console.error("itemToMove missing id:", itemToMove);
-      toast({
-        title: "Error",
-        description: "Selected item has no ID",
-        variant: "destructive",
-      });
-      return;
+    onClose();
+  } catch (error) {
+    console.error("Move failed:", error);
+    toast({
+      title: "Error",
+      description: `Failed to move item: ${error.message}`,
+      variant: "destructive",
+    });
+  } finally {
+    setIsMoving(false);
+  }
+};
+const isMoveDisabled = () => {
+  if (isMoving || loadingFolders) return true;
+  
+  const currentParentId = itemToMove?.parent_id;
+  const newParentId = moveDestination === "root" ? 1 : moveDestination;
+  
+  // ✅ UPDATED: Use == for loose comparison (handles string vs number)
+  if (currentParentId == newParentId) return true;
+  
+  if (itemToMove?.type === 'folder' && moveDestination == itemToMove.id) return true;
+  
+  return false;
+};
+const checkIfDestinationIsChild = async (sourceFolderId, destinationFolderId) => {
+  // Root (ID 1) is never a child
+  if (!destinationFolderId || destinationFolderId === 1 || destinationFolderId === "1") return false;
+  
+  let currentId = destinationFolderId;
+  const checkedIds = new Set();
+  
+  while (currentId && !checkedIds.has(currentId)) {
+    // ✅ UPDATED: Compare both as strings and numbers
+    if (currentId == sourceFolderId) { // Use == for loose comparison
+      return true;
     }
-
-    // No validation needed for moveDestination - it defaults to "root"
-
-    setIsMoving(true);
-    try {
-      const new_parent_id = moveDestination === "root" ? null : moveDestination;
-      const file_id = itemToMove.id;
-
-      console.log("Calling moveItem with:", {
-        file_id,
-        new_parent_id,
-        file_id_type: typeof file_id,
-        new_parent_id_type: typeof new_parent_id
-      });
-
-      const result = await fileApi.moveItem(file_id, new_parent_id);
-      console.log("Move successful:", result);
-
-      toast({
-        title: "Success",
-        description: `${itemToMove.name} moved ${moveDestination === "root" ? "to root" : "to folder"} successfully`,
-      });
-
-      // Call success callback if provided
-      if (onMoveSuccess) {
-        onMoveSuccess(itemToMove, new_parent_id);
-      }
-
-      onClose();
-    } catch (error) {
-      console.error("Move failed:", error);
-      toast({
-        title: "Error",
-        description: `Failed to move item: ${error.message}`,
-        variant: "destructive",
-      });
-    } finally {
-      setIsMoving(false);
-    }
-  };
+    
+    checkedIds.add(currentId);
+    const folder = allFolders.find(f => f.id == currentId); // Use == for loose comparison
+    currentId = folder?.parent_id;
+    
+    // Stop if we reach root (1, "1", 2, "2", or null)
+    if (currentId === 1 || currentId === "1" || currentId === 2 || currentId === "2" || currentId === null) break;
+  }
+  
+  return false;
+};
 
   const handleCancel = () => {
     setMoveDestination("root"); // Reset to root on cancel
@@ -335,23 +396,29 @@ const MoveFileDialog = ({
                 </div>
 
                 {/* Available Folders */}
-                {(availableFolders || [])
-                  .filter((folder) =>
-                    folder?.name?.toLowerCase().includes(searchQuery.toLowerCase())
-                  )
-                  .map((folder) => (
-                    <div
-                      key={folder.id}
-                      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent ${
-                        moveDestination === folder.id ? "bg-accent border border-blue-300" : ""
-                      }`}
-                      onClick={() => setMoveDestination(folder.id)}
-                      style={{ paddingLeft: `${folder.depth * 12}px` }}
-                    >
-                      <FolderOpen className="h-4 w-4 text-blue-500 flex-shrink-0" />
-                      <span className="truncate">{folder.name}</span>
-                    </div>
-                  ))}
+{(availableFolders || [])
+  .filter((folder) => {
+    // Filter by search query
+    const matchesSearch = folder?.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // ✅ NEW: Exclude the item being moved if it's a folder
+    const isNotSelf = itemToMove?.type !== 'folder' || folder.id !== itemToMove.id;
+    
+    return matchesSearch && isNotSelf;
+  })
+  .map((folder) => (
+    <div
+      key={folder.id}
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-accent ${
+        moveDestination === folder.id ? "bg-accent border border-blue-300" : ""
+      }`}
+      onClick={() => setMoveDestination(folder.id)}
+      style={{ paddingLeft: `${folder.depth * 12}px` }}
+    >
+      <FolderOpen className="h-4 w-4 text-blue-500 flex-shrink-0" />
+      <span className="truncate">{folder.name}</span>
+    </div>
+  ))}
                 
                 {(availableFolders || []).filter((folder) =>
                   folder?.name?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -396,7 +463,8 @@ const MoveFileDialog = ({
           </Button>
           <Button
             onClick={handleMove}
-            disabled={isMoving || loadingFolders}
+            
+  disabled={isMoveDisabled()}
             className="flex-1 bg-blue-600 hover:bg-blue-700"
           >
             {isMoving ? (

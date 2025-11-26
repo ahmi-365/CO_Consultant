@@ -10,10 +10,6 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-// import { Button } from "@/components/ui/button";
-// import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-
-
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -120,53 +116,27 @@ export default function Reports() {
   const [reportsPerPage, setReportsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
 
-
-
-  // Move this BEFORE pagination logic
+  // Filter reports - simplified to only search by report name
   const filteredReports = recentReports.filter((report) => {
-  const reportName = getReportTypeName(report.type).toLowerCase();
-  const query = searchQuery.toLowerCase();
+    const reportName = getReportTypeName(report.type).toLowerCase();
+    const query = searchQuery.toLowerCase();
 
-  const matchesSearch =
-    reportName.includes(query) ||
-    report.format.toLowerCase().includes(query);
+    const matchesSearch = reportName.includes(query);
+    const matchesType = !filterType || filterType === "all" || getReportTypeName(report.type) === filterType;
+    const matchesDate = !filterDate || new Date(report.created_at) >= new Date(filterDate);
 
-  const matchesType =
-    !filterType || filterType === "all" || getReportTypeName(report.type) === filterType;
+    return matchesSearch && matchesType && matchesDate;
+  });
 
-  const matchesDate =
-    !filterDate || new Date(report.created_at) >= new Date(filterDate);
-
-  return matchesSearch && matchesType && matchesDate;
-});
-  // Now compute pagination
+  // Compute pagination
   const indexOfLastReport = currentPage * reportsPerPage;
   const indexOfFirstReport = indexOfLastReport - reportsPerPage;
   const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport);
 
-
-  //  const filteredReports = recentReports.filter((report) => {
-  //     const reportName = getReportTypeName(report.type).toLowerCase();
-  //     const query = searchQuery.toLowerCase();
-
-  //     const matchesSearch =
-  //       reportName.includes(query) ||
-  //       report.format.toLowerCase().includes(query);
-
-  //     const matchesType =
-  //       !filterType || getReportTypeName(report.type) === filterType;
-
-  //     const matchesDate =
-  //       !filterDate || new Date(report.created_at) >= new Date(filterDate);
-
-  //     return matchesSearch && matchesType && matchesDate;
-  //   });
-
-
-
   useEffect(() => {
     fetchReports();
   }, []);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, filterType, filterDate, reportsPerPage]);
@@ -189,43 +159,6 @@ export default function Reports() {
       setIsLoading(false);
     }
   };
-  // const filteredReports = recentReports.filter((report) => {
-  //   const reportName = getReportTypeName(report.type).toLowerCase();
-  //   const query = searchQuery.toLowerCase();
-
-  //   const matchesSearch =
-  //     reportName.includes(query) ||
-  //     report.format.toLowerCase().includes(query);
-
-  //   const matchesType =
-  //     !filterType || getReportTypeName(report.type) === filterType;
-
-  //   const matchesDate =
-  //     !filterDate || new Date(report.created_at) >= new Date(filterDate);
-
-  //   return matchesSearch && matchesType && matchesDate;
-  // });
-
-
-  //  const filteredReports = recentReports.filter((report) => {
-  //   const reportName = getReportTypeName(report.type).toLowerCase();
-  //   const query = searchQuery.toLowerCase();
-
-  //   // ✅ Search match
-  //   const matchesSearch =
-  //     reportName.includes(query) ||
-  //     report.format.toLowerCase().includes(query);
-
-  //   // ✅ Type match
-  //   const matchesType =
-  //     !filterType || getReportTypeName(report.type) === filterType;
-
-  //   // ✅ Date match (if applicable)
-  //   const matchesDate =
-  //     !filterDate || new Date(report.created_at) >= new Date(filterDate);
-
-  //   return matchesSearch && matchesType && matchesDate;
-  // });
 
   const handleGenerateReport = async () => {
     if (!selectedReport) {
@@ -348,14 +281,6 @@ export default function Reports() {
             Generate and manage system reports
           </p>
         </div>
-        {/* <Button
-          onClick={handleExportAll}
-          className="self-start sm:self-auto flex items-center gap-2"
-          disabled={recentReports.length === 0}
-        >
-          <Download className="h-4 w-4" />
-          Export All
-        </Button> */}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -458,9 +383,6 @@ export default function Reports() {
                 </div>
               </div>
 
-
-
-
               <Button
                 className="w-full"
                 size="lg"
@@ -473,7 +395,6 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-
           <Card className="shadow-sm border border-border">
             <CardHeader>
               <CardTitle className="text-lg font-semibold">Recent Reports</CardTitle>
@@ -481,14 +402,13 @@ export default function Reports() {
 
             <CardContent>
               {/* Filters Section */}
-              {/* Filters Section */}
               <div className="bg-muted/30 p-4 rounded-lg mb-6 space-y-4 md:space-y-0 md:flex md:items-end md:gap-4">
                 {/* Search */}
                 <div className="flex-1 min-w-[200px]">
                   <Label htmlFor="search">Search</Label>
                   <Input
                     id="search"
-                    placeholder="Search by name or format..."
+                    placeholder="Search by report name..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -498,16 +418,16 @@ export default function Reports() {
                 <div className="w-full md:w-48">
                   <Label htmlFor="type">Report Type</Label>
                   <Select value={filterType} onValueChange={setFilterType}>
-  <SelectTrigger id="type">
-    <SelectValue placeholder="All Types" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="all">All Types</SelectItem>
-    {Array.from(new Set(recentReports.map(r => getReportTypeName(r.type)))).map(type => (
-      <SelectItem key={type} value={type}>{type}</SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {Array.from(new Set(recentReports.map(r => getReportTypeName(r.type)))).map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 {/* Date Filter */}
@@ -535,15 +455,15 @@ export default function Reports() {
                 <div className="w-full md:w-40">
                   <Label htmlFor="perPage">Per Page</Label>
                   <Select value={String(reportsPerPage)} onValueChange={(v) => setReportsPerPage(Number(v))}>
-  <SelectTrigger id="perPage">
-    <SelectValue />
-  </SelectTrigger>
-  <SelectContent>
-    {[5, 10, 15, 20, 25].map(num => (
-      <SelectItem key={num} value={String(num)}>{num} </SelectItem>
-    ))}
-  </SelectContent>
-</Select>
+                    <SelectTrigger id="perPage">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 15, 20, 25].map(num => (
+                        <SelectItem key={num} value={String(num)}>{num} </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -578,9 +498,9 @@ export default function Reports() {
                           {getReportTypeName(report.type)} -{" "}
                           {format(new Date(report.created_at), "MMM dd, yyyy")}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {report.format.toUpperCase()} Format
-                        </div>
+                        {/* <div className="text-xs text-muted-foreground">
+                          PDF Format
+                        </div> */}
                       </div>
 
                       {/* Type */}
@@ -624,8 +544,6 @@ export default function Reports() {
                     <span className="text-sm text-muted-foreground">
                       Page {currentPage} of {Math.max(1, Math.ceil(filteredReports.length / reportsPerPage))}
                       {filteredReports.length > 0 && ` (${filteredReports.length} total)`}
-                    </span><span className="text-sm text-muted-foreground">
-                      Page {currentPage} of {Math.ceil(filteredReports.length / reportsPerPage)}
                     </span>
                     <Button
                       size="sm"
@@ -640,9 +558,6 @@ export default function Reports() {
               )}
             </CardContent>
           </Card>
-
-
-
         </div>
 
         <div>
@@ -678,25 +593,6 @@ export default function Reports() {
               </div>
             </CardContent>
           </Card>
-
-          {/* <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Report Types</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {reportTypes.map((type) => (
-                  <div key={type.id} className="p-3 border border-border rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <type.icon className="h-4 w-4" />
-                      <div className="font-medium text-sm">{type.name}</div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{type.description}</div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card> */}
         </div>
       </div>
     </div>

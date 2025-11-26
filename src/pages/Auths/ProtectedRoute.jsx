@@ -9,10 +9,48 @@ export const ProtectedRoute = ({
   redirectTo = "/login"
 }) => {
   const location = useLocation();
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const checkToken = () => {
+      const token = authService.getToken();
+      const user = authService.getUser();
+      
+      if (!token || !user) {
+        setIsAuthenticated(false);
+        setIsLoading(false);
+      } else {
+        setIsAuthenticated(true);
+        setIsLoading(false);
+      }
+    };
+
+    checkToken();
+
+    // Set up interval to check token expiration periodically
+    const interval = setInterval(checkToken, 60000); // Check every minute
+
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  // Check if user is authenticated
+  if (!isAuthenticated) {
+    return <Navigate to={redirectTo} state={{ from: location }} replace />;
+  }
+
   const user = authService.getUser();
   const token = authService.getToken();
 
-  // Check if user is authenticated
+  // Double check (should not happen due to state, but just in case)
   if (!token || !user) {
     return <Navigate to={redirectTo} state={{ from: location }} replace />;
   }
@@ -36,13 +74,40 @@ export const ProtectedRoute = ({
 
   return <>{children}</>;
 };
-
 export const RoleBasedRedirect = () => {
-  const user = authService.getUser();
-  const token = authService.getToken();
+  const [isChecking, setIsChecking] = useState(true);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const checkToken = () => {
+      const token = authService.getToken();
+      const userData = authService.getUser();
+
+      if (!token || !userData) {
+        setIsChecking(false);
+        return;
+      }
+
+      setUser(userData);
+      setIsChecking(false);
+    };
+
+    checkToken();
+
+    const interval = setInterval(checkToken, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   // If not authenticated, go to login
-  if (!token || !user) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
 
@@ -58,11 +123,7 @@ export const RoleBasedRedirect = () => {
   // Default fallback
   return <Navigate to="/filemanager" replace />;
 };
-
 // components/auth/AuthGuard.tsx
-
-// AuthGuard expects props: children (ReactNode) and optional requiredRole ('admin' or 'customer')
-
 export const AuthGuard = ({
   children,
   requiredRole
@@ -77,16 +138,20 @@ export const AuthGuard = ({
       const userData = authService.getUser();
 
       if (!token || !userData) {
+        setUser(null);
         setIsLoading(false);
         return;
       }
 
-      // You could also validate token here with an API call
       setUser(userData);
       setIsLoading(false);
     };
 
     checkAuth();
+
+    // Add interval check for token expiration
+    const interval = setInterval(checkAuth, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {

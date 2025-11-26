@@ -16,6 +16,54 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trashService } from "../../services/trashservice";
 
+// Confirmation Dialog Component
+const ConfirmationDialog = ({ 
+  isOpen, 
+  onClose, 
+  onConfirm, 
+  title, 
+  message, 
+  confirmText = "Confirm", 
+  cancelText = "Cancel",
+  variant = "default" 
+}) => {
+  if (!isOpen) return null;
+
+  const variantStyles = {
+    default: "bg-blue-600 hover:bg-blue-700",
+    destructive: "bg-red-600 hover:bg-red-700",
+    warning: "bg-orange-600 hover:bg-orange-700"
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full p-6 shadow-xl">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+          {title}
+        </h3>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">
+          {message}
+        </p>
+        <div className="flex justify-end gap-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            className="rounded-full"
+          >
+            {cancelText}
+          </Button>
+          <Button
+            onClick={onConfirm}
+            className={`rounded-full ${variantStyles[variant]}`}
+          >
+            {confirmText}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const getFileIcon = (type) => {
   const iconClass = "w-5 h-5 mr-3 transition-colors duration-200";
   switch (type) {
@@ -34,24 +82,19 @@ const getFileIcon = (type) => {
   }
 };
 
-// ✅ ADD THIS FUNCTION - Format file size
+// Format file size
 const formatFileSize = (bytes) => {
-  // Check for invalid or zero bytes
   if (bytes === undefined || bytes === null || bytes === 0) return "0 B";
 
-  // If bytes is already a string
   if (typeof bytes === 'string') {
-    // If it's already formatted (contains units), return as-is
     if (/^\d+(\.\d+)?\s*(B|KB|MB|GB|TB)$/i.test(bytes)) {
       return bytes;
     }
     
-    // Attempt to parse a number if the string is numeric
     const parsedBytes = parseFloat(bytes);
     if (!isNaN(parsedBytes) && isFinite(parsedBytes) && parsedBytes > 0) {
       bytes = parsedBytes;
     } else {
-      // If it's a non-numeric string, return it as-is
       return bytes;
     }
   }
@@ -66,7 +109,7 @@ const formatFileSize = (bytes) => {
   return formattedSize + " " + sizes[index];
 };
 
-// ✅ ADD THIS FUNCTION - Format date
+// Format date
 const formatDate = (dateString) => {
   if (!dateString) return "Unknown";
   try {
@@ -102,6 +145,16 @@ export default function TrashPage() {
   const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
   const [emptyTrashLoading, setEmptyTrashLoading] = useState(false);
 
+  // Confirmation dialog states
+  const [confirmationDialog, setConfirmationDialog] = useState({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: null,
+    confirmText: "Confirm",
+    variant: "default"
+  });
+
   useEffect(() => {
     loadTrashedFiles();
   }, []);
@@ -125,45 +178,82 @@ export default function TrashPage() {
     }
   };
 
-  const handleRestoreFile = async (fileId) => {
-    try {
-      const response = await trashService.restoreFile(fileId);
+  const showConfirmation = (config) => {
+    setConfirmationDialog({
+      isOpen: true,
+      ...config
+    });
+  };
 
-      if (response.status === "success") {
-        loadTrashedFiles();
-        toast.success(
-          response.original?.message || "File restored successfully"
-        );
-      } else {
-        toast.error(response.original?.message || "Failed to restore file");
+  const closeConfirmation = () => {
+    setConfirmationDialog({
+      isOpen: false,
+      title: "",
+      message: "",
+      onConfirm: null,
+      confirmText: "Confirm",
+      variant: "default"
+    });
+  };
+
+  const handleRestoreFile = async (fileId) => {
+    const file = trashedFiles.find(f => f.id === fileId);
+    
+    showConfirmation({
+      title: "Restore File",
+      message: `Are you sure you want to restore "${file?.name}"?`,
+      confirmText: "Restore",
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const response = await trashService.restoreFile(fileId);
+
+          if (response.status === "success") {
+            loadTrashedFiles();
+            toast.success(
+              response.original?.message || "File restored successfully"
+            );
+          } else {
+            toast.error(response.original?.message || "Failed to restore file");
+          }
+        } catch (error) {
+          console.error("Error restoring file:", error);
+          toast.error("Error restoring file");
+        } finally {
+          closeConfirmation();
+        }
       }
-    } catch (error) {
-      console.error("Error restoring file:", error);
-      toast.error("Error restoring file");
-    }
+    });
   };
 
   const handlePermanentDelete = async (fileId) => {
-    if (
-      !window.confirm("Are you sure you want to permanently delete this file?")
-    )
-      return;
+    const file = trashedFiles.find(f => f.id === fileId);
+    
+    showConfirmation({
+      title: "Permanently Delete File",
+      message: `Are you sure you want to permanently delete "${file?.name}"? This action cannot be undone.`,
+      confirmText: "Delete Permanently",
+      variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const response = await trashService.bulkPermanentDelete([fileId]);
 
-    try {
-      const response = await trashService.bulkPermanentDelete([fileId]);
-
-      if (response.success || response.original?.status === "ok") {
-        loadTrashedFiles();
-        const successMessage = response.original?.message || response.message || "File permanently deleted";
-        toast.success(successMessage);
-      } else {
-        const errorMessage = response.original?.message || response.error || "Failed to delete file";
-        toast.error(errorMessage);
+          if (response.success || response.original?.status === "ok") {
+            loadTrashedFiles();
+            const successMessage = response.original?.message || response.message || "File permanently deleted";
+            toast.success(successMessage);
+          } else {
+            const errorMessage = response.original?.message || response.error || "Failed to delete file";
+            toast.error(errorMessage);
+          }
+        } catch (error) {
+          console.error("Error deleting file:", error);
+          toast.error("Error deleting file");
+        } finally {
+          closeConfirmation();
+        }
       }
-    } catch (error) {
-      console.error("Error deleting file:", error);
-      toast.error("Error deleting file");
-    }
+    });
   };
 
   const handleBulkRestore = async () => {
@@ -172,27 +262,36 @@ export default function TrashPage() {
       return;
     }
 
-    setBulkLoading(true);
-    try {
-      const fileIds = Array.from(selectedFiles);
-      const response = await trashService.bulkRestoreFiles(fileIds);
+    showConfirmation({
+      title: "Restore Selected Files",
+      message: `Are you sure you want to restore ${selectedFiles.size} selected file(s)?`,
+      confirmText: "Restore Selected",
+      variant: "default",
+      onConfirm: async () => {
+        setBulkLoading(true);
+        try {
+          const fileIds = Array.from(selectedFiles);
+          const response = await trashService.bulkRestoreFiles(fileIds);
 
-      if (response.success || response.status === "success" || response.original?.status === "ok") {
-        loadTrashedFiles();
-        setSelectedFiles(new Set());
-        setIsSelectionMode(false);
-        const successMessage = response.original?.message || response.message || `${fileIds.length} file(s) restored successfully`;
-        toast.success(successMessage);
-      } else {
-        const errorMessage = response.original?.message || response.error || "Failed to restore files";
-        toast.error(errorMessage);
+          if (response.success || response.status === "success" || response.original?.status === "ok") {
+            loadTrashedFiles();
+            setSelectedFiles(new Set());
+            setIsSelectionMode(false);
+            const successMessage = response.original?.message || response.message || `${fileIds.length} file(s) restored successfully`;
+            toast.success(successMessage);
+          } else {
+            const errorMessage = response.original?.message || response.error || "Failed to restore files";
+            toast.error(errorMessage);
+          }
+        } catch (error) {
+          console.error("Error in bulk restore:", error);
+          toast.error("Error restoring files");
+        } finally {
+          setBulkLoading(false);
+          closeConfirmation();
+        }
       }
-    } catch (error) {
-      console.error("Error in bulk restore:", error);
-      toast.error("Error restoring files");
-    } finally {
-      setBulkLoading(false);
-    }
+    });
   };
 
   const handleBulkDelete = async () => {
@@ -201,62 +300,72 @@ export default function TrashPage() {
       return;
     }
 
-    if (!window.confirm(`Are you sure you want to permanently delete ${selectedFiles.size} selected file(s)? This cannot be undone.`)) {
-      return;
-    }
+    showConfirmation({
+      title: "Permanently Delete Selected Files",
+      message: `Are you sure you want to permanently delete ${selectedFiles.size} selected file(s)? This action cannot be undone.`,
+      confirmText: "Delete Permanently",
+      variant: "destructive",
+      onConfirm: async () => {
+        setBulkDeleteLoading(true);
+        try {
+          const fileIds = Array.from(selectedFiles);
+          const response = await trashService.bulkPermanentDelete(fileIds);
 
-    setBulkDeleteLoading(true);
-    try {
-      const fileIds = Array.from(selectedFiles);
-      const response = await trashService.bulkPermanentDelete(fileIds);
-
-      if (response.success || response.status === "success" || response.original?.status === "ok") {
-        loadTrashedFiles();
-        setSelectedFiles(new Set());
-        setIsSelectionMode(false);
-        const successMessage = response.original?.message || response.message || `${fileIds.length} file(s) permanently deleted`;
-        toast.success(successMessage);
-      } else {
-        const errorMessage = response.original?.message || response.error || "Failed to delete files";
-        toast.error(errorMessage);
+          if (response.success || response.status === "success" || response.original?.status === "ok") {
+            loadTrashedFiles();
+            setSelectedFiles(new Set());
+            setIsSelectionMode(false);
+            const successMessage = response.original?.message || response.message || `${fileIds.length} file(s) permanently deleted`;
+            toast.success(successMessage);
+          } else {
+            const errorMessage = response.original?.message || response.error || "Failed to delete files";
+            toast.error(errorMessage);
+          }
+        } catch (error) {
+          console.error("Error in bulk delete:", error);
+          toast.error("Error deleting files");
+        } finally {
+          setBulkDeleteLoading(false);
+          closeConfirmation();
+        }
       }
-    } catch (error) {
-      console.error("Error in bulk delete:", error);
-      toast.error("Error deleting files");
-    } finally {
-      setBulkDeleteLoading(false);
-    }
+    });
   };
 
   const handleEmptyTrash = async () => {
-    if (!window.confirm("Empty the trash? This cannot be undone.")) {
-      return;
-    }
-
     if (trashedFiles.length === 0) {
       toast.info("Trash is already empty");
       return;
     }
 
-    setEmptyTrashLoading(true);
-    try {
-      const allFileIds = trashedFiles.map(file => file.id);
-      const response = await trashService.bulkPermanentDelete(allFileIds);
+    showConfirmation({
+      title: "Empty Trash",
+      message: `Are you sure you want to empty the trash? This will permanently delete all ${trashedFiles.length} files. This action cannot be undone.`,
+      confirmText: "Empty Trash",
+      variant: "destructive",
+      onConfirm: async () => {
+        setEmptyTrashLoading(true);
+        try {
+          const allFileIds = trashedFiles.map(file => file.id);
+          const response = await trashService.bulkPermanentDelete(allFileIds);
 
-      if (response.success || response.original?.status === "ok") {
-        loadTrashedFiles();
-        const successMessage = response.original?.message || response.message || "Trash emptied successfully";
-        toast.success(successMessage);
-      } else {
-        const errorMessage = response.original?.message || response.error || "Failed to empty trash";
-        toast.error(errorMessage);
+          if (response.success || response.original?.status === "ok") {
+            loadTrashedFiles();
+            const successMessage = response.original?.message || response.message || "Trash emptied successfully";
+            toast.success(successMessage);
+          } else {
+            const errorMessage = response.original?.message || response.error || "Failed to empty trash";
+            toast.error(errorMessage);
+          }
+        } catch (error) {
+          console.error("Error emptying trash:", error);
+          toast.error("Error emptying trash");
+        } finally {
+          setEmptyTrashLoading(false);
+          closeConfirmation();
+        }
       }
-    } catch (error) {
-      console.error("Error emptying trash:", error);
-      toast.error("Error emptying trash");
-    } finally {
-      setEmptyTrashLoading(false);
-    }
+    });
   };
 
   const toggleFileSelection = useCallback((fileId) => {
@@ -285,8 +394,17 @@ export default function TrashPage() {
   };
 
   const exitSelectionMode = () => {
-    setIsSelectionMode(false);
-    setSelectedFiles(new Set());
+    showConfirmation({
+      title: "Exit Selection Mode",
+      message: "Are you sure you want to exit selection mode? All selected files will be deselected.",
+      confirmText: "Exit",
+      variant: "default",
+      onConfirm: () => {
+        setIsSelectionMode(false);
+        setSelectedFiles(new Set());
+        closeConfirmation();
+      }
+    });
   };
 
   if (loading) {
@@ -303,6 +421,18 @@ export default function TrashPage() {
   return (
     <div className="min-h-screen dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 p-6">
       <div className="max-w-7xl mx-auto">
+        {/* Confirmation Dialog */}
+        <ConfirmationDialog
+          isOpen={confirmationDialog.isOpen}
+          onClose={closeConfirmation}
+          onConfirm={confirmationDialog.onConfirm}
+          title={confirmationDialog.title}
+          message={confirmationDialog.message}
+          confirmText={confirmationDialog.confirmText}
+          cancelText="Cancel"
+          variant={confirmationDialog.variant}
+        />
+
         {trashedFiles.length === 0 ? (
           <div className="text-center py-20">
             <div className="relative inline-flex items-center justify-center w-24 h-24 mb-8">
@@ -415,7 +545,6 @@ export default function TrashPage() {
 
             <div className="space-y-3">
               {trashedFiles.map((file, index) => {
-                // ✅ Format the file size for each file
                 const isFolder = file.type === "folder";
                 const rawSize = file.size || file.file_size || file.fileSize || file.size_in_bytes;
                 const fileSize = isFolder ? "-" : formatFileSize(rawSize);
@@ -480,7 +609,6 @@ export default function TrashPage() {
                           </span>
                         </div>
 
-                        {/* ✅ FIXED: Using formatFileSize */}
                         <div className="col-span-2 hidden lg:block">
                           <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">
                             {fileSize}
@@ -550,7 +678,6 @@ export default function TrashPage() {
                           </span>
                         </div>
 
-                        {/* ✅ FIXED: Using formatFileSize in mobile view */}
                         <div className="flex justify-between text-xs text-muted-foreground">
                           <span>By {file.user_id}</span>
                           <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md">

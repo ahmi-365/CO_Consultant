@@ -180,7 +180,6 @@ const loadFiles = async (opts = {}) => {
     const params = {
       ...(selectedUser ? { user_id: selectedUser } : {}),
       ...(opts.search ? { search: opts.search } : {}),
-      // PAGINATION PARAMS - Use opts values or current state
       page: opts.page || currentPage,
       per_page: opts.per_page || itemsPerPage,
     };
@@ -194,7 +193,6 @@ const loadFiles = async (opts = {}) => {
     const response = await fileApi.listadminFiles(currentParentId, params, options);
     console.log("✅ Full API Response:", response);
 
-    // Handle response with pagination metadata
     let data = [];
     let paginationData = {
       total: 0,
@@ -203,9 +201,7 @@ const loadFiles = async (opts = {}) => {
       last_page: 1
     };
 
-    // Check for pagination in response
     if (response.pagination) {
-      // Your API response structure
       data = response.data || [];
       paginationData = {
         total: response.pagination.total || 0,
@@ -214,7 +210,6 @@ const loadFiles = async (opts = {}) => {
         last_page: response.pagination.total_pages || 1
       };
     } else if (response.items) {
-      // Alternative pagination format
       data = response.items;
       paginationData = {
         total: response.total || 0,
@@ -223,7 +218,6 @@ const loadFiles = async (opts = {}) => {
         last_page: response.last_page || 1
       };
     } else if (Array.isArray(response)) {
-      // Old format - array
       data = response;
       paginationData.total = response.length;
     } else if (response?.data) {
@@ -235,30 +229,34 @@ const loadFiles = async (opts = {}) => {
     console.log("📊 Extracted data:", data);
     console.log("📊 Pagination data:", paginationData);
 
-    // Apply filtering only when NOT searching AND NOT filtering by user
+    // ✅ FIXED: Filter by current folder when NOT searching/filtering by user
     const safeData = opts.search || selectedUser
       ? data
       : data.filter((f) => {
-        if (currentParentId === null) {
-          return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
-        } else {
-          return f.parent_id === currentParentId;
-        }
-      });
+          // Normalize parent_id for comparison (handle string/number)
+          const normalizedParentId = f.parent_id === null ? null : parseInt(f.parent_id);
+          const normalizedCurrentId = currentParentId === null ? null : parseInt(currentParentId);
+          
+          if (currentParentId === null) {
+            // Root level: show items with parent_id = 1 or null
+            return normalizedParentId === 1 || normalizedParentId === null;
+          } else {
+            // Inside folder: show items with matching parent_id
+            return normalizedParentId === normalizedCurrentId;
+          }
+        });
 
     console.log("🎯 Final files to display:", safeData);
+    console.log("🔍 Filtering by currentParentId:", currentParentId);
 
-    // UPDATE STATE WITH PAGINATION INFO
     setFiles(safeData);
     setTotalItems(paginationData.total);
     setTotalPages(paginationData.last_page);
     
-    // Only update currentPage if explicitly provided in opts
     if (opts.page !== undefined) {
       setCurrentPage(paginationData.current_page);
     }
     
-    // Update itemsPerPage if changed
     if (opts.per_page !== undefined) {
       setItemsPerPage(paginationData.per_page);
     }
@@ -507,82 +505,63 @@ const handleCreateFolder = async () => {
   };
 
   const handleMove = async (item) => {
-    console.log("handleMove called with:", item); // Debug log
+  console.log("handleMove called with:", item);
 
-    if (!item) {
-      console.error("No item provided to handleMove");
-      return;
-    }
+  if (!item || !item.id) {
+    toast({
+      title: "Error",
+      description: "Invalid item selected",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    if (!item.id) {
-      console.error("Item missing ID:", item);
-      toast({
-        title: "Error",
-        description: "Selected item has no ID",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    console.log("Setting itemToMove:", item);
-    setItemToMove(item);
-    setIsMoveDialogOpen(true);
-  };
+  setItemToMove(item); // Pass the full item object
+  setIsMoveDialogOpen(true);
+};
 
   const handleConfirmMove = async () => {
-    if (!itemToMove || !moveDestination) {
-      console.warn("⚠️ No itemToMove or moveDestination provided", {
-        itemToMove,
-        moveDestination,
-      });
-      toast({
-        title: "Error",
-        description: "Please select an item and destination",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (!itemToMove || !moveDestination) {
+    toast({
+      title: "Error",
+      description: "Please select an item and destination",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    setIsMoving(true);
-    try {
-      const dest = moveDestination === "root" ? null : moveDestination;
+  setIsMoving(true);
+  try {
+    // ✅ UPDATED: Use 1 for root instead of null
+    const dest = moveDestination === "root" ? 1 : moveDestination; // Changed from null to 1
 
-      console.log("📦 Moving item", { itemToMove, dest });
+    console.log("📦 Moving item", { itemToMove, dest });
 
-      const result = await fileApi.moveItem(itemToMove, dest);
-      console.log("✅ Move result:", result);
+    const result = await fileApi.moveItem(itemToMove, dest);
+    console.log("✅ Move result:", result);
 
-      toast({
-        title: "Success",
-        description: "Item moved successfully",
-      });
+    toast({
+      title: "Success",
+      description: "Item moved successfully",
+    });
 
-      setIsMoveDialogOpen(false);
-      setItemToMove(null);
-      setMoveDestination("");
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+    setMoveDestination("");
 
-      // wait for files to reload
-      await loadFiles({ force: true });
+    await loadFiles({ force: true });
 
-    } catch (error) {
-      console.error("🚨 Move failed:", error);
-
-      if (
-        error.name === "TypeError" &&
-        error.message.includes("Failed to fetch")
-      ) {
-        console.error("🌐 Possible CORS/network issue during move request");
-      }
-
-      toast({
-        title: "Error",
-        description: "Failed to move item",
-        variant: "destructive",
-      });
-    } finally {
-      setIsMoving(false);
-    }
-  };
+  } catch (error) {
+    console.error("🚨 Move failed:", error);
+    toast({
+      title: "Error",
+      description: "Failed to move item",
+      variant: "destructive",
+    });
+  } finally {
+    setIsMoving(false);
+  }
+};
 
   const handleRename = async (id, newName) => {
     setIsRenaming((prev) => ({ ...prev, [id]: true }));
@@ -604,9 +583,25 @@ const handleCreateFolder = async () => {
       setIsRenaming((prev) => ({ ...prev, [id]: false }));
     }
   };
-  const handleMoveSuccess = async (movedItem, destination) => {
-    await loadFiles({ force: true });
-  };
+const handleMoveSuccess = async (movedItem, destination) => {
+  console.log("Move success:", { movedItem, destination });
+  
+  // Update the item in local state immediately
+  setFiles(prevFiles => 
+    prevFiles.map(file => 
+      file.id === movedItem.id 
+        ? { ...file, parent_id: destination }
+        : file
+    )
+  );
+  
+  // Then reload to get fresh data
+  await loadFiles({ force: true, page: currentPage });
+  
+  if (selectedItem?.id === movedItem.id) {
+    setSelectedItem(null);
+  }
+};
 
   const handleManagePermissions = (item) => {
     setItemForPermissions(item);

@@ -470,6 +470,7 @@ export default function ProfilePage() {
                       <Label htmlFor="phone_number">Phone Number</Label>
                       <Input
                         id="phone_number"
+                        type="number"
                         value={profileData.phone_number}
                         onChange={(e) =>
                           setProfileData((prev) => ({

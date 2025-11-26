@@ -60,6 +60,11 @@ const permissionService = {
   },
 };
 
+// Helper function to check if role is admin
+const isAdminRole = (role) => {
+  return role.is_admin === true || role.is_admin === 1 || role.is_admin === "1";
+};
+
 // Helper function to safely render permission text
 const safeRenderPermissionText = (permission) => {
   try {
@@ -147,7 +152,7 @@ function RoleModal({ open, onOpenChange, role, onSuccess }) {
         setFormData({
           name: role.name,
           permissions: permissionNames,
-          is_admin: role.is_admin === true || role.is_admin === 1 || false
+          is_admin: isAdminRole(role)
         });
       } else {
         setFormData({
@@ -280,7 +285,7 @@ const handleSubmit = async () => {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-2xl max-h-[90vh] overflow-y-auto"
-        // ⬇ This prevents the default “X” from appearing
+        // ⬇ This prevents the default "X" from appearing
         closeable={false}
       >
         {/* Custom Header with Single X */}
@@ -466,14 +471,6 @@ const handleSubmit = async () => {
   );
 }
 
-
-
-
-
-
-
-// ... (keep all your existing imports: Dialog, RoleModal, permissionService, etc.)
-
 export default function Roles() {
   const { toast } = useToast();
   const [roles, setRoles] = useState([]);
@@ -653,17 +650,17 @@ export default function Roles() {
                   key={role.id || role._id}
                   className="flex flex-col md:grid md:grid-cols-12 gap-4 items-start md:items-center py-4 border-b border-border last:border-0 hover:bg-muted/50 rounded-lg px-2 transition-colors"
                 >
-                  {/* Role Name */}
+                  {/* Role Name - FIXED ADMIN BADGE */}
                   <div className="md:col-span-4">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-sm">{role.name}</span>
-                      {(role.is_admin === true || role.is_admin === 1) && (
-                        <span title="Admin Role" className="flex items-center gap-1 text-destructive/90">
-                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4">
+                      {isAdminRole(role) && (
+                        <Badge variant="destructive" className="flex items-center gap-1">
+                          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
                             <path fillRule="evenodd" d="M10.788 3.21c.448-1.077 1.976-1.077 2.424 0l2.082 5.007 5.404.433c1.164.093 1.636 1.545.746 2.379l-4.114 3.525 1.256 5.272c.237.995-.39 1.844-1.256 1.844-.249 0-.498-.045-.736-.128l-4.225-2.427-4.225 2.427c-.238.083-.487.128-.736.128-1.07 0-1.587-1.164-1.256-1.844l1.256-5.272-4.113-3.526c-.89-.834-.418-2.286.746-2.379l5.404-.432 2.082-5.007z" clipRule="evenodd" />
                           </svg>
-                          <span className="text-xs font-semibold">ADMIN</span>
-                        </span>
+                          ADMIN
+                        </Badge>
                       )}
                     </div>
                     {role.created_at && (

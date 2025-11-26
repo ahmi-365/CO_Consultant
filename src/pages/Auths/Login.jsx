@@ -24,7 +24,7 @@ const { toast } = useToast();
     const user = authService.getUser();
 
     if (token && user) {
-      if (user.is_admin === 1) {
+      if (user.is_admin === "1") {
         navigate("/dash", { replace: true });
       } else {
         navigate("/filemanager", { replace: true });
@@ -118,7 +118,7 @@ const handleSubmit = async (e) => {
       // ✅ Redirect after short delay
       setTimeout(() => {
         if (from) navigate(from, { replace: true });
-        else if (user.is_admin === 1) navigate("/dash", { replace: true });
+        else if (user.is_admin === "1") navigate("/dash", { replace: true });
         else navigate("/filemanager", { replace: true });
       }, 1500);
 
