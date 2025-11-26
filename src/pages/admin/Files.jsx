@@ -312,28 +312,51 @@ const handleItemsPerPageChange = (value) => {
     }
   };
 
-  const handleCreateFolder = async () => {
-    const error = validateFolderName(newFolderName);
-    if (error) {
-      toast.error(error);
-      setValidationError(error);
-      return;
-    }
+const handleCreateFolder = async () => {
+  const error = validateFolderName(newFolderName);
+  if (error) {
+    toast({
+      title: "Error",
+      description: error,
+      variant: "destructive",
+    });
+    setValidationError(error);
+    return;
+  }
 
-    setIsCreating(true);
-    try {
-      const newFolder = await fileApi.createFolder(newFolderName.trim(), parentId || null);
-      toast.success(`Folder "${newFolder?.name || newFolderName}" created successfully!`);
-      onFolderCreated?.(newFolder);
-      setIsCreateFolderOpen(false);
-      setNewFolderName("");
-    } catch (err) {
-      console.error("Create folder failed:", err);
-      toast.error(err?.message || "Failed to create folder");
-    } finally {
-      setIsCreating(false);
-    }
-  };
+  // Use parent ID from currentPath, or 1 if at root
+  const parentId =
+    currentPath.length > 0
+      ? currentPath[currentPath.length - 1].id
+      : 1;
+
+  setIsCreating(true);
+  try {
+    const newFolder = await fileApi.createFolder(newFolderName.trim(), parentId);
+
+    toast({
+      title: "Success",
+      description: `Folder "${newFolder?.name || newFolderName}" created successfully!`,
+    });
+
+    setIsCreateFolderOpen(false);
+    setNewFolderName("");
+    setValidationError("");
+
+    // Reload files in the current folder
+    await loadFiles({ force: true });
+  } catch (err) {
+    console.error("Create folder failed:", err);
+    toast({
+      title: "Error",
+      description: err?.message || "Failed to create folder",
+      variant: "destructive",
+    });
+  } finally {
+    setIsCreating(false);
+  }
+};
+
 
   // Handle file upload completion from FileUploadModal
   const handleFileUploaded = async (uploadedFile) => {

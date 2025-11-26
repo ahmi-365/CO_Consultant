@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -49,7 +50,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   const [collapsed, setCollapsed] = useState(false);
   const [folderContent, setFolderContent] = useState([]);
   const [items, setItems] = useState([]);
-  
+
 
 
 
@@ -67,6 +68,29 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
       searchInputRef.current?.focus();
     }
   }, [searchResults, searchValue]);
+  // Add this NEW useEffect to load permissions
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      const perms = Array.isArray(parsedUser.permissions)
+        ? parsedUser.permissions
+        : [];
+      setUserPermissions(perms);
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+    }
+  }
+}, []);
+  const [userPermissions, setUserPermissions] = useState({
+    star: false,
+    trash: false,
+    download: false,
+    move: false,
+    rename: false,
+  });
 
   // Load user data
   useEffect(() => {
@@ -141,6 +165,18 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     return "CV";
   };
 
+
+  const canToggleStar =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("starred-files.list");
+
+  const canTrash =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.trash");
+
+
+
+
   // Function to get user display name
   const getUserDisplayName = (user) => {
     if (!user) return "CloudVault";
@@ -209,35 +245,35 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     }
   };
 
- const loadAllItems = async () => {
-  try {
-    setIsLoading(true);
-    
-    // Use the new folder tree API
-    const response = await fileApi.getFolderTree();
-    
-    console.log('Folder tree response:', response); // Debug log
-    
-    // Handle different response formats
-    if (response.status === "ok" && Array.isArray(response.data)) {
-      setAllItems(response.data);
-      const organizedFolders = organizeItemsHierarchically(response.data);
-      setFolders(organizedFolders);
-    } else if (Array.isArray(response)) {
-      setAllItems(response);
-      const organizedFolders = organizeItemsHierarchically(response);
-      setFolders(organizedFolders);
-    } else {
-      console.error('Unexpected response format:', response);
-      toast.error("Unexpected folder structure format");
+  const loadAllItems = async () => {
+    try {
+      setIsLoading(true);
+
+      // Use the new folder tree API
+      const response = await fileApi.getFolderTree();
+
+      console.log('Folder tree response:', response); // Debug log
+
+      // Handle different response formats
+      if (response.status === "ok" && Array.isArray(response.data)) {
+        setAllItems(response.data);
+        const organizedFolders = organizeItemsHierarchically(response.data);
+        setFolders(organizedFolders);
+      } else if (Array.isArray(response)) {
+        setAllItems(response);
+        const organizedFolders = organizeItemsHierarchically(response);
+        setFolders(organizedFolders);
+      } else {
+        console.error('Unexpected response format:', response);
+        toast.error("Unexpected folder structure format");
+      }
+    } catch (error) {
+      console.error("Error loading folder tree:", error);
+      toast.error("Error loading folders");
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error("Error loading folder tree:", error);
-    toast.error("Error loading folders");
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const performBackendSearch = useCallback(async (searchQuery) => {
     if (!searchQuery || searchQuery.trim() === "") {
@@ -333,87 +369,86 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     navigate("/login");
     toast.success("Logged out successfully");
   };
-const renderFolder = (folder, level = 0) => {
-  const isExpanded = expandedFolders.has(folder.id);
-  const isCurrentFolder = currentPath === `/folder/${folder.id}`;
-  const hasChildren = folder.children && folder.children.length > 0;
-  const isDragOver = dragOverFolder === folder.id;
+  const renderFolder = (folder, level = 0) => {
+    const isExpanded = expandedFolders.has(folder.id);
+    const isCurrentFolder = currentPath === `/folder/${folder.id}`;
+    const hasChildren = folder.children && folder.children.length > 0;
+    const isDragOver = dragOverFolder === folder.id;
 
-  return (
-    <div key={folder.id} className="space-y-1">
-      <div className="flex items-center">
-        {/* Indentation for hierarchy level */}
-        <div style={{ width: `${level * 16}px` }} className="flex-shrink-0" />
+    return (
+      <div key={folder.id} className="space-y-1">
+        <div className="flex items-center">
+          {/* Indentation for hierarchy level */}
+          <div style={{ width: `${level * 16}px` }} className="flex-shrink-0" />
 
-        {/* Expand/Collapse button - ALWAYS show for folders */}
-        <button
-          onClick={() => toggleFolder(folder.id)}
-          className="p-0.5 hover:bg-sidebar-accent rounded transition-colors flex-shrink-0 mr-1"
-          disabled={!hasChildren}
-        >
-          {hasChildren ? (
-            isExpanded ? (
-              <ChevronDown className="w-3 h-3 text-sidebar-foreground/60" />
+          {/* Expand/Collapse button - ALWAYS show for folders */}
+          <button
+            onClick={() => toggleFolder(folder.id)}
+            className="p-0.5 hover:bg-sidebar-accent rounded transition-colors flex-shrink-0 mr-1"
+            disabled={!hasChildren}
+          >
+            {hasChildren ? (
+              isExpanded ? (
+                <ChevronDown className="w-3 h-3 text-sidebar-foreground/60" />
+              ) : (
+                <ChevronRight className="w-3 h-3 text-sidebar-foreground/60" />
+              )
             ) : (
-              <ChevronRight className="w-3 h-3 text-sidebar-foreground/60" />
-            )
-          ) : (
-            <div className="w-3 h-3" /> // Empty space for alignment
-          )}
-        </button>
+              <div className="w-3 h-3" /> // Empty space for alignment
+            )}
+          </button>
 
-        {/* Folder button */}
-        <button
-          onClick={() => handleFolderClick(folder.id)}
-          onDragOver={(e) => handleDragOver(e, folder.id)}
-          onDragLeave={(e) => handleDragLeave(e, folder.id)}
-          onDrop={(e) => handleDrop(e, folder.id)}
-          className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors group ${
-            isCurrentFolder
-              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-              : isDragOver
-              ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-          }`}
-          style={{
-            border: isDragOver ? '2px dashed #3b82f6' : 'none',
-          }}
-        >
-          {isExpanded && hasChildren ? (
-            <FolderOpen className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
-          ) : (
-            <Folder className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
-          )}
-          <span
-            className="break-words line-clamp-2 leading-tight"
-            title={folder.name}
+          {/* Folder button */}
+          <button
+            onClick={() => handleFolderClick(folder.id)}
+            onDragOver={(e) => handleDragOver(e, folder.id)}
+            onDragLeave={(e) => handleDragLeave(e, folder.id)}
+            onDrop={(e) => handleDrop(e, folder.id)}
+            className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors group ${isCurrentFolder
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : isDragOver
+                  ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
             style={{
-              wordBreak: 'break-word',
-              display: '-webkit-box',
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: 'vertical',
+              border: isDragOver ? '2px dashed #3b82f6' : 'none',
             }}
           >
-            {folder.name}
-            {movingStatus[folder.id] && (
-              <span className="ml-1 text-xs text-muted-foreground">(Moving...)</span>
+            {isExpanded && hasChildren ? (
+              <FolderOpen className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
+            ) : (
+              <Folder className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
             )}
-          </span>
-          {folder.is_starred && (
-            <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0 mt-0.5 self-start" />
-          )}
-        </button>
-      </div>
-
-      {/* Render children if folder is expanded and has children */}
-      {isExpanded && hasChildren && (
-        <div className="space-y-1">
-          {folder.children.map((child) => renderFolder(child, level + 1))}
+            <span
+              className="break-words line-clamp-2 leading-tight"
+              title={folder.name}
+              style={{
+                wordBreak: 'break-word',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {folder.name}
+              {movingStatus[folder.id] && (
+                <span className="ml-1 text-xs text-muted-foreground">(Moving...)</span>
+              )}
+            </span>
+            {folder.is_starred && (
+              <Star className="w-3 h-3 text-yellow-400 fill-current flex-shrink-0 mt-0.5 self-start" />
+            )}
+          </button>
         </div>
-      )}
-    </div>
-  );
-};
+
+        {/* Render children if folder is expanded and has children */}
+        {isExpanded && hasChildren && (
+          <div className="space-y-1">
+            {folder.children.map((child) => renderFolder(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   const renderSearchResultItem = (item) => {
     const isFolder = item.type === "folder";
@@ -462,27 +497,27 @@ const renderFolder = (folder, level = 0) => {
     );
   };
 
-const organizeItemsHierarchically = (items) => {
-  console.log('Raw items for organization:', items); // Debug log
-  
-  if (!items || items.length === 0) {
-    return [];
-  }
+  const organizeItemsHierarchically = (items) => {
+    console.log('Raw items for organization:', items); // Debug log
 
-  // The API already returns the hierarchical structure, so we can use it directly
-  // We just need to ensure all items have the proper type and children array
-  const processItems = (items) => {
-    return items.map(item => ({
-      ...item,
-      type: item.type || "folder",
-      children: item.children ? processItems(item.children) : []
-    }));
+    if (!items || items.length === 0) {
+      return [];
+    }
+
+    // The API already returns the hierarchical structure, so we can use it directly
+    // We just need to ensure all items have the proper type and children array
+    const processItems = (items) => {
+      return items.map(item => ({
+        ...item,
+        type: item.type || "folder",
+        children: item.children ? processItems(item.children) : []
+      }));
+    };
+
+    const processedItems = processItems(items);
+    console.log('Processed folders:', processedItems); // Debug log
+    return processedItems;
   };
-
-  const processedItems = processItems(items);
-  console.log('Processed folders:', processedItems); // Debug log
-  return processedItems;
-};
 
   const getTotalItems = () => {
     const totalFolders = allItems.filter((item) => item.type === "folder").length;
@@ -509,27 +544,27 @@ const organizeItemsHierarchically = (items) => {
     };
   }, []);
 
- const [stats, setStats] = useState({
-  total: 0,
-  totalFolders: 0,
-  totalFiles: 0,
-});
-
-useEffect(() => {
-  if (!allItems || allItems.length === 0) {
-    setStats({ total: 0, totalFolders: 0, totalFiles: 0 });
-    return;
-  }
-
-  const folders = allItems.filter(i => i.type === "folder").length;
-  const files   = allItems.filter(i => i.type === "file").length;
-
-  setStats({
-    total: folders + files,
-    totalFolders: folders,
-    totalFiles: files,
+  const [stats, setStats] = useState({
+    total: 0,
+    totalFolders: 0,
+    totalFiles: 0,
   });
-}, [allItems]);
+
+  useEffect(() => {
+    if (!allItems || allItems.length === 0) {
+      setStats({ total: 0, totalFolders: 0, totalFiles: 0 });
+      return;
+    }
+
+    const folders = allItems.filter(i => i.type === "folder").length;
+    const files = allItems.filter(i => i.type === "file").length;
+
+    setStats({
+      total: folders + files,
+      totalFolders: folders,
+      totalFiles: files,
+    });
+  }, [allItems]);
 
 
 
@@ -576,11 +611,11 @@ useEffect(() => {
           )}
         </div>
 
-       <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-  {isLoading
-    ? "Loading..."
-    : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
-</div>
+        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
+          {isLoading
+            ? "Loading..."
+            : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
+        </div>
 
 
       </div>
@@ -690,28 +725,29 @@ useEffect(() => {
         <div className="p-3 border-t border-sidebar-border bg-sidebar dark:border-gray-700 
               bg-white dark:bg-[#0f172a] transition-colors">
           <div className=" gap-10 mb-3">
-            <button
-              onClick={() => handleNavigationClick("/starred")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
-            >
-              <Star className="w-4 h-4" />
-              <span>Starred</span>
-            </button>
+            {canToggleStar && (
+              <button
+                onClick={() => handleNavigationClick("/starred")}
+                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <Star className="w-4 h-4" />
+                <span>Starred</span>
+              </button>)}
+            {canTrash && (
 
-            <button
-              onClick={() => handleNavigationClick("/trash")}
-              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/trash")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
-            >
-              <Trash2 className="w-4 h-4" />
-              <span>Trash</span>
-            </button>
-
+              <button
+                onClick={() => handleNavigationClick("/trash")}
+                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/trash")
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>Trash</span>
+              </button>)}
             <button
               onClick={() => handleNavigationClick("/customerprofile")}
               className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/customerprofile")
@@ -735,19 +771,33 @@ useEffect(() => {
             </Button> */}
 
 
-            <button
-              onClick={handleLogout}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-[#60a5fa] hover:bg-red-50 dark:hover:bg-[#1e3a8a]/30",
-                collapsed && "justify-center"
-              )}
-            >
-              <LogOut className="h-5 w-5" />
-              {!collapsed && "Logout"}
-            </button>
+            <div className="flex items-center justify-between w-full">
 
+              {/* Logout Button (Left) */}
+              <button
+                onClick={handleLogout}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                  "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-[#60a5fa] hover:bg-red-50 dark:hover:bg-[#1e3a8a]/30",
+                  collapsed && "justify-center"
+                )}
+              >
+                <LogOut className="h-5 w-5" />
+                {!collapsed && <span>Logout</span>}
+              </button>
 
+              {/* Home Button (Right) */}
+              <Link
+                to="/"
+                className={cn(
+                  "flex items-center justify-center h-10 w-10 rounded-lg transition-colors",
+                  "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-[#60a5fa] hover:bg-blue-50 dark:hover:bg-[#1e3a8a]/30"
+                )}
+              >
+                <Home className="h-5 w-5" />
+              </Link>
+
+            </div>
 
             {/* <Button
   onClick={handleLogout}

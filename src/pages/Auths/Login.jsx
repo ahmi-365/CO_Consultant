@@ -3,9 +3,8 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { authService } from "@/services/Auth-service";
-// import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 
 
 export default function LoginPage() {
@@ -15,7 +14,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const { toast } = useToast();
+const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -82,64 +81,67 @@ export default function LoginPage() {
 
     return error;
   };
-
-// Custom top-right toast helper
-const showToast = (type, title, description) => {
-  toast({
-    title,
-    description,
-    className: `${
-      type === "success"
-        ? "fixed top-6 right-6 bg-green-100 border border-green-400 text-green-800 font-medium"
-        : "fixed top-6 right-6 bg-red-100 border border-red-400 text-red-800 font-medium"
-    } rounded-lg px-4 py-3 w-[90%] sm:w-[320px] text-left z-[9999] shadow-lg animate-slide-in-right`,
-  });
-};
-
-
- const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault();
 
+  // ✅ Validate form
   const newErrors = validateForm();
   setErrors(newErrors);
 
+  // ❌ If there are validation errors, show toast for the first error
   if (Object.keys(newErrors).length > 0) {
-    // Show first error in toast
-    const firstError = Object.values(newErrors)[0];
-    showToast("error", "Login Failed", firstError);
+    toast({
+      title: "Login Failed",
+      description: Object.values(newErrors)[0],
+      variant: "destructive",
+    });
     return;
   }
 
-  setIsLoading(true);
+  setIsLoading(true); // show loader
 
   try {
+    // ✅ Call login API
     const response = await authService.login({ email, password });
 
     if (response.success) {
-      showToast("success", " Login Successful", "Redirecting to your dashboard...");
+      // ✅ Success toast
+      toast({
+        title: "Login Successful",
+        description: "Redirecting to your dashboard...",
+        variant: "default",
+      });
 
       const user = authService.getUser();
       const from = location.state?.from?.pathname || null;
 
+      // ✅ Redirect after short delay
       setTimeout(() => {
-        if (from) {
-          navigate(from, { replace: true });
-        } else if (user.is_admin === 1) {
-          navigate("/dash", { replace: true });
-        } else {
-          navigate("/filemanager", { replace: true });
-        }
+        if (from) navigate(from, { replace: true });
+        else if (user.is_admin === 1) navigate("/dash", { replace: true });
+        else navigate("/filemanager", { replace: true });
       }, 1500);
+
     } else {
-      //  FIXED: now passing 3 parameters correctly
-      showToast("error", " Login Failed", response.message || "Invalid credentials");
+      // ❌ Login failed toast
+      toast({
+        title: "Login Failed",
+        description: response.message || "Invalid credentials",
+        variant: "destructive",
+      });
     }
   } catch (error) {
-    showToast("error", "Unexpected Error", "Please try again later");
+    // ❌ Unexpected error toast
+    toast({
+      title: "Unexpected Error",
+      description: "Please try again later",
+      variant: "destructive",
+    });
   } finally {
-    setIsLoading(false);
+    setIsLoading(false); // hide loader
   }
 };
+
 
   return (
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden bg-white">

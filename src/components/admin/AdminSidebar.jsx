@@ -16,6 +16,7 @@ import {
 import { NavLink, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { Link } from "react-router-dom";
 
 const navigation = [
   { name: "Dashboard", href: "/dash", icon: Home },
@@ -126,19 +127,33 @@ export function AdminSidebar() {
       </nav>
 
       {/* Footer (Logout Button) */}
-      <div className="border-t border-gray-200 dark:border-gray-700 p-4">
-        <button
-          onClick={handleLogout}
-          className={cn(
-            "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-            "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-[#60a5fa] hover:bg-red-50 dark:hover:bg-[#1e3a8a]/30",
-            collapsed && "justify-center"
-          )}
-        >
-          <LogOut className="h-5 w-5" />
-          {!collapsed && "Logout"}
-        </button>
-      </div>
+      <div className="border-t border-gray-200 dark:border-gray-700 p-4 flex items-center justify-between">
+      
+      {/* Logout Button (Left, wider) */}
+      <button
+        onClick={handleLogout}
+        className={cn(
+          "flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors w-32 justify-center",
+          "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-[#60a5fa] hover:bg-red-50 dark:hover:bg-[#1e3a8a]/30",
+          collapsed && "w-10"
+        )}
+      >
+        <LogOut className="h-5 w-5" />
+        {!collapsed && <span>Logout</span>}
+      </button>
+
+      {/* Home Button (Right) */}
+      <Link
+        to="/"
+        className={cn(
+          "flex items-center justify-center h-10 w-10 rounded-lg transition-colors",
+          "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-[#60a5fa] hover:bg-blue-50 dark:hover:bg-[#1e3a8a]/30"
+        )}
+      >
+        <Home className="h-5 w-5" />
+      </Link>
+      
+    </div>
     </div>
   );
 }
