@@ -20,13 +20,13 @@ const Header = () => {
 
   useEffect(() => {
     // Get user data from localStorage
-    const userData = localStorage.getItem('user');
+    const userData = localStorage.getItem("user");
     if (userData) {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
       } catch (error) {
-        console.error('Error parsing user data from localStorage:', error);
+        console.error("Error parsing user data from localStorage:", error);
       }
     }
   }, []);
@@ -59,7 +59,10 @@ const Header = () => {
   const getButtonText = () => {
     if (!user) {
       return "Login";
-    } else if (user.roles && (user.roles.includes("admin") || user.roles.includes("manager"))) {
+    } else if (
+      user.roles &&
+      (user.roles.includes("admin") || user.roles.includes("manager"))
+    ) {
       return "CO Access";
     } else {
       return "File Manager";
@@ -77,10 +80,11 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled || isMobileMenuOpen
-        ? "bg-gray-900/95 backdrop-blur-md shadow-lg"
-        : "bg-transparent"
-        }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled || isMobileMenuOpen
+          ? "bg-gray-900/95 backdrop-blur-md shadow-lg"
+          : "bg-transparent"
+      }`}
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
@@ -91,22 +95,23 @@ const Header = () => {
           >
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <img
-                src="/Assets/icon.png"
+                src="/assets/icon.png"
                 alt="Building Icon"
                 className="w-6 h-6 object-contain"
               />
             </div>
             {/* Show company name only when scrolled or on mobile */}
             <span
-  className={`text-2xl font-bold text-white transition-opacity duration-300 md:opacity-100 ${
-    isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
-  }`}
-  style={{ fontFamily: "'Oswald', sans-serif" }}
->
-  CO Consultants 
-</span>
+              className={`text-2xl font-bold text-white transition-opacity duration-300 ${
+                isScrolled || isMobileMenuOpen
+                  ? "opacity-100"
+                  : "opacity-100 md:opacity-0 lg:opacity-100"
+              }`}
+            >
+              CO Consultants
+            </span>
 
-{/* <span
+            {/* <span
   className={`block text-sm text-gray-300 tracking-wide mt-1 transition-opacity duration-300 md:opacity-100 ${
     isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
   }`}
@@ -114,8 +119,6 @@ const Header = () => {
 >
   Construction Organised. Decisions Unlocked.
 </span> */}
-
-
           </div>
 
           {/* Desktop Navigation */}
@@ -170,7 +173,6 @@ const Header = () => {
                 >
                   {getButtonText()}
                 </Button>
-
               </div>
             </nav>
           </div>

@@ -1,14 +1,14 @@
-"use client"
-import { useState } from "react"
-import { Link } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Eye, EyeOff } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { authService } from "@/services/Auth-service"
-import { useNavigate } from "react-router-dom"
+"use client";
+import { useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Eye, EyeOff } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { authService } from "@/services/Auth-service";
+import { useNavigate } from "react-router-dom";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -18,14 +18,14 @@ export default function RegisterPage() {
     email: "",
     password: "",
     confirmPassword: "",
-  })
-  const [errors, setErrors] = useState({})
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [acceptTerms, setAcceptTerms] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [success, setSuccess] = useState(false)
-  const { toast } = useToast()
+  });
+  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const { toast } = useToast();
 
   // ✅ Email validation regex
   const isValidEmail = (email) => {
@@ -34,10 +34,10 @@ export default function RegisterPage() {
   };
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user types
-    setErrors((prev) => ({ ...prev, [field]: "" }))
-  }
+    setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
 
   // ✅ Professional validation with detailed checks
   const validateForm = () => {
@@ -241,7 +241,7 @@ export default function RegisterPage() {
     <div className="h-screen flex overflow-hidden">
       <div className="hidden lg:flex lg:w-1/2 relative">
         <img
-          src="/Assets/ai-technology-network-security.jpg"
+          src="/assets/ai-technology-network-security.jpg"
           alt="AI Technology Security"
           className="w-full h-full object-cover"
         />
@@ -258,7 +258,9 @@ export default function RegisterPage() {
                     <span className="text-white text-xl font-bold">CO</span>
                   </div>
                   <div>
-                    <h1 className="text-3xl font-bold tracking-tight">CO Consultants</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">
+                      CO Consultants
+                    </h1>
                     <div className="w-16 h-0.5 bg-white/60 mt-1"></div>
                   </div>
                 </div>
@@ -295,40 +297,58 @@ export default function RegisterPage() {
               {/* First / Last Name */}
               <div className="grid grid-cols-2 gap-2.5">
                 <div className="space-y-1">
-                  <Label htmlFor="firstName" className="text-xs font-medium text-gray-900">
+                  <Label
+                    htmlFor="firstName"
+                    className="text-xs font-medium text-gray-900"
+                  >
                     First Name
                   </Label>
                   {errors.firstName && (
-                    <p className="text-red-500 text-xs font-medium mb-1">{errors.firstName}</p>
+                    <p className="text-red-500 text-xs font-medium mb-1">
+                      {errors.firstName}
+                    </p>
                   )}
                   <Input
                     id="firstName"
                     type="text"
                     placeholder="John"
                     value={formData.firstName}
-                    onChange={(e) => handleInputChange("firstName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("firstName", e.target.value)
+                    }
                     onBlur={(e) => handleBlur("firstName", e.target.value)}
                     className={`h-9 bg-white border rounded-xl px-3 text-sm text-black transition-all ${
-                      errors.firstName ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                      errors.firstName
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
                     }`}
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label htmlFor="lastName" className="text-xs font-medium text-gray-900">
+                  <Label
+                    htmlFor="lastName"
+                    className="text-xs font-medium text-gray-900"
+                  >
                     Last Name
                   </Label>
                   {errors.lastName && (
-                    <p className="text-red-500 text-xs font-medium mb-1">{errors.lastName}</p>
+                    <p className="text-red-500 text-xs font-medium mb-1">
+                      {errors.lastName}
+                    </p>
                   )}
                   <Input
                     id="lastName"
                     type="text"
                     placeholder="Doe"
                     value={formData.lastName}
-                    onChange={(e) => handleInputChange("lastName", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("lastName", e.target.value)
+                    }
                     onBlur={(e) => handleBlur("lastName", e.target.value)}
                     className={`h-9 bg-white border rounded-xl px-3 text-sm text-black transition-all ${
-                      errors.lastName ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                      errors.lastName
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
                     }`}
                   />
                 </div>
@@ -336,11 +356,16 @@ export default function RegisterPage() {
 
               {/* Email */}
               <div className="space-y-1">
-                <Label htmlFor="email" className="text-xs font-medium text-gray-900">
+                <Label
+                  htmlFor="email"
+                  className="text-xs font-medium text-gray-900"
+                >
                   Email Address
                 </Label>
                 {errors.email && (
-                  <p className="text-red-500 text-xs font-medium mb-1">{errors.email}</p>
+                  <p className="text-red-500 text-xs font-medium mb-1">
+                    {errors.email}
+                  </p>
                 )}
                 <Input
                   id="email"
@@ -350,18 +375,25 @@ export default function RegisterPage() {
                   onChange={(e) => handleInputChange("email", e.target.value)}
                   onBlur={(e) => handleBlur("email", e.target.value)}
                   className={`h-9 bg-white border rounded-xl px-3 text-sm text-black transition-all ${
-                    errors.email ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                    errors.email
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300"
                   }`}
                 />
               </div>
 
               {/* Password */}
               <div className="space-y-1">
-                <Label htmlFor="password" className="text-xs font-medium text-gray-900">
+                <Label
+                  htmlFor="password"
+                  className="text-xs font-medium text-gray-900"
+                >
                   Password
                 </Label>
                 {errors.password && (
-                  <p className="text-red-500 text-xs font-medium mb-1">{errors.password}</p>
+                  <p className="text-red-500 text-xs font-medium mb-1">
+                    {errors.password}
+                  </p>
                 )}
                 <div className="relative">
                   <Input
@@ -369,10 +401,14 @@ export default function RegisterPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Create a password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("password", e.target.value)
+                    }
                     onBlur={(e) => handleBlur("password", e.target.value)}
                     className={`h-9 bg-white border rounded-xl px-3 pr-10 text-sm text-black transition-all ${
-                      errors.password ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                      errors.password
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
                     }`}
                   />
                   <button
@@ -380,18 +416,27 @@ export default function RegisterPage() {
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
                   >
-                    {showPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {showPassword ? (
+                      <EyeOff className="h-3 w-3" />
+                    ) : (
+                      <Eye className="h-3 w-3" />
+                    )}
                   </button>
                 </div>
               </div>
 
               {/* Confirm Password */}
               <div className="space-y-1">
-                <Label htmlFor="confirmPassword" className="text-xs font-medium text-gray-900">
+                <Label
+                  htmlFor="confirmPassword"
+                  className="text-xs font-medium text-gray-900"
+                >
                   Confirm Password
                 </Label>
                 {errors.confirmPassword && (
-                  <p className="text-red-500 text-xs font-medium mb-1">{errors.confirmPassword}</p>
+                  <p className="text-red-500 text-xs font-medium mb-1">
+                    {errors.confirmPassword}
+                  </p>
                 )}
                 <div className="relative">
                   <Input
@@ -399,10 +444,16 @@ export default function RegisterPage() {
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
-                    onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
-                    onBlur={(e) => handleBlur("confirmPassword", e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("confirmPassword", e.target.value)
+                    }
+                    onBlur={(e) =>
+                      handleBlur("confirmPassword", e.target.value)
+                    }
                     className={`h-9 bg-white border rounded-xl px-3 pr-10 text-sm text-black transition-all ${
-                      errors.confirmPassword ? "border-red-500 focus:ring-red-500" : "border-gray-300"
+                      errors.confirmPassword
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
                     }`}
                   />
                   <button
@@ -410,48 +461,56 @@ export default function RegisterPage() {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-black transition-colors"
                   >
-                    {showConfirmPassword ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-3 w-3" />
+                    ) : (
+                      <Eye className="h-3 w-3" />
+                    )}
                   </button>
                 </div>
               </div>
 
               {/* Terms */}
-             <div className="space-y-1">
-  {errors.terms && (
-    <p className="text-red-500 text-xs font-medium mb-1">{errors.terms}</p>
-  )}
+              <div className="space-y-1">
+                {errors.terms && (
+                  <p className="text-red-500 text-xs font-medium mb-1">
+                    {errors.terms}
+                  </p>
+                )}
 
-  <div className="flex items-center space-x-2 py-1">
-    <Checkbox
-      id="terms"
-      checked={acceptTerms}
-      onCheckedChange={(checked) => {
-        setAcceptTerms(checked === true);
-        setErrors((prev) => ({ ...prev, terms: "" }));
-      }}
-      className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
-    />
+                <div className="flex items-center space-x-2 py-1">
+                  <Checkbox
+                    id="terms"
+                    checked={acceptTerms}
+                    onCheckedChange={(checked) => {
+                      setAcceptTerms(checked === true);
+                      setErrors((prev) => ({ ...prev, terms: "" }));
+                    }}
+                    className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                  />
 
-    <Label htmlFor="terms" className="text-xs text-gray-800 leading-tight">
-      I agree to the{" "}
-      <Link
-        to="/terms-and-conditions"
-        className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-      >
-        Terms & Conditions
-      </Link>{" "}
-      and{" "}
-      <Link
-        to="/privacy-policy"
-        className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
-      >
-        Privacy Policy
-      </Link>
-      .
-    </Label>
-  </div>
-</div>
-
+                  <Label
+                    htmlFor="terms"
+                    className="text-xs text-gray-800 leading-tight"
+                  >
+                    I agree to the{" "}
+                    <Link
+                      to="/terms-and-conditions"
+                      className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                    >
+                      Terms & Conditions
+                    </Link>{" "}
+                    and{" "}
+                    <Link
+                      to="/privacy-policy"
+                      className="text-blue-600 hover:text-blue-800 hover:underline transition-colors"
+                    >
+                      Privacy Policy
+                    </Link>
+                    .
+                  </Label>
+                </div>
+              </div>
 
               {/* Button */}
               <button
@@ -494,8 +553,13 @@ export default function RegisterPage() {
 
               {/* Login Redirect */}
               <div className="text-center pt-1">
-                <span className="text-xs text-gray-600">Already have an account? </span>
-                <Link to="/login" className="text-xs text-blue-600 hover:underline font-medium">
+                <span className="text-xs text-gray-600">
+                  Already have an account?{" "}
+                </span>
+                <Link
+                  to="/login"
+                  className="text-xs text-blue-600 hover:underline font-medium"
+                >
                   Sign in
                 </Link>
               </div>
@@ -504,5 +568,5 @@ export default function RegisterPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

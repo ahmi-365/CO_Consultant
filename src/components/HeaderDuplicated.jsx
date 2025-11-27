@@ -24,7 +24,10 @@ const HeaderDuplicated = () => {
   const handleNavigation = () => {
     if (!user) {
       navigate("/login");
-    } else if (user.roles?.includes("admin") || user.roles?.includes("manager")) {
+    } else if (
+      user.roles?.includes("admin") ||
+      user.roles?.includes("manager")
+    ) {
       navigate("/dash");
     } else {
       navigate("/filemanager");
@@ -34,10 +37,11 @@ const HeaderDuplicated = () => {
 
   const getButtonText = () => {
     if (!user) return "Login";
-    if (user.roles?.includes("admin") || user.roles?.includes("manager")) return "Dashboard";
+    if (user.roles?.includes("admin") || user.roles?.includes("manager"))
+      return "Dashboard";
     return "File Manager";
   };
-const menuItems = [
+  const menuItems = [
     { label: "Home", path: "/" },
     { label: "Services", path: "/services" },
     { label: "Why Choose Us", path: "/why-choose-us" },
@@ -77,7 +81,7 @@ const menuItems = [
           <Link to="/" className="flex items-center gap-3 cursor-pointer">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <img
-                src="/Assets/icon.png"
+                src="/assets/icon.png"
                 alt="Building Icon"
                 className="w-6 h-6 object-contain"
               />

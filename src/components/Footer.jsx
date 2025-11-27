@@ -27,7 +27,7 @@ const Footer = () => {
             <div className="flex items-center gap-3 mb-6">
               <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
                 <img
-                  src="/Assets/icon.png"
+                  src="/assets/icon.png"
                   alt="CO Consultants Logo"
                   className="w-6 h-6 object-contain"
                 />
@@ -38,8 +38,8 @@ const Footer = () => {
               CO Consultants is a construction focused project management and
               analytics consultancy based in Dubai, UAE. With over a decade of
               experience across the GCC, Europe, and Central Asia, we help
-              contractors, developers, and consultants turn daily field data into
-              strategic project insights. We bridge the gap between on site
+              contractors, developers, and consultants turn daily field data
+              into strategic project insights. We bridge the gap between on site
               operations and decision making through smart digitization.
             </p>
           </div>
@@ -62,22 +62,21 @@ const Footer = () => {
 
             {/* Quick Links below Services */}
             {/* Quick Links below Services */}
-<div className="mt-8">
-  <h3 className="text-xl font-bold mb-4 text-white">Quick Links</h3>
-  <ul className="grid grid-cols-2 gap-2">
-    {quickLinks.map((link, idx) => (
-      <li key={idx}>
-        <a
-          href={`#${link.id}`}
-          className="hover:text-yellow-400 hover:underline transition-colors duration-200"
-        >
-          {link.label}
-        </a>
-      </li>
-    ))}
-  </ul>
-</div>
-
+            <div className="mt-8">
+              <h3 className="text-xl font-bold mb-4 text-white">Quick Links</h3>
+              <ul className="grid grid-cols-2 gap-2">
+                {quickLinks.map((link, idx) => (
+                  <li key={idx}>
+                    <a
+                      href={`#${link.id}`}
+                      className="hover:text-yellow-400 hover:underline transition-colors duration-200"
+                    >
+                      {link.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
           </div>
 
           {/* Contact Info */}

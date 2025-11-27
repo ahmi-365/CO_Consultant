@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { trashService } from "../../services/trashservice";
 
-// Confirmation Dialog Component
+// Confirmation Dialog Component with Loading State
 const ConfirmationDialog = ({ 
   isOpen, 
   onClose, 
@@ -25,7 +25,8 @@ const ConfirmationDialog = ({
   message, 
   confirmText = "Confirm", 
   cancelText = "Cancel",
-  variant = "default" 
+  variant = "default",
+  isLoading = false
 }) => {
   if (!isOpen) return null;
 
@@ -48,15 +49,20 @@ const ConfirmationDialog = ({
           <Button
             variant="outline"
             onClick={onClose}
+            disabled={isLoading}
             className="rounded-full"
           >
             {cancelText}
           </Button>
           <Button
             onClick={onConfirm}
-            className={`rounded-full ${variantStyles[variant]}`}
+            disabled={isLoading}
+            className={`rounded-full ${variantStyles[variant]} flex items-center gap-2`}
           >
-            {confirmText}
+            {isLoading && (
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+            )}
+            {isLoading ? "Processing..." : confirmText}
           </Button>
         </div>
       </div>
@@ -152,7 +158,8 @@ export default function TrashPage() {
     message: "",
     onConfirm: null,
     confirmText: "Confirm",
-    variant: "default"
+    variant: "default",
+    isLoading: false
   });
 
   useEffect(() => {
@@ -181,6 +188,7 @@ export default function TrashPage() {
   const showConfirmation = (config) => {
     setConfirmationDialog({
       isOpen: true,
+      isLoading: false,
       ...config
     });
   };
@@ -192,8 +200,16 @@ export default function TrashPage() {
       message: "",
       onConfirm: null,
       confirmText: "Confirm",
-      variant: "default"
+      variant: "default",
+      isLoading: false
     });
+  };
+
+  const setDialogLoading = (isLoading) => {
+    setConfirmationDialog(prev => ({
+      ...prev,
+      isLoading
+    }));
   };
 
   const handleRestoreFile = async (fileId) => {
@@ -205,6 +221,7 @@ export default function TrashPage() {
       confirmText: "Restore",
       variant: "default",
       onConfirm: async () => {
+        setDialogLoading(true);
         try {
           const response = await trashService.restoreFile(fileId);
 
@@ -235,6 +252,7 @@ export default function TrashPage() {
       confirmText: "Delete Permanently",
       variant: "destructive",
       onConfirm: async () => {
+        setDialogLoading(true);
         try {
           const response = await trashService.bulkPermanentDelete([fileId]);
 
@@ -268,7 +286,7 @@ export default function TrashPage() {
       confirmText: "Restore Selected",
       variant: "default",
       onConfirm: async () => {
-        setBulkLoading(true);
+        setDialogLoading(true);
         try {
           const fileIds = Array.from(selectedFiles);
           const response = await trashService.bulkRestoreFiles(fileIds);
@@ -287,7 +305,7 @@ export default function TrashPage() {
           console.error("Error in bulk restore:", error);
           toast.error("Error restoring files");
         } finally {
-          setBulkLoading(false);
+          setDialogLoading(false);
           closeConfirmation();
         }
       }
@@ -306,7 +324,7 @@ export default function TrashPage() {
       confirmText: "Delete Permanently",
       variant: "destructive",
       onConfirm: async () => {
-        setBulkDeleteLoading(true);
+        setDialogLoading(true);
         try {
           const fileIds = Array.from(selectedFiles);
           const response = await trashService.bulkPermanentDelete(fileIds);
@@ -325,7 +343,7 @@ export default function TrashPage() {
           console.error("Error in bulk delete:", error);
           toast.error("Error deleting files");
         } finally {
-          setBulkDeleteLoading(false);
+          setDialogLoading(false);
           closeConfirmation();
         }
       }
@@ -344,7 +362,7 @@ export default function TrashPage() {
       confirmText: "Empty Trash",
       variant: "destructive",
       onConfirm: async () => {
-        setEmptyTrashLoading(true);
+        setDialogLoading(true);
         try {
           const allFileIds = trashedFiles.map(file => file.id);
           const response = await trashService.bulkPermanentDelete(allFileIds);
@@ -361,7 +379,7 @@ export default function TrashPage() {
           console.error("Error emptying trash:", error);
           toast.error("Error emptying trash");
         } finally {
-          setEmptyTrashLoading(false);
+          setDialogLoading(false);
           closeConfirmation();
         }
       }
@@ -431,6 +449,7 @@ export default function TrashPage() {
           confirmText={confirmationDialog.confirmText}
           cancelText="Cancel"
           variant={confirmationDialog.variant}
+          isLoading={confirmationDialog.isLoading}
         />
 
         {trashedFiles.length === 0 ? (

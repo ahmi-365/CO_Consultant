@@ -6,7 +6,6 @@ import { Eye, EyeOff } from "lucide-react";
 import { authService } from "@/services/Auth-service";
 import { useToast } from "@/components/ui/use-toast";
 
-
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -14,7 +13,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-const { toast } = useToast();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -24,7 +23,8 @@ const { toast } = useToast();
     const user = authService.getUser();
 
     if (token && user) {
-    if (user.is_admin === 1 || user.is_admin === "1") { // ✅ Fixed: Check both types
+      if (user.is_admin === 1 || user.is_admin === "1") {
+        // ✅ Fixed: Check both types
         navigate("/dash", { replace: true });
       } else {
         navigate("/filemanager", { replace: true });
@@ -82,69 +82,69 @@ const { toast } = useToast();
     return error;
   };
   const handleBlur = (fieldName, value) => {
-  const error = validateField(fieldName, value);
-  if (error) {
-    setErrors((prev) => ({ ...prev, [fieldName]: error }));
-  }
-};
-const handleSubmit = async (e) => {
-  e.preventDefault();
-
-  const newErrors = validateForm();
-  setErrors(newErrors);
-
-  if (Object.keys(newErrors).length > 0) {
-    toast({
-      title: "Login Failed",
-      description: Object.values(newErrors)[0],
-      variant: "destructive",
-    });
-    return;
-  }
-
-  setIsLoading(true);
-
-  try {
-    const response = await authService.login({ email, password });
-    
-    console.log('Login response:', response); // Debug log
-
-    if (response.success) {
-      toast({
-        title: "Login Successful",
-        description: "Redirecting to your dashboard...",
-        variant: "default",
-      });
-
-      const user = authService.getUser();
-      console.log('Retrieved user:', user); // Debug log
-      console.log('Is admin?', user.is_admin, typeof user.is_admin); // Debug log
-      
-      const from = location.state?.from?.pathname || null;
-
-      setTimeout(() => {
-        if (from) {
-          navigate(from, { replace: true });
-} else if (user.is_admin === 1 || user.is_admin === "1") { // Check both number and string          console.log('Navigating to /dash'); // Debug log
-          navigate("/dash", { replace: true });
-        } else {
-          console.log('Navigating to /filemanager'); // Debug log
-          navigate("/filemanager", { replace: true });
-        }
-      }, 1500);
+    const error = validateField(fieldName, value);
+    if (error) {
+      setErrors((prev) => ({ ...prev, [fieldName]: error }));
     }
-  } catch (error) {
-    console.error('Login error:', error); // Debug log
-    toast({
-      title: "Unexpected Error",
-      description: "Please try again later",
-      variant: "destructive",
-    });
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
+    const newErrors = validateForm();
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) {
+      toast({
+        title: "Login Failed",
+        description: Object.values(newErrors)[0],
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await authService.login({ email, password });
+
+      console.log("Login response:", response); // Debug log
+
+      if (response.success) {
+        toast({
+          title: "Login Successful",
+          description: "Redirecting to your dashboard...",
+          variant: "default",
+        });
+
+        const user = authService.getUser();
+        console.log("Retrieved user:", user); // Debug log
+        console.log("Is admin?", user.is_admin, typeof user.is_admin); // Debug log
+
+        const from = location.state?.from?.pathname || null;
+
+        setTimeout(() => {
+          if (from) {
+            navigate(from, { replace: true });
+          } else if (user.is_admin === 1 || user.is_admin === "1") {
+            // Check both number and string          console.log('Navigating to /dash'); // Debug log
+            navigate("/dash", { replace: true });
+          } else {
+            console.log("Navigating to /filemanager"); // Debug log
+            navigate("/filemanager", { replace: true });
+          }
+        }, 1500);
+      }
+    } catch (error) {
+      console.error("Login error:", error); // Debug log
+      toast({
+        title: "Unexpected Error",
+        description: "Please try again later",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="h-screen flex flex-col lg:flex-row overflow-hidden bg-white">
@@ -155,8 +155,8 @@ const handleSubmit = async (e) => {
             <div>
               <h1 className="text-2xl font-semibold text-gray-900">Sign in</h1>
               <p className="text-sm text-gray-600 mt-1">
-                Please log in to access your Project Management Workspace.
-All your files & dashboards. One Secure Portal.
+                Please log in to access your Project Management Workspace. All
+                your files & dashboards. One Secure Portal.
               </p>
             </div>
 
@@ -185,8 +185,11 @@ All your files & dashboards. One Secure Portal.
                   }}
                   onBlur={(e) => handleBlur("email", e.target.value)}
                   placeholder="Enter your email"
-                  className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.email ? "border-red-500 focus:ring-red-500" : "border-gray-300"
-                    }`}
+                  className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                    errors.email
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300"
+                  }`}
                 />
               </div>
 
@@ -214,8 +217,11 @@ All your files & dashboards. One Secure Portal.
                     }}
                     onBlur={(e) => handleBlur("password", e.target.value)}
                     placeholder="Enter your password"
-                    className={`w-full px-3 py-2 pr-10 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.password ? "border-red-500 focus:ring-red-500" : "border-gray-300"
-                      }`}
+                    className={`w-full px-3 py-2 pr-10 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                      errors.password
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                   />
                   <button
                     type="button"
@@ -247,18 +253,16 @@ All your files & dashboards. One Secure Portal.
                   Remember me
                 </Label>
               </div>
-              
-
-              
 
               {/* ✅ Sign-In Button */}
               <button
                 type="submit"
                 disabled={isLoading || !email.trim() || !password.trim()}
                 className={`w-full font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm text-white mt-4
-                  ${isLoading || !email.trim() || !password.trim()
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-red-600 hover:bg-red-700 hover:shadow-md active:scale-[0.98]"
+                  ${
+                    isLoading || !email.trim() || !password.trim()
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700 hover:shadow-md active:scale-[0.98]"
                   }`}
               >
                 {isLoading ? (
@@ -308,7 +312,7 @@ All your files & dashboards. One Secure Portal.
       {/* Right Side: Image / Branding */}
       <div className="hidden lg:flex flex-1 bg-blue-600 relative overflow-hidden animate-fade-in">
         <img
-          src="/Assets/LoginImage.jpg"
+          src="/assets/LoginImage.jpg"
           alt="Security Dashboard"
           className="w-full h-full object-cover"
         />
@@ -354,4 +358,3 @@ All your files & dashboards. One Secure Portal.
     </div>
   );
 }
-
