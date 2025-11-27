@@ -23,7 +23,7 @@ const ContactSection = () => {
   const { toast } = useToast();
 
 
-  const BASE_URL = "https://co-consultant.majesticsofts.com/api"; 
+  const BASE_URL = "https://co-consultant.majesticsofts.com/api";
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -51,7 +51,7 @@ const ContactSection = () => {
     }
 
     // ❌ Message is optional now (no validation)
-    
+
     return newErrors;
   };
 
@@ -164,9 +164,8 @@ const ContactSection = () => {
                         id="name"
                         value={formData.name}
                         onChange={(e) => handleInputChange("name", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                          errors.name ? "border-red-500" : "border-gray-300"
-                        }`}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${errors.name ? "border-red-500" : "border-gray-300"
+                          }`}
                       />
                       {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                     </div>
@@ -179,9 +178,8 @@ const ContactSection = () => {
                         type="email"
                         value={formData.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                          errors.email ? "border-red-500" : "border-gray-300"
-                        }`}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${errors.email ? "border-red-500" : "border-gray-300"
+                          }`}
                       />
                       {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                     </div>
@@ -196,9 +194,8 @@ const ContactSection = () => {
                         type="number"
                         value={formData.phone}
                         onChange={(e) => handleInputChange("phone", e.target.value)}
-                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${
-                          errors.phone ? "border-red-500" : "border-gray-300"
-                        }`}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${errors.phone ? "border-red-500" : "border-gray-300"
+                          }`}
                       />
                       {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                     </div>
@@ -240,9 +237,8 @@ const ContactSection = () => {
                       value={formData.message}
                       onChange={(e) => handleInputChange("message", e.target.value)}
                       placeholder="Tell us about your project requirements, timeline, and any specific needs..."
-                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 min-h-32 ${
-                        errors.message ? "border-red-500" : "border-gray-300"
-                      }`}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 min-h-32 ${errors.message ? "border-red-500" : "border-gray-300"
+                        }`}
                     />
                     {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
                   </div>
@@ -257,23 +253,36 @@ const ContactSection = () => {
                   </button>
                 </form>
                 <div className="mt-12 text-center">
-            <div className="inline-flex items-center gap-3 bg-white rounded-xl shadow-lg border border-gray-100 px-8 py-4">
-              <div className="p-3 bg-blue-400/10 rounded-full">
-                <Mail className="w-5 h-5 text-blue-400" />
-              </div>
-              <div className="text-left">
-                <h3 className="font-semibold text-gray-900 text-sm">Email Us</h3>
-                <p className="text-black font-medium">admin@thecoconsultants.com</p>
-                
-              </div>
-            </div>
-          </div>
+  <div
+    className="
+      inline-flex items-center gap-2 sm:gap-3 
+      bg-white rounded-xl shadow-lg border border-gray-100 
+      px-4 py-3 sm:px-8 sm:py-4 
+      max-w-full
+    "
+  >
+    <div className="p-2 sm:p-3 bg-blue-400/10 rounded-full">
+      <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+    </div>
+
+    <div className="text-left">
+      <h3 className="font-semibold text-gray-900 text-xs sm:text-sm">
+        Email Us
+      </h3>
+
+      <p className="text-black font-medium text-sm sm:text-base break-all">
+        admin@thecoconsultants.com
+      </p>
+    </div>
+  </div>
+</div>
+
               </div>
             </div>
           </div>
 
           {/* Email Contact Info at Bottom */}
-          
+
         </div>
       </div>
     </section>

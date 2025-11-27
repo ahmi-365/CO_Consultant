@@ -119,27 +119,28 @@ const ConstructionDataFlow = () => {
   const pipePath = "M 0,180 L 240,180 Q 280,180 280,140 L 280,80 Q 280,40 320,40 L 600,40 Q 640,40 640,80 L 640,140 Q 640,180 680,180 L 960,180 Q 1000,180 1000,140 L 1000,80 Q 1000,40 1040,40 L 1200,40";
 
   return (
-    <section className="relative w-full min-h-[600px] bg-white text-gray-900 flex flex-col overflow-hidden font-sans selection:bg-blue-100 py-8">
+    <section className="relative w-full min-h-[600px] bg-white text-gray-900 flex flex-col overflow-hidden font-sans selection:bg-blue-100 py-6 sm:py-8">
       
       {/* Top Bar Controls */}
-      <div className="w-full px-6 flex justify-between items-start  pointer-events-none mb-8">
+      <div className="w-full px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 pointer-events-none mb-6 sm:mb-8">
         <div className="pointer-events-auto">
-          <h2 className="text-3xl font-black tracking-tight text-black">
+          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-black">
             Construction<span className="text-blue-600">Drive</span> Manager
           </h2>
-          <p className="text-gray-400 text-sm font-medium flex items-center gap-2 mt-1">
+          <p className="text-gray-400 text-xs sm:text-sm font-medium flex items-center gap-2 mt-1">
             <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
             </span>
-            OneDrive for Construction - Secure Document Management
+            <span className="hidden sm:inline">OneDrive for Construction - Secure Document Management</span>
+            <span className="sm:hidden">Secure Document Management</span>
           </p>
         </div>
 
         <button 
           onClick={() => setIsAutoPlaying(!isAutoPlaying)}
           className={`
-            pointer-events-auto flex items-center gap-2 px-4 py-2 rounded-full font-bold text-sm transition-all shadow-lg hover:scale-105 active:scale-95
+            pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm transition-all shadow-lg hover:scale-105 active:scale-95
             ${isAutoPlaying ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-200' : 'bg-gray-900 text-white'}
           `}
         >
@@ -293,7 +294,7 @@ const ConstructionDataFlow = () => {
         </div>
 
         {/* DETAILED CARDS GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3 relative z-10 w-full">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 relative z-10 w-full">
           {steps.map((step) => {
             const isCurrent = activeStep === step.id;
             const isActive = activeStep >= step.id;
@@ -305,8 +306,8 @@ const ConstructionDataFlow = () => {
                 onMouseEnter={() => setHoveredStep(step.id)}
                 onMouseLeave={() => setHoveredStep(null)}
                 className={`
-                  relative flex flex-col items-center p-5 rounded-xl cursor-pointer transition-all duration-500
-                  ${isCurrent ? 'bg-white ring-1 ring-gray-200 shadow-xl scale-105 z-10' : 'bg-transparent hover:bg-gray-50'}
+                  relative flex flex-col items-center p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-500
+                  ${isCurrent ? 'bg-white ring-1 ring-gray-200 shadow-xl md:scale-105 z-10' : 'bg-transparent hover:bg-gray-50'}
                   ${!isActive && 'grayscale opacity-70'}
                 `}
                 animate={{ scale: isCurrent ? 1.03 : 1 }}
@@ -317,34 +318,34 @@ const ConstructionDataFlow = () => {
                  </div>
 
                  {/* Step Number */}
-                 <div className={`text-5xl font-black mb-2 select-none tracking-tighter opacity-10 ${isActive ? 'text-gray-900' : 'text-gray-300'}`}>
+                 <div className={`text-4xl sm:text-5xl font-black mb-2 select-none tracking-tighter opacity-10 ${isActive ? 'text-gray-900' : 'text-gray-300'}`}>
                    0{step.id}
                  </div>
                  
                  {/* Content */}
                  <div className="text-center w-full">
-                   <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{step.subtitle}</p>
-                   <h3 className={`text-lg font-bold mb-2 ${isActive ? step.text : 'text-gray-500'}`}>
+                   <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-gray-400 mb-1">{step.subtitle}</p>
+                   <h3 className={`text-base sm:text-lg font-bold mb-2 ${isActive ? step.text : 'text-gray-500'}`}>
                      {step.title}
                    </h3>
-                   <p className="text-gray-600 text-sm leading-relaxed opacity-90 mb-4 h-10">
+                   <p className="text-gray-600 text-xs sm:text-sm leading-relaxed opacity-90 mb-3 sm:mb-4 min-h-[40px]">
                      {step.desc}
                    </p>
                  </div>
 
                  {/* CONSTRUCTION-ORIENTED STORAGE STATUS */}
                  <div className={`
-                    w-full mt-auto py-2 px-3 rounded-lg flex flex-col items-center justify-center gap-1
+                    w-full mt-auto py-2 px-2 sm:px-3 rounded-lg flex flex-col items-center justify-center gap-1
                     border ${isCurrent ? step.border : 'border-gray-100'} 
                     ${isCurrent ? step.bg : 'bg-gray-50'}
                  `}>
                     <div className="flex items-center justify-center gap-2 w-full">
                       <CheckCircle2 size={12} className={isCurrent ? step.text : "text-gray-300"} />
-                      <span className={`text-[10px] font-mono font-semibold uppercase tracking-wide ${isCurrent ? step.text : "text-gray-500"}`}>
+                      <span className={`text-[9px] sm:text-[10px] font-mono font-semibold uppercase tracking-wide ${isCurrent ? step.text : "text-gray-500"}`}>
                           {step.statusText}
                       </span>
                     </div>
-                    <div className={`text-[9px] font-bold uppercase tracking-wider ${isCurrent ? step.text : "text-gray-400"} opacity-80 mt-1`}>
+                    <div className={`text-[8px] sm:text-[9px] font-bold uppercase tracking-wider ${isCurrent ? step.text : "text-gray-400"} opacity-80 mt-1`}>
                       {step.storageText}
                     </div>
                  </div>
