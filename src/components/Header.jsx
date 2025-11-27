@@ -67,7 +67,7 @@ const Header = () => {
   };
 
   const menuItems = [
-    { label: "Home", id: "hero" },
+    // { label: "Home", id: "hero" },
     { label: "Services", id: "services" },
     { label: "Why Data Matters", id: "data-matters" },
     { label: "Why Choose Us", id: "why-choose-us" },

@@ -2143,16 +2143,19 @@ const handleItemsPerPageChange = (newPerPage) => {
               </Button>
             )}
             {canTrash && (
-
-              <Button
-                variant="destructive"
-                onClick={() => handleTrashFile(selectedItemForActions?.id)}
-                disabled={actionLoading.trashing[selectedItemForActions?.id]}
-                className="flex items-center gap-2 h-12 col-span-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Move to Trash
-              </Button>)}
+<Button
+  variant="destructive"
+  onClick={() => {
+    setFileToTrash(selectedItemForActions); // 👈 Set the file first
+    setShowConfirmPopup(true); // 👈 Show confirmation popup
+    setShowMobileActions(false); // 👈 Close the mobile actions sheet
+  }}
+  disabled={actionLoading.trashing[selectedItemForActions?.id]}
+  className="flex items-center gap-2 h-12 col-span-2"
+>
+  <Trash2 className="w-4 h-4" />
+  Move to Trash
+</Button>)}
           </div>
         </SheetContent>
       </Sheet>

@@ -44,7 +44,6 @@ export const LayoutTextFlip = ({
           </motion.span>
         </AnimatePresence>
       </motion.span>
-      <span className="text-white">.</span>
     </div>
   );
 };
