@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarIcon, Download, FileText, Users, Activity, TrendingUp, BarChart3, ExternalLink } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const API_URL = import.meta.env.VITE_API_URL;
 
@@ -108,16 +110,42 @@ export default function Reports() {
   const [recentReports, setRecentReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [reportsPerPage, setReportsPerPage] = useState(5);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Filter reports - simplified to only search by report name
+  const filteredReports = recentReports.filter((report) => {
+    const reportName = getReportTypeName(report.type).toLowerCase();
+    const query = searchQuery.toLowerCase();
+
+    const matchesSearch = reportName.includes(query);
+    const matchesType = !filterType || filterType === "all" || getReportTypeName(report.type) === filterType;
+    const matchesDate = !filterDate || new Date(report.created_at) >= new Date(filterDate);
+
+    return matchesSearch && matchesType && matchesDate;
+  });
+
+  // Compute pagination
+  const indexOfLastReport = currentPage * reportsPerPage;
+  const indexOfFirstReport = indexOfLastReport - reportsPerPage;
+  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport);
 
   useEffect(() => {
     fetchReports();
   }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterType, filterDate, reportsPerPage]);
+
   const fetchReports = async () => {
     try {
       setIsLoading(true);
       const result = await reportsService.getReports();
-      
+
       if (result?.data) {
         setRecentReports(result.data);
       }
@@ -192,12 +220,12 @@ export default function Reports() {
       try {
         const a = document.createElement('a');
         a.href = reportPath;
-      a.target = "_blank"; 
-      a.rel = "noopener noreferrer"; 
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
         a.download = `${reportName.replace(/\s+/g, '_')}.pdf`;
         document.body.appendChild(a);
         a.click();
-        
+
         // Clean up
         setTimeout(() => {
           document.body.removeChild(a);
@@ -232,7 +260,7 @@ export default function Reports() {
     }
 
     toast({
-      title: "Bulk Export Started", 
+      title: "Bulk Export Started",
       description: "All reports are being prepared for download. This may take a few moments.",
     });
 
@@ -253,14 +281,6 @@ export default function Reports() {
             Generate and manage system reports
           </p>
         </div>
-        <Button 
-          onClick={handleExportAll} 
-          className="self-start sm:self-auto flex items-center gap-2"
-          disabled={recentReports.length === 0}
-        >
-          <Download className="h-4 w-4" />
-          Export All
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -276,11 +296,10 @@ export default function Reports() {
                   {reportTypes.map((report) => (
                     <div
                       key={report.id}
-                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                        selectedReport === report.id 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-border hover:border-accent-foreground'
-                      }`}
+                      className={`p-4 border rounded-lg cursor-pointer transition-colors ${selectedReport === report.id
+                        ? 'border-primary bg-primary/5'
+                        : 'border-border hover:border-accent-foreground'
+                        }`}
                       onClick={() => setSelectedReport(report.id)}
                     >
                       <div className="flex items-center gap-3 mb-2">
@@ -292,13 +311,16 @@ export default function Reports() {
                   ))}
                 </div>
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Start Date */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">Start Date</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {startDate ? format(startDate, "PPP") : "Select start date"}
                       </Button>
@@ -309,16 +331,31 @@ export default function Reports() {
                         selected={startDate}
                         onSelect={setStartDate}
                         initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date >= today; // block today & future
+                        }}
+                        className="bg- text- rounded-md border border-border shadow-sm
+            [&_.rdp-day_selected]:bg-blue-600 
+            [&_.rdp-day_selected]:text-white 
+            [&_.rdp-day_selected:hover]:bg-blue-700 
+            [&_.rdp-day_selected:hover]:text-white 
+            [&_.rdp-day_today]:border-none"
                       />
                     </PopoverContent>
                   </Popover>
                 </div>
 
+                {/* End Date */}
                 <div>
                   <label className="text-sm font-medium mb-2 block">End Date</label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
                         <CalendarIcon className="mr-2 h-4 w-4" />
                         {endDate ? format(endDate, "PPP") : "Select end date"}
                       </Button>
@@ -329,14 +366,25 @@ export default function Reports() {
                         selected={endDate}
                         onSelect={setEndDate}
                         initialFocus
+                        disabled={(date) => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          return date >= today; // block today & future
+                        }}
+                        className="bg-background text-foreground rounded-md border border-border shadow-sm
+            [&_.rdp-day_selected]:bg-blue-600 
+            [&_.rdp-day_selected]:text-white 
+            [&_.rdp-day_selected:hover]:bg-blue-700 
+            [&_.rdp-day_selected:hover]:text-white 
+            [&_.rdp-day_today]:border-none"
                       />
                     </PopoverContent>
                   </Popover>
                 </div>
               </div>
 
-              <Button 
-                className="w-full" 
+              <Button
+                className="w-full"
                 size="lg"
                 disabled={!selectedReport || !startDate || !endDate || isGenerating}
                 onClick={handleGenerateReport}
@@ -347,21 +395,90 @@ export default function Reports() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm border border-border">
             <CardHeader>
-              <CardTitle>Recent Reports</CardTitle>
+              <CardTitle className="text-lg font-semibold">Recent Reports</CardTitle>
             </CardHeader>
+
             <CardContent>
+              {/* Filters Section */}
+              <div className="bg-muted/30 p-4 rounded-lg mb-6 space-y-4 md:space-y-0 md:flex md:items-end md:gap-4">
+                {/* Search */}
+                <div className="flex-1 min-w-[200px]">
+                  <Label htmlFor="search">Search</Label>
+                  <Input
+                    id="search"
+                    placeholder="Search by report name..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+
+                {/* Type Filter */}
+                <div className="w-full md:w-48">
+                  <Label htmlFor="type">Report Type</Label>
+                  <Select value={filterType} onValueChange={setFilterType}>
+                    <SelectTrigger id="type">
+                      <SelectValue placeholder="All Types" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      {Array.from(new Set(recentReports.map(r => getReportTypeName(r.type)))).map(type => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Filter */}
+                <div className="w-full md:w-48">
+                  <Label htmlFor="date">From Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-start text-left font-normal">
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {filterDate ? format(new Date(filterDate), "PPP") : "Any date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={filterDate ? new Date(filterDate) : undefined}
+                        onSelect={(date) => setFilterDate(date ? format(date, "yyyy-MM-dd") : "")}
+                        disabled={(date) => date > new Date()}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Per Page */}
+                <div className="w-full md:w-40">
+                  <Label htmlFor="perPage">Per Page</Label>
+                  <Select value={String(reportsPerPage)} onValueChange={(v) => setReportsPerPage(Number(v))}>
+                    <SelectTrigger id="perPage">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {[5, 10, 15, 20, 25].map(num => (
+                        <SelectItem key={num} value={String(num)}>{num} </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Filtered Reports */}
               {isLoading ? (
                 <div className="text-center py-8 text-muted-foreground">
                   Loading reports...
                 </div>
-              ) : recentReports.length === 0 ? (
+              ) : filteredReports.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
-                  No reports generated yet. Create your first report above.
+                  No reports found for the selected filters.
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {/* Table Header */}
                   <div className="hidden md:grid md:grid-cols-5 gap-4 text-xs font-medium text-muted-foreground uppercase tracking-wider pb-2 border-b">
                     <div className="col-span-2">Report Name</div>
                     <div>Type</div>
@@ -369,45 +486,74 @@ export default function Reports() {
                     <div>Actions</div>
                   </div>
 
-                  {recentReports.map((report) => (
+                  {/* Paginated Report List */}
+                  {currentReports.map((report) => (
                     <div
                       key={report.id}
-                      className="grid grid-cols-1 md:grid-cols-5 gap-4 items-start md:items-center py-3 border-b border-border last:border-0 hover:bg-gray-200 rounded-lg px-2"
+                      className="grid grid-cols-1 md:grid-cols-5 gap-4 py-3 border-b border-border last:border-0 hover:bg-gray-50 dark:hover:bg-[#0f172a] rounded-lg px-3 transition-colors"
                     >
+                      {/* Report Name */}
                       <div className="col-span-2">
                         <div className="font-medium text-sm">
-                          {getReportTypeName(report.type)} - {format(new Date(report.created_at), "MMM dd, yyyy")}
+                          {getReportTypeName(report.type)} -{" "}
+                          {format(new Date(report.created_at), "MMM dd, yyyy")}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {report.format.toUpperCase()} Format
-                        </div>
+                        {/* <div className="text-xs text-muted-foreground">
+                          PDF Format
+                        </div> */}
                       </div>
 
+                      {/* Type */}
                       <div>
-                       <Badge variant="outline" className="text-xs truncate">
-  {getReportTypeName(report.type).replace(/report/i, "").trim()}
-</Badge>
-
+                        <Badge variant="outline" className="text-xs truncate">
+                          {getReportTypeName(report.type).replace(/report/i, "").trim()}
+                        </Badge>
                       </div>
 
+                      {/* Generated Time */}
                       <div className="text-sm text-muted-foreground">
                         {formatRelativeTime(report.created_at)}
                       </div>
 
-                      <div className="flex gap-2">
+                      {/* Actions */}
+                      <div className="flex items-end justify-start md:justify-center">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDownloadReport(report.path, getReportTypeName(report.type))}
+                          className="mt-2"
+                          onClick={() =>
+                            handleDownloadReport(report.path, getReportTypeName(report.type))
+                          }
                         >
                           <ExternalLink className="h-3 w-3" />
                         </Button>
-                        <Badge variant="default" className="text-xs">
-                          Ready
-                        </Badge>
                       </div>
                     </div>
                   ))}
+
+                  {/* Pagination Controls */}
+                  <div className="flex items-center justify-center gap-3 pt-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage((prev) => prev - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {currentPage} of {Math.max(1, Math.ceil(filteredReports.length / reportsPerPage))}
+                      {filteredReports.length > 0 && ` (${filteredReports.length} total)`}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={currentPage === Math.ceil(filteredReports.length / reportsPerPage)}
+                      onClick={() => setCurrentPage((prev) => prev + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -424,45 +570,26 @@ export default function Reports() {
                 <div className="text-2xl font-bold">{recentReports.length}</div>
                 <div className="text-sm text-muted-foreground">Total Reports Generated</div>
               </div>
-              
+
               <div className="p-3 border border-border rounded-lg">
                 <div className="text-2xl font-bold">
                   {recentReports.filter(r => r.type === "storage_usage").length}
                 </div>
                 <div className="text-sm text-muted-foreground">Storage Reports</div>
               </div>
-              
+
               <div className="p-3 border border-border rounded-lg">
                 <div className="text-2xl font-bold">
                   {recentReports.filter(r => r.type === "user_activity").length}
                 </div>
                 <div className="text-sm text-muted-foreground">Activity Reports</div>
               </div>
-              
+
               <div className="p-3 border border-border rounded-lg">
                 <div className="text-2xl font-bold">
                   {recentReports.filter(r => r.type === "file_history").length}
                 </div>
                 <div className="text-sm text-muted-foreground">File History Reports</div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Report Types</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {reportTypes.map((type) => (
-                  <div key={type.id} className="p-3 border border-border rounded-lg">
-                    <div className="flex items-center gap-2 mb-1">
-                      <type.icon className="h-4 w-4" />
-                      <div className="font-medium text-sm">{type.name}</div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{type.description}</div>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

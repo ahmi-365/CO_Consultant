@@ -9,6 +9,9 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { User, Mail, Calendar, Shield, Key, Clock } from "lucide-react"
+import { DialogClose } from "@/components/ui/dialog"
+import { X } from "lucide-react"
+
 
 /**
  * Safe date formatter
@@ -97,6 +100,13 @@ export function UserDetailsModal({ user, isOpen, onClose }) {
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
+          <DialogClose
+            className="absolute right-4 top-4 rounded-md opacity-70 transition-opacity 
+             hover:opacity-100 focus:outline-none focus:ring-0 focus:ring-offset-0"
+          >
+            <X className="h-4 w-4" />
+          </DialogClose>
+
           <DialogTitle className="flex items-center gap-2">
             <User className="h-5 w-5" />
             User Details

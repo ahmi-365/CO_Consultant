@@ -35,6 +35,7 @@ export default function Profile() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswordValidation, setShowPasswordValidation] = useState(false);
 
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
@@ -43,7 +44,7 @@ export default function Profile() {
   const API_BASE_URL = import.meta.env.VITE_API_URL || "";
   const PROFILE_UPDATE_ENDPOINT = `${API_BASE_URL}/profile/update`; // update API
   const DELETE_ACCOUNT_ENDPOINT = `${API_BASE_URL}/account/delete`; // delete API
-  const PASSWORD_CHANGE_ENDPOINT = `${API_BASE_URL}/profile/change-password`; // change password API
+  const PASSWORD_CHANGE_ENDPOINT = `${API_BASE_URL}/password/update`; // change password API
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem("token");
@@ -75,17 +76,28 @@ export default function Profile() {
   // -------------------------
   // Photo change handler
   // -------------------------
-  const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setProfilePhoto(file);
+const handlePhotoChange = (e) => {
+  const file = e.target.files?.[0];
+  if (!file) return;
 
-    const previewUrl = URL.createObjectURL(file);
-    if (profilePhotoPreview && profilePhotoPreview.startsWith("blob:")) {
-      URL.revokeObjectURL(profilePhotoPreview);
-    }
-    setProfilePhotoPreview(previewUrl);
-  };
+  // Add file size validation here
+  if (file.size > 2 * 1024 * 1024) {
+    toast({
+      title: "File too large",
+      description: "Image size must be less than 2MB",
+      variant: "destructive"
+    });
+    return; // Stop execution if file is too large
+  }
+
+  setProfilePhoto(file);
+
+  const previewUrl = URL.createObjectURL(file);
+  if (profilePhotoPreview && profilePhotoPreview.startsWith("blob:")) {
+    URL.revokeObjectURL(profilePhotoPreview);
+  }
+  setProfilePhotoPreview(previewUrl);
+};
 
   // -------------------------
   // Save profile (update API + update localStorage)
@@ -118,7 +130,6 @@ export default function Profile() {
         const message = typeof resData === "object" ? JSON.stringify(resData) : String(resData);
         throw new Error(message || `Status ${res.status}`);
       }
-
       toast({ title: "Profile updated", description: "Your details were updated successfully." });
       console.log("Profile update response:", resData);
 
@@ -156,43 +167,83 @@ export default function Profile() {
   // Change password
   // -------------------------
   const handleChangePassword = async () => {
-    if (!oldPassword || !newPassword || !confirmNewPassword) {
-      toast({ title: "Missing fields", description: "Please fill all password fields." });
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      toast({ title: "Mismatch", description: "New password and confirm password do not match." });
-      return;
-    }
+  // Show validation errors only on submit
+  setShowPasswordValidation(true);
 
-    setIsChangingPassword(true);
+  if (!oldPassword || !newPassword || !confirmNewPassword) {
+    toast({
+      title: "Missing fields",
+      description: "Please fill all password fields before saving.",
+    });
+    return;
+  }
+
+  if (newPassword !== confirmNewPassword) {
+    toast({
+      title: "Password mismatch",
+      description: "New password and confirm password must be the same.",
+    });
+    return;
+  }
+
+  setIsChangingPassword(true);
+
+  try {
+    const res = await fetch(PASSWORD_CHANGE_ENDPOINT, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        current_password: oldPassword,
+        new_password: newPassword,
+        new_password_confirmation: confirmNewPassword,
+      }),
+    });
+
+    // Try to parse response safely
+    let resData = {};
     try {
-      const res = await fetch(PASSWORD_CHANGE_ENDPOINT, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          old_password: oldPassword,
-          new_password: newPassword,
-          new_password_confirmation: confirmNewPassword,
-        }),
-      });
-
-      const resData = await res.json();
-      if (!res.ok) throw new Error(resData?.message || "Password change failed");
-
-      toast({ title: "Success", description: "Password updated successfully." });
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmNewPassword("");
-    } catch (err) {
-      toast({ title: "Failed", description: err.message || "See console." });
-    } finally {
-      setIsChangingPassword(false);
+      resData = await res.json();
+    } catch {
+      throw new Error("Invalid response from server.");
     }
-  };
+
+    // Handle different error scenarios
+    if (!res.ok) {
+      let errorMsg = "Password change failed.";
+
+      if (res.status === 400) errorMsg = "Please check your input and try again.";
+      else if (res.status === 401) errorMsg = "Old password is incorrect.";
+      else if (res.status === 422) errorMsg = resData?.errors?.[0] || "Invalid password format.";
+      else if (res.status >= 500) errorMsg = "Server error. Please try again later.";
+      else if (resData?.message) errorMsg = resData.message;
+
+      throw new Error(errorMsg);
+    }
+
+    toast({
+      title: "Success",
+      description: "Password updated successfully.",
+    });
+
+    // Reset fields and validation state
+    setOldPassword("");
+    setNewPassword("");
+    setConfirmNewPassword("");
+    setShowPasswordValidation(false);
+  } catch (err) {
+    console.error("Password change error:", err);
+    toast({
+      title: "Failed to update password",
+      description: err.message || "An unexpected error occurred. Please try again.",
+    });
+  } finally {
+    setIsChangingPassword(false);
+  }
+};
+
 
   // -------------------------
   // Delete account
@@ -253,7 +304,9 @@ export default function Profile() {
                 Personal Information
               </CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-4">
+              {/* Profile Photo Section */}
               <div className="flex items-center gap-4 mb-6">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={profilePhotoPreview || ""} />
@@ -277,32 +330,71 @@ export default function Profile() {
                   >
                     Change Photo
                   </Button>
-                  <p className="text-xs text-muted-foreground mt-2">JPG, PNG or GIF. Max size 2MB.</p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    JPG, PNG or GIF. Max 2MB.
+                  </p>
                 </div>
               </div>
 
+              {/* Name & Last Name Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="Name">Name</Label>
-                  <Input id="Name" value={Name} onChange={(e) => setName(e.target.value)} />
+                  <Label htmlFor="Name">
+                    First Name <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="Name"
+                    value={Name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
+
                 <div>
                   <Label htmlFor="lastName">Last Name</Label>
-                  <Input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
+                  <Input
+                    id="lastName"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                  />
                 </div>
               </div>
 
+              {/* Email Field */}
               <div>
-                <Label htmlFor="email">Email Address</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <Label htmlFor="email">
+                  Email Address <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
               </div>
 
+              {/* Optional Phone Number */}
               <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" value={phone_number} onChange={(e) => setPhoneNumber(e.target.value)} />
+                <Label htmlFor="phone">Phone Number (Optional)</Label>
+                <Input
+                  id="phone"
+                  type="number"
+                  value={phone_number}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Only numbers are allowed
+                </p>
               </div>
 
-              <Button onClick={handleSaveProfile} className="w-full" disabled={isSaving}>
+              {/* Save Button */}
+              <Button
+                onClick={handleSaveProfile}
+                className="w-full px-4 py-2 rounded-lg font-semibold transition-all
+        text-white 
+        bg-red-500 hover:bg-red-600
+        dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white"
+                disabled={!Name || !email || isSaving}
+              >
                 {isSaving ? "Saving..." : "Save Changes"}
               </Button>
             </CardContent>
@@ -313,35 +405,68 @@ export default function Profile() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">Change Password</CardTitle>
             </CardHeader>
+
             <CardContent className="space-y-4">
+              {/* Old Password */}
               <div>
-                <Label htmlFor="oldPassword">Old Password</Label>
+                <Label htmlFor="oldPassword">
+                  Old Password <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="oldPassword"
                   type="password"
                   value={oldPassword}
                   onChange={(e) => setOldPassword(e.target.value)}
+                  className={showPasswordValidation && !oldPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {showPasswordValidation && !oldPassword && (
+                  <p className="text-xs text-red-500 mt-1">Old password is required</p>
+                )}
               </div>
+
+              {/* New Password */}
               <div>
-                <Label htmlFor="newPassword">New Password</Label>
+                <Label htmlFor="newPassword">
+                  New Password <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="newPassword"
                   type="password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  className={showPasswordValidation && !newPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {showPasswordValidation && !newPassword && (
+                  <p className="text-xs text-red-500 mt-1">New password is required</p>
+                )}
               </div>
+
+              {/* Confirm Password */}
               <div>
-                <Label htmlFor="confirmNewPassword">Confirm Password</Label>
+                <Label htmlFor="confirmNewPassword">
+                  Confirm Password <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id="confirmNewPassword"
                   type="password"
                   value={confirmNewPassword}
                   onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  className={showPasswordValidation && !confirmNewPassword ? "border-red-500 focus-visible:ring-red-500" : ""}
                 />
+                {showPasswordValidation && !confirmNewPassword && (
+                  <p className="text-xs text-red-500 mt-1">Please confirm your password</p>
+                )}
               </div>
-              <Button onClick={handleChangePassword} className="w-full" disabled={isChangingPassword}>
+
+              {/* Submit Button */}
+              <Button
+                onClick={handleChangePassword}
+                className="w-full px-4 py-2 rounded-lg font-semibold transition-all
+        text-white 
+        bg-red-500 hover:bg-red-600
+        dark:bg-sky-700 dark:hover:bg-sky-600 dark:text-white"
+                disabled={!oldPassword || !newPassword || !confirmNewPassword || isChangingPassword}
+              >
                 {isChangingPassword ? "Changing..." : "Change Password"}
               </Button>
             </CardContent>
@@ -364,30 +489,11 @@ export default function Profile() {
                 </Avatar>
                 <h3 className="font-semibold">{Name} {lastName}</h3>
                 <p className="text-sm text-muted-foreground">{email}</p>
-                <Badge className="mt-2">Administrator</Badge>
+                <Badge className=" mt-2 px-4 py-2 rounded-lg font-semibold transition-all
+    text-white
+    bg-red-500 hover:bg-red-600
+    dark:bg-sky-700 dark:hover:bg-sky-600">Administrator</Badge>
               </div>
-
-              {/* <Separator /> */}
-
-              {/* <div className="space-y-2">
-                <div className="flex justify-between text-sm"><span>Member since</span><span>Jan 2024</span></div>
-                <div className="flex justify-between text-sm"><span>Last login</span><span>2 hours ago</span></div>
-              </div> */}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full" size="sm">
-                <Mail className="h-4 w-4 mr-2" />
-                Export Data
-              </Button>
-              <Button variant="destructive" className="w-full" size="sm" onClick={() => setIsDeleteOpen(true)}>
-                Delete Account
-              </Button>
             </CardContent>
           </Card>
         </div>

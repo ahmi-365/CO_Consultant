@@ -302,82 +302,100 @@ export default function ProfilePage() {
       {/* Main Content */}
       <div className="flex-1">
         {/* Header */}
-        <div className="border-b border-border bg-card">
-          <div className="container mx-auto px-6 py-8">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <Avatar className="h-20 w-20">
-                  <AvatarImage src={getDisplayImage()} />
-                  <AvatarFallback className="text-lg font-semibold bg-panel text-panel-foreground">
-                    {(profileData.name + " " + (profileData.last_name || ""))
-                      .split(" ")
-                      .filter(n => n)
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <Button
-                  size="sm"
-                  className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full p-0 bg-panel text-panel-foreground hover:bg-panel/90"
-                  onClick={() => document.getElementById('profile-photo-input')?.click()}
-                  disabled={loading}
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
-                <input
-                  id="profile-photo-input"
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handlePhotoSelection(file);
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-foreground">
-                  {profileData.name} {profileData.last_name}
-                </h1>
-                <p className="text-muted-foreground">{profileData.email}</p>
-                <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Users className="h-4 w-4" />
-                    {userInfo.roles.join(", ")}
-                  </span>
-                  {profileData.phone_number && (
-                    <span className="flex items-center gap-1">
-                      <Phone className="h-4 w-4" />
-                      {profileData.phone_number}
-                    </span>
-                  )}
-                </div>
-                {(photoPreview || selectedPhotoFile) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="mt-2 text-destructive hover:text-destructive"
-                    onClick={handleRemovePhotoPreview}
-                    disabled={loading}
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    Remove Selected Photo
-                  </Button>
-                )}
-                {selectedPhotoFile && (
-                  <div className="mt-2">
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                      Photo ready to upload - Click "Update Profile" to save
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+        <div className="border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-[#0f172a] transition-colors">
+  <div className="container mx-auto px-6 py-8">
+    <div className="flex items-center gap-6">
+      {/* Avatar Section */}
+      <div className="relative">
+        <Avatar className="h-20 w-20 border border-gray-200 dark:border-gray-700">
+          <AvatarImage src={getDisplayImage()} />
+          <AvatarFallback className="text-lg font-semibold bg-red-600 text-white dark:bg-[#1e40af] dark:text-gray-100">
+            {(profileData.name + " " + (profileData.last_name || ""))
+              .split(" ")
+              .filter((n) => n)
+              .map((n) => n[0])
+              .join("")
+              .toUpperCase() || "U"}
+          </AvatarFallback>
+        </Avatar>
+
+        {/* Camera Button */}
+        <Button
+          size="sm"
+          className="absolute -bottom-1 -right-1 h-8 w-8 rounded-full p-0 
+                     bg-red-600 text-white hover:bg-red-700 
+                     dark:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] 
+                     dark:text-gray-100 transition-colors shadow-md"
+          onClick={() => document.getElementById('profile-photo-input')?.click()}
+          disabled={loading}
+        >
+          <Camera className="h-4 w-4" />
+        </Button>
+
+        <input
+          id="profile-photo-input"
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) {
+              handlePhotoSelection(file);
+            }
+          }}
+        />
+      </div>
+
+      {/* Profile Info */}
+      <div className="flex-1">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+          {profileData.name} {profileData.last_name}
+        </h1>
+        <p className="text-gray-600 dark:text-gray-400">{profileData.email}</p>
+
+        <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <span className="flex items-center gap-1">
+            <Users className="h-4 w-4" />
+            {userInfo.roles.join(", ")}
+          </span>
+
+          {profileData.phone_number && (
+            <span className="flex items-center gap-1">
+              <Phone className="h-4 w-4" />
+              {profileData.phone_number}
+            </span>
+          )}
         </div>
+
+        {/* Remove Photo Button */}
+        {(photoPreview || selectedPhotoFile) && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="mt-2 text-red-600 hover:text-red-700 
+                       dark:text-red-500 dark:hover:text-red-400 
+                       transition-colors"
+            onClick={handleRemovePhotoPreview}
+            disabled={loading}
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            Remove Selected Photo
+          </Button>
+        )}
+
+        {/* Upload Notice */}
+        {selectedPhotoFile && (
+          <div className="mt-2">
+            <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 px-2 py-1 rounded">
+              Photo ready to upload — Click "Update Profile" to save
+            </span>
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</div>
+
 
         {/* Content */}
         <div className="container mx-auto px-6 py-8">
@@ -452,6 +470,7 @@ export default function ProfilePage() {
                       <Label htmlFor="phone_number">Phone Number</Label>
                       <Input
                         id="phone_number"
+                        type="number"
                         value={profileData.phone_number}
                         onChange={(e) =>
                           setProfileData((prev) => ({
@@ -463,13 +482,19 @@ export default function ProfilePage() {
                       />
                     </div>
                   </div>
-                  <Button
-                    onClick={handleProfileUpdate}
-                    disabled={loading}
-                    className="bg-panel text-panel-foreground hover:bg-panel/90"
-                  >
-                    {loading ? "Updating..." : "Update Profile"}
-                  </Button>
+                 <Button
+  onClick={handleProfileUpdate}
+  disabled={loading}
+  className={`
+    px-4 py-2 font-medium rounded-md transition-colors shadow-sm
+    bg-red-600 text-white hover:bg-red-700
+    dark:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] dark:text-gray-100
+    disabled:opacity-70 disabled:cursor-not-allowed
+  `}
+>
+  {loading ? "Updating..." : "Update Profile"}
+</Button>
+
                 </CardContent>
               </Card>
 

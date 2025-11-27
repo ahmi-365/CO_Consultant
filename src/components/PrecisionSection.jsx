@@ -1,204 +1,141 @@
-import { Wrench, Target, Users } from "lucide-react";
+import { Clock, DollarSign, Users, BarChart3 } from "lucide-react";
 
-const services = [
+const stats = [
   {
-    number: 1,
-    title: "Precision Engineering",
-    description:
-      "Transforming complex designs into reality with meticulous attention to detail, ensuring every element is crafted with precision and innovation to deliver unmatched engineering excellence.",
-    icon: Wrench,
-    features: [
-      "Advanced CAD design capabilities",
-      "Quality control at every stage",
-      "Technical expertise and innovation",
-      "3D modeling & visualization",
-      "Cutting-edge machinery integration",
-      "Sustainable & eco-friendly practices",
-    ],
+    percentage: "77%",
+    description: "of construction projects exceed their original timeline",
+    color: "text-cyan-400",
   },
   {
-    number: 3,
-    title: "Strategic Project Management",
-    description:
-      "Our approachable team ensures timely and budget-friendly delivery of your projects, while maintaining clear communication and proactive strategies to overcome challenges with ease.",
-    icon: Target,
-    features: [
-      "Timeline optimization",
-      "Budget management",
-      "Risk mitigation strategies",
-      "Agile and adaptive planning",
-      "Milestone tracking with transparency",
-    ],
+    percentage: "$1.6T",
+    description: "lost annually due to construction delays and inefficiencies",
+    color: "text-yellow-400",
   },
   {
-    number: 2,
-    title: "Client-Centric Solutions",
-    description:
-      "We prioritize your needs to offer a custom approach that elevates your projects.",
-    icon: Users,
-    features: [
-      "Tailored project solutions",
-      "Dedicated support team",
-      "Transparent communication",
-    ],
+    percentage: "20%",
+    description: "improvement in productivity with real-time tracking",
+    color: "text-orange-400",
+  },
+  {
+    percentage: "35%",
+    description: "reduction in project overruns with data-driven management",
+    color: "text-red-400",
   },
 ];
 
-const PrecisionSection = () => {
+const impacts = [
+  {
+    icon: Clock,
+    title: "Reduce Project Delays",
+    description:
+      "Real-time monitoring helps identify bottlenecks early, preventing costly delays and keeping projects on schedule.",
+    color: "bg-cyan-400",
+  },
+  {
+    icon: DollarSign,
+    title: "Control Budget Overruns",
+    description:
+      "Track resource utilization and costs in real-time to prevent budget overruns and optimize spending.",
+    color: "bg-yellow-400",
+  },
+  {
+    icon: Users,
+    title: "Optimize Workforce",
+    description:
+      "Understand productivity patterns and allocate human resources more effectively across projects.",
+    color: "bg-lime-400",
+  },
+];
+
+const ConstructionDataMatters = () => {
   return (
-    <section className="min-h-screen flex items-center bg-gradient-to-br from-background to-muted/20 py-4">
-      <div className="container mx-auto px-4">
-        {/* Title & Description - full width */}
-        <div className="text-center max-w-3xl mx-auto mt-12 mb-16">
-          <h2 className="text-3xl md:text-5xl font-bold leading-snug">
-            <span className="text-primary">Build Your Future with</span>{" "}
-            <span className="text-accent">Precision</span>
+    <section className="py-10 bg-white">
+      <div className="container mx-auto px-6 max-w-6xl">
+
+        {/* HEADER */}
+        <div className="text-center mb-2">
+          <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+            Why Construction Data Matters
           </h2>
-          <p className="text-base md:text-lg text-construction-grey mt-4 leading-relaxed">
-            Specializing in tailored solutions for your construction and
-            engineering needs, we ensure your projects are executed with
-            excellence.
-          </p>
         </div>
 
-        {/* Mobile view: All content in sequential order */}
-        <div className="block lg:hidden">
-          {/* Image */}
-          <div className="relative w-full max-w-md mx-auto mb-8">
-            <img
-              src="../../Assets/truck-cuate.png"
-              alt="Construction Crane"
-              className="w-full h-auto object-contain"
-            />
-          </div>
-
-          {/* All services in order */}
-          {services.map((service) => {
-            const IconComponent = service.icon;
-            return (
-              <div key={service.number} className="space-y-3 mb-10">
-                {/* Header */}
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-                    {service.number}
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                    <IconComponent className="w-5 h-5 text-accent" />
-                    {service.title}
-                  </h3>
-                </div>
-
-                {/* Description */}
-                <p className="text-construction-grey text-base leading-normal pl-12">
-                  {service.description}
-                </p>
-
-                {/* Features */}
-                <ul className="list-disc list-inside text-base space-y-1 ml-12">
-                  {service.features.map((feature, index) => (
-                    <li
-                      key={index}
-                      className="hover:text-accent transition-colors"
-                    >
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
+        {/* SMALL STATS CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+          {stats.map((stat, index) => (
+            <div
+              key={index}
+              className="bg-gray-800 rounded-xl p-3 text-center shadow border border-gray-700 w-full"
+            >
+              <div className={`text-2xl font-bold ${stat.color} mb-1`}>
+                {stat.percentage}
               </div>
-            );
-          })}
+              <p className="text-gray-300 text-xs leading-tight">
+                {stat.description}
+              </p>
+            </div>
+          ))}
         </div>
 
-        {/* Desktop view: Original layout */}
-        <div className="hidden lg:grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          {/* Left: Image + 3rd Step */}
-          <div className="flex flex-col items-center justify-start h-full">
-            <div className="relative w-full max-w-md md:max-w-lg mb-6 -mt-24">
-              <img
-                src="../../Assets/truck-cuate.png"
-                alt="Construction Crane"
-                className="w-full h-auto object-contain"
-              />
-            </div>
+        {/* IMPACT + IMAGE SECTION */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
-            {/* 3rd Step Below Image */}
-            <div className="w-full max-w-md relative -top-16">
-              {(() => {
-                const service = services[2];
-                const IconComponent = service.icon;
-                return (
-                  <div key={service.number} className="space-y-3">
-                    {/* Header */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
-                        {service.number}
-                      </div>
-                      <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                        <IconComponent className="w-5 h-5 text-accent" />
-                        {service.title}
-                      </h3>
-                    </div>
+          {/* LEFT IMPACT LIST */}
+          <div className="flex flex-col justify-center h-full">
+            <h3 className="text-2xl md:text-3xl font-bold text-gray-800 mb-6">
+              The Real Impact of Smart Construction Management
+            </h3>
 
-                    {/* Description */}
-                    <p className="text-construction-grey text-base leading-normal pl-12">
-                      {service.description}
+            <div className="space-y-4">
+              {impacts.map((impact, index) => (
+                <div key={index} className="flex gap-3 items-start">
+                  <div className={`${impact.color} p-2 rounded-lg flex-shrink-0`}>
+                    <impact.icon className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <h4 className="text-base font-semibold text-gray-800 mb-1">
+                      {impact.title}
+                    </h4>
+                    <p className="text-gray-600 text-xs leading-relaxed">
+                      {impact.description}
                     </p>
-
-                    {/* Features */}
-                    <ul className="list-disc list-inside text-base space-y-1 ml-16">
-                      {service.features.map((feature, index) => (
-                        <li
-                          key={index}
-                          className="hover:text-accent transition-colors"
-                        >
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
                   </div>
-                );
-              })()}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Right: Step 1 & 2 */}
-          <div className="h-full flex flex-col justify-between mt-4">
-            {services.slice(0, 2).map((service) => {
-              const IconComponent = service.icon;
-              return (
-                <div key={service.number} className="space-y-3 mb-10">
-                  {/* Header */}
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg shadow-lg">
-                      {service.number}
-                    </div>
-                    <h3 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                      <IconComponent className="w-5 h-5 text-accent" />
-                      {service.title}
-                    </h3>
-                  </div>
+          {/* RIGHT IMAGE BOX */}
+          <div className="flex items-center justify-center h-full w-full">
+            <div className="relative w-full max-w-sm h-64">
+              {/* IMAGE ONLY */}
+              <img
+                src="https://images.unsplash.com/photo-1636790920612-ed453c635e6c?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8Q29uc3RydWN0aW9uJTIwRGF0YXxlbnwwfHwwfHx8MA%3D%3D"
+                alt="Construction Site"
+                className="w-full h-full object-cover rounded-xl"
+              />
 
-                  {/* Description */}
-                  <p className="text-construction-grey text-base leading-normal pl-12">
-                    {service.description}
-                  </p>
-
-                  {/* Features */}
-                  <ul className="list-disc list-inside text-base space-y-1 ml-16">
-                    {service.features.map((feature, index) => (
-                      <li key={index} className="hover:text-accent transition-colors">
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+              {/* TOP BADGE */}
+              <div className="absolute -top-3 -right-3 bg-white rounded-lg shadow p-2 border border-blue-400">
+                <div className="text-lg font-bold text-blue-600">98%</div>
+                <div className="text-[9px] text-gray-600 text-center">
+                  Client Satisfaction
                 </div>
-              );
-            })}
+              </div>
+
+              {/* BOTTOM BADGE */}
+              <div className="absolute -bottom-3 -left-3 bg-white rounded-lg shadow p-2 border border-cyan-400">
+                <div className="text-lg font-bold text-cyan-600">24/7</div>
+                <div className="text-[9px] text-gray-600 text-center">
+                  Monitoring
+                </div>
+              </div>
+            </div>
           </div>
+
         </div>
       </div>
     </section>
   );
 };
 
-export default PrecisionSection;
+export default ConstructionDataMatters;

@@ -30,6 +30,9 @@ import {
   MoreHorizontal,
   X,
   Loader2,
+  Folders,
+  AlertCircle,
+  ChevronDown,
 } from "lucide-react";
 import FileItem from "@/components/admin/Files/FileItem";
 import UserPermissions from "@/components/admin/Files/UserPermissions";
@@ -40,6 +43,7 @@ import { fileApi, getCachedFiles } from "@/services/FileService";
 import { useToast } from "@/hooks/use-toast";
 import SearchUser from "../../components/admin/Files/SearchUser";
 import MoveFileDialog from '@/components/MoveFileDialog';
+import { Pagination } from "../../components/ui/pagination"
 
 export default function FileManagement() {
   const [files, setFiles] = useState([]);
@@ -66,85 +70,118 @@ export default function FileManagement() {
   const [loadingFolders, setLoadingFolders] = useState(false);
   const [isMoveDialogOpen, setIsMoveDialogOpen] = useState(false);
   const [itemToMove, setItemToMove] = useState(null);
-const [searchDebounceTimer, setSearchDebounceTimer] = useState(null); // ← ADD THIS LINE
+  const [validationError, setValidationError] = useState("");
+  const [sortOption, setSortOption] = useState(""); // "name" or "date"
+// Replace these state declarations
+const [currentPage, setCurrentPage] = useState(1);
+const [totalPages, setTotalPages] = useState(1);
+const [totalItems, setTotalItems] = useState(0);
+const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  const [currentUserRole, setCurrentUserRole] = useState(""); 
+
+  const [searchDebounceTimer, setSearchDebounceTimer] = useState(null); // ← ADD THIS LINE
   const { toast } = useToast();
-const base_url = import.meta.env.VITE_API_URL ;
+  const base_url = import.meta.env.VITE_API_URL;
+
+
   useEffect(() => {
-    loadFiles();
-  }, [currentPath, selectedUser]);
-useEffect(() => {
-  // Clear existing timer
-  if (searchDebounceTimer) {
-    clearTimeout(searchDebounceTimer);
-  }
-
-  // Set new timer for search
-  const timer = setTimeout(() => {
-    if (searchTerm.trim()) {
-      loadFiles({ search: searchTerm.trim() });
+    loadFiles({ page: currentPage });
+  }, [currentPath, selectedUser, currentPage, itemsPerPage]);
+  useEffect(() => {
+    if (newFolderName.trim()) {
+      setValidationError(validateFolderName(newFolderName));
     } else {
-      // If search is cleared, reload normally
-      loadFiles();
+      setValidationError("");
     }
-  }, 500); // 500ms debounce
+  }, [newFolderName]);
 
-  setSearchDebounceTimer(timer);
+  useEffect(() => {
+    // Clear existing timer
+    if (searchDebounceTimer) {
+      clearTimeout(searchDebounceTimer);
+    }
 
-  // Cleanup
-  return () => {
-    if (timer) clearTimeout(timer);
-  };
-}, [searchTerm]);
+    // Set new timer for search
+    const timer = setTimeout(() => {
+      if (searchTerm.trim()) {
+        loadFiles({ search: searchTerm.trim() });
+      } else {
+        // If search is cleared, reload normally
+        loadFiles();
+      }
+    }, 500); // 500ms debounce
+
+    setSearchDebounceTimer(timer);
+
+    // Cleanup
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
+  }, [searchTerm]);
   // Load available folders for move dialog
   useEffect(() => {
     if (isMoveDialogOpen) {
       loadAvailableFolders();
     }
   }, [isMoveDialogOpen]);
-const handleIframeUpdate = async (itemId, iframeUrl) => {
-  try {
-    const response = await fetch(`${base_url}/onedrive/update-iframe/${itemId}`, {
-      method: 'POST',
-     headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        iframe_url: iframeUrl
-      })
-    });
-    
-    const data = await response.json();
-    
-    if (data.status === 'ok') {
-      // Update your local state here to reflect the change
-      // For example, update the item in your files array
-      setFiles(prevFiles => 
-        prevFiles.map(file => 
-          file.id === itemId 
-            ? { ...file, iframe_url: iframeUrl }
-            : file
-        )
-      );
-      return data;
-    } else {
-      throw new Error(data.message || 'Failed to update iframe');
+  const handleIframeUpdate = async (itemId, iframeUrl) => {
+    try {
+      const response = await fetch(`${base_url}/onedrive/update-iframe/${itemId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          iframe_url: iframeUrl
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'ok') {
+        // Update your local state here to reflect the change
+        // For example, update the item in your files array
+        setFiles(prevFiles =>
+          prevFiles.map(file =>
+            file.id === itemId
+              ? { ...file, iframe_url: iframeUrl }
+              : file
+          )
+        );
+        return data;
+      } else {
+        throw new Error(data.message || 'Failed to update iframe');
+      }
+    } catch (error) {
+      throw error;
     }
-  } catch (error) {
-    throw error;
-  }
-};
+  };
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        setCurrentUserRole(payload.role || "user"); // admin, user, etc.
+      } catch (e) {
+        console.warn("Token decode failed");
+      }
+    }
+  }, []);
 
 const loadFiles = async (opts = {}) => {
   console.log("🔄 loadFiles called with opts:", opts);
   setLoading(true);
-  
+
   try {
     const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
-    
+
     const params = {
       ...(selectedUser ? { user_id: selectedUser } : {}),
       ...(opts.search ? { search: opts.search } : {}),
+      page: opts.page || currentPage,
+      per_page: opts.per_page || itemsPerPage,
     };
 
     const options = {
@@ -152,37 +189,78 @@ const loadFiles = async (opts = {}) => {
     };
 
     console.log("📡 API call params:", { currentParentId, params, options });
-    
-    const response = await fileApi.listFiles(currentParentId, params, options);
+
+    const response = await fileApi.listadminFiles(currentParentId, params, options);
     console.log("✅ Full API Response:", response);
-    
-    // SIMPLIFIED response handling
+
     let data = [];
-    if (Array.isArray(response)) {
+    let paginationData = {
+      total: 0,
+      current_page: 1,
+      per_page: itemsPerPage,
+      last_page: 1
+    };
+
+    if (response.pagination) {
+      data = response.data || [];
+      paginationData = {
+        total: response.pagination.total || 0,
+        current_page: parseInt(response.pagination.page) || 1,
+        per_page: parseInt(response.pagination.per_page) || itemsPerPage,
+        last_page: response.pagination.total_pages || 1
+      };
+    } else if (response.items) {
+      data = response.items;
+      paginationData = {
+        total: response.total || 0,
+        current_page: response.current_page || 1,
+        per_page: response.per_page || itemsPerPage,
+        last_page: response.last_page || 1
+      };
+    } else if (Array.isArray(response)) {
       data = response;
+      paginationData.total = response.length;
     } else if (response?.data) {
       data = Array.isArray(response.data) ? response.data : [response.data];
     } else if (response?.files) {
       data = Array.isArray(response.files) ? response.files : [response.files];
     }
-    
+
     console.log("📊 Extracted data:", data);
-    console.log("📊 Data length:", data.length);
-    
-    // Apply filtering only when NOT searching
-    const safeData = opts.search 
-      ? data  
+    console.log("📊 Pagination data:", paginationData);
+
+    // ✅ FIXED: Filter by current folder when NOT searching/filtering by user
+    const safeData = opts.search || selectedUser
+      ? data
       : data.filter((f) => {
+          // Normalize parent_id for comparison (handle string/number)
+          const normalizedParentId = f.parent_id === null ? null : parseInt(f.parent_id);
+          const normalizedCurrentId = currentParentId === null ? null : parseInt(currentParentId);
+          
           if (currentParentId === null) {
-            return f.parent_id === 1 || f.parent_id === null || f.parent_id === 2;
+            // Root level: show items with parent_id = 1 or null
+            return normalizedParentId === 1 || normalizedParentId === null;
           } else {
-            return f.parent_id === currentParentId;
+            // Inside folder: show items with matching parent_id
+            return normalizedParentId === normalizedCurrentId;
           }
         });
 
     console.log("🎯 Final files to display:", safeData);
+    console.log("🔍 Filtering by currentParentId:", currentParentId);
+
     setFiles(safeData);
+    setTotalItems(paginationData.total);
+    setTotalPages(paginationData.last_page);
     
+    if (opts.page !== undefined) {
+      setCurrentPage(paginationData.current_page);
+    }
+    
+    if (opts.per_page !== undefined) {
+      setItemsPerPage(paginationData.per_page);
+    }
+
   } catch (error) {
     console.error("❌ Failed to load files:", error);
     toast({
@@ -191,11 +269,26 @@ const loadFiles = async (opts = {}) => {
       variant: "destructive",
     });
     setFiles([]);
+    setTotalItems(0);
+    setTotalPages(1);
+    setCurrentPage(1);
   } finally {
     setLoading(false);
   }
 };
-
+const handleItemsPerPageChange = (value) => {
+  const newPerPage = parseInt(value);
+  setItemsPerPage(newPerPage);
+  setCurrentPage(1); // Reset to page 1
+  loadFiles({ page: 1, per_page: newPerPage });
+};
+ const handlePageChange = (newPage) => {
+  if (newPage < 1 || newPage > totalPages) return;
+  setCurrentPage(newPage);
+  loadFiles({ page: newPage });
+  // Scroll to top of file list
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
     try {
@@ -217,34 +310,51 @@ const loadFiles = async (opts = {}) => {
     }
   };
 
-  const handleCreateFolder = async () => {
-    if (!newFolderName.trim()) return;
+const handleCreateFolder = async () => {
+  const error = validateFolderName(newFolderName);
+  if (error) {
+    toast({
+      title: "Error",
+      description: error,
+      variant: "destructive",
+    });
+    setValidationError(error);
+    return;
+  }
 
-    setIsCreating(true);
-    try {
-      const parentId =
-        currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+  // Use parent ID from currentPath, or 1 if at root
+  const parentId =
+    currentPath.length > 0
+      ? currentPath[currentPath.length - 1].id
+      : 1;
 
-      await fileApi.createFolder(newFolderName.trim(), parentId);
+  setIsCreating(true);
+  try {
+    const newFolder = await fileApi.createFolder(newFolderName.trim(), parentId);
 
-      toast({
-        title: "Success",
-        description: "Folder created successfully",
-      });
+    toast({
+      title: "Success",
+      description: `Folder "${newFolder?.name || newFolderName}" created successfully!`,
+    });
 
-      setNewFolderName("");
-      setIsCreateFolderOpen(false);
-      loadFiles({ force: true });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to create folder",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreating(false);
-    }
-  };
+    setIsCreateFolderOpen(false);
+    setNewFolderName("");
+    setValidationError("");
+
+    // Reload files in the current folder
+    await loadFiles({ force: true });
+  } catch (err) {
+    console.error("Create folder failed:", err);
+    toast({
+      title: "Error",
+      description: err?.message || "Failed to create folder",
+      variant: "destructive",
+    });
+  } finally {
+    setIsCreating(false);
+  }
+};
+
 
   // Handle file upload completion from FileUploadModal
   const handleFileUploaded = async (uploadedFile) => {
@@ -254,7 +364,7 @@ const loadFiles = async (opts = {}) => {
 
   const handleFileDrop = async (files, targetFolderId) => {
     const fileArray = Array.from(files);
-    
+
     // Use the FileUploadModal for dropped files
     if (fileArray.length > 0) {
       setIsUploadOpen(true);
@@ -262,10 +372,49 @@ const loadFiles = async (opts = {}) => {
       // For now, this opens the modal and user can select files again
     }
   };
+  const validateFolderName = (name) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return "Folder name cannot be empty";
+    if (trimmedName.length < 2) return "Folder name must be at least 2 characters long";
+
+    // Disallowed characters
+    const invalidChars = /[<>:"/\\|?*\x00-\x1F!@#$%^&*()+=[\]{};',~`]/;
+    if (invalidChars.test(trimmedName)) {
+      return "Folder name contains invalid characters. Avoid: < > : \" / \\ | ? * ! @ # $ % ^ & ( ) + = [ ] { } ; ' , ~ `";
+    }
+
+    if (trimmedName.endsWith(".") || trimmedName.endsWith(" ")) {
+      return "Folder name cannot end with a dot or space";
+    }
+
+    // vowel + consonant check (basic meaningful check)
+    const hasVowel = /[aeiouAEIOU]/.test(trimmedName);
+    const hasConsonant = /[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]/.test(trimmedName);
+    if (!hasVowel || !hasConsonant) return "Please use a meaningful folder name (contains letters and vowels)";
+
+    // reject obvious gibberish / patterns
+    const repeatedChars = /(.)\1{3,}/.test(trimmedName);
+    const sequentialChars = /(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(trimmedName);
+    const commonPatterns = ["qwerty", "asdf", "zxcv", "uiop", "ghjk", "bnm"];
+    const looksRandom =
+      commonPatterns.some((p) => trimmedName.toLowerCase().includes(p)) ||
+      /[bcdfghjklmnpqrstvwxyz]{4,}/i.test(trimmedName);
+
+    if (repeatedChars) return "Folder name contains repeated characters. Use proper words.";
+    if (sequentialChars) return "Folder name has sequential letters. Use proper words.";
+    if (looksRandom) return "Folder name looks random. Please use a meaningful name.";
+
+    // reserved names
+    const reserved = ["con", "prn", "aux", "nul", "com1", "lpt1"];
+    if (reserved.includes(trimmedName.toLowerCase())) return `"${trimmedName}" is a reserved system name.`;
+
+    return ""; // no error
+  };
 
   const handleFileSelect = (item) => {
     if (item.type === "folder") {
       setCurrentPath([...currentPath, { id: item.id, name: item.name }]);
+      setCurrentPage(1); // RESET TO PAGE 1
     }
     setSelectedItem(item);
   };
@@ -355,83 +504,64 @@ const loadFiles = async (opts = {}) => {
     }
   };
 
-const handleMove = async (item) => {
-  console.log("handleMove called with:", item); // Debug log
-  
-  if (!item) {
-    console.error("No item provided to handleMove");
-    return;
-  }
-  
-  if (!item.id) {
-    console.error("Item missing ID:", item);
+  const handleMove = async (item) => {
+  console.log("handleMove called with:", item);
+
+  if (!item || !item.id) {
     toast({
       title: "Error",
-      description: "Selected item has no ID",
+      description: "Invalid item selected",
       variant: "destructive",
     });
     return;
   }
-  
-  console.log("Setting itemToMove:", item);
-  setItemToMove(item);
+
+  setItemToMove(item); // Pass the full item object
   setIsMoveDialogOpen(true);
 };
 
   const handleConfirmMove = async () => {
-    if (!itemToMove || !moveDestination) {
-      console.warn("⚠️ No itemToMove or moveDestination provided", {
-        itemToMove,
-        moveDestination,
-      });
-      toast({
-        title: "Error",
-        description: "Please select an item and destination",
-        variant: "destructive",
-      });
-      return;
-    }
+  if (!itemToMove || !moveDestination) {
+    toast({
+      title: "Error",
+      description: "Please select an item and destination",
+      variant: "destructive",
+    });
+    return;
+  }
 
-    setIsMoving(true);
-    try {
-      const dest = moveDestination === "root" ? null : moveDestination;
+  setIsMoving(true);
+  try {
+    // ✅ UPDATED: Use 1 for root instead of null
+    const dest = moveDestination === "root" ? 1 : moveDestination; // Changed from null to 1
 
-      console.log("📦 Moving item", { itemToMove, dest });
+    console.log("📦 Moving item", { itemToMove, dest });
 
-      const result = await fileApi.moveItem(itemToMove, dest);
-      console.log("✅ Move result:", result);
+    const result = await fileApi.moveItem(itemToMove, dest);
+    console.log("✅ Move result:", result);
 
-      toast({
-        title: "Success",
-        description: "Item moved successfully",
-      });
+    toast({
+      title: "Success",
+      description: "Item moved successfully",
+    });
 
-      setIsMoveDialogOpen(false);
-      setItemToMove(null);
-      setMoveDestination("");
+    setIsMoveDialogOpen(false);
+    setItemToMove(null);
+    setMoveDestination("");
 
-      // wait for files to reload
-      await loadFiles({ force: true });
+    await loadFiles({ force: true });
 
-    } catch (error) {
-      console.error("🚨 Move failed:", error);
-
-      if (
-        error.name === "TypeError" &&
-        error.message.includes("Failed to fetch")
-      ) {
-        console.error("🌐 Possible CORS/network issue during move request");
-      }
-
-      toast({
-        title: "Error",
-        description: "Failed to move item",
-        variant: "destructive",
-      });
-    } finally {
-      setIsMoving(false);
-    }
-  };
+  } catch (error) {
+    console.error("🚨 Move failed:", error);
+    toast({
+      title: "Error",
+      description: "Failed to move item",
+      variant: "destructive",
+    });
+  } finally {
+    setIsMoving(false);
+  }
+};
 
   const handleRename = async (id, newName) => {
     setIsRenaming((prev) => ({ ...prev, [id]: true }));
@@ -453,8 +583,24 @@ const handleMove = async (item) => {
       setIsRenaming((prev) => ({ ...prev, [id]: false }));
     }
   };
-    const handleMoveSuccess = async (movedItem, destination) => {
-  await loadFiles({ force: true });
+const handleMoveSuccess = async (movedItem, destination) => {
+  console.log("Move success:", { movedItem, destination });
+  
+  // Update the item in local state immediately
+  setFiles(prevFiles => 
+    prevFiles.map(file => 
+      file.id === movedItem.id 
+        ? { ...file, parent_id: destination }
+        : file
+    )
+  );
+  
+  // Then reload to get fresh data
+  await loadFiles({ force: true, page: currentPage });
+  
+  if (selectedItem?.id === movedItem.id) {
+    setSelectedItem(null);
+  }
 };
 
   const handleManagePermissions = (item) => {
@@ -479,11 +625,12 @@ const handleMove = async (item) => {
 
   const handleBreadcrumbClick = (index) => {
     if (index === -1) {
-      // Root level
       setCurrentPath([]);
     } else {
       setCurrentPath(currentPath.slice(0, index + 1));
     }
+    // RESET PAGINATION
+    setCurrentPage(1);
   };
 
   const handleSync = async () => {
@@ -507,13 +654,28 @@ const handleMove = async (item) => {
     }
   };
 
-  // Filter files for current folder search only
-const displayItems = files;  // ← Just display what API returns
+  // Compute sorted items directly (no useEffect needed)
+  const sortedItems = [...files].sort((a, b) => {
+    if (sortOption === "name") {
+      return a.name.localeCompare(b.name);
+    } else if (sortOption === "date") {
+      return new Date(b.modifiedAt) - new Date(a.modifiedAt);
+    }
+    return 0; // default: no sort
+  });
 
+  // Use sortedItems in render
+  const displayItems = sortedItems;
   // Get current folder for FileUploadModal
-  const currentFolder = currentPath.length > 0 
-    ? currentPath[currentPath.length - 1] 
+  const currentFolder = currentPath.length > 0
+    ? currentPath[currentPath.length - 1]
     : null;
+
+
+  const isFormValid =
+    newFolderName.trim().length >= 2 &&
+    /^[a-zA-Z0-9\s_-]+$/.test(newFolderName.trim());
+
 
   return (
     <DragDropZone onFileDrop={handleFileDrop}>
@@ -523,7 +685,7 @@ const displayItems = files;  // ← Just display what API returns
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 border-b pb-4">
             {/* Left side: title and subtitle */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-gray-800 dark:text-white">
                 File Management
               </h1>
               <p className="text-sm text-gray-500 mt-1">
@@ -627,38 +789,101 @@ const displayItems = files;  // ← Just display what API returns
                       Files & Folders
                     </CardTitle>
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full sm:w-auto">
-                      {/* User Filter */}
-                      <div className="w-full sm:w-auto">
-                        <SearchUser
-                          selectedUser={selectedUser}
-                          onUserSelect={setSelectedUser}
-                        />
-                      </div>
+                   <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto">
+  {/* User Filter */}
+  <div className="w-full lg:w-auto">
+    <SearchUser
+      selectedUser={selectedUser}
+      onUserSelect={setSelectedUser}
+    />
+  </div>
+  
+  <div className="flex items-center gap-2 w-full lg:w-auto">
+    <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
+    <Select
+      value={itemsPerPage.toString()}
+      onValueChange={handleItemsPerPageChange}
+    >
+      <SelectTrigger className="w-[100px]">
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="10">10</SelectItem>
+        <SelectItem value="20">20</SelectItem>
+        <SelectItem value="50">50</SelectItem>
+        <SelectItem value="100">100</SelectItem>
+      </SelectContent>
+    </Select>
+  </div>
+  
+  {/* Smart Sort Toggle - Only shows if files exist */}
+  {files.length > 1 && (
+    <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm rounded-full p-1 border border-border/50 shadow-sm w-full lg:w-auto justify-center lg:justify-start">
+      <button
+        onClick={() => setSortOption(sortOption === "name" ? "" : "name")}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          sortOption === "name"
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+        </svg>
+        Name
+      </button>
 
-                      {/* Search Input - Current folder only */}
-                      <div className="relative w-full sm:w-64">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                        <Input
-placeholder={searchTerm ? "Searching..." : "Search files..."}
-                          className="pl-9 w-full border-border bg-background"
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                        {searchTerm && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSearchTerm("")}
-                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-                          >
-                            <X className="h-3 w-3" />
-                          </Button>
-                        )}
-                      </div>
-                    </div>
+      <button
+        onClick={() => setSortOption(sortOption === "date" ? "" : "date")}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
+          sortOption === "date"
+            ? "bg-primary text-primary-foreground shadow-sm"
+            : "text-muted-foreground hover:text-foreground hover:bg-muted"
+        }`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        Date
+      </button>
+
+      {/* Clear Sort Button - Only if sorted */}
+      {sortOption && (
+        <button
+          onClick={() => setSortOption("")}
+          className="ml-1 p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+          title="Clear sorting"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+    </div>
+  )}
+
+  {/* Search Input */}
+  <div className="relative w-full lg:w-64">
+    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    <Input
+      placeholder={searchTerm ? "Searching..." : "Search files..."}
+      className="pl-9 w-full border-border bg-background"
+      value={searchTerm}
+      onChange={(e) => setSearchTerm(e.target.value)}
+    />
+    {searchTerm && (
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setSearchTerm("")}
+        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+      >
+        <X className="h-3 w-3" />
+      </Button>
+    )}
+  </div>
+</div>
                   </div>
                 </CardHeader>
+
                 <CardContent className="bg-card/95 backdrop-blur-sm rounded-b-lg p-6">
                   <div className="space-y-3">
                     {loading ? (
@@ -700,7 +925,8 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
                                 isDeleting={isDeleting[item.id]}
                                 isDownloading={isDownloading[item.id]}
                                 isRenaming={isRenaming[item.id]}
-  onIframeUpdate={handleIframeUpdate}
+                                onIframeUpdate={handleIframeUpdate}
+                                currentUserRole={currentUserRole}
                               />
                             </DragDropZone>
                           </div>
@@ -709,6 +935,17 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
                     )}
                   </div>
                 </CardContent>
+
+                 <div className="border-t">
+    <Pagination
+      currentPage={currentPage}
+      totalPages={totalPages}
+      onPageChange={handlePageChange}
+      itemsPerPage={itemsPerPage}
+      totalItems={totalItems}
+      isLoading={loading}
+    />
+  </div>
               </Card>
             </div>
           </div>
@@ -722,31 +959,48 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
           />
 
           {/* Create Folder Dialog */}
-          <Dialog
-            open={isCreateFolderOpen}
-            onOpenChange={setIsCreateFolderOpen}
-          >
+          <Dialog open={isCreateFolderOpen} onOpenChange={setIsCreateFolderOpen}>
             <DialogContent className="bg-card shadow-card">
               <DialogHeader>
-                <DialogTitle className="text-foreground">
+                <DialogTitle className="flex items-center gap-2 text-foreground">
+                  <Folders className="w-5 h-5 text-panel" />
                   Create New Folder
                 </DialogTitle>
                 <DialogDescription className="text-muted-foreground">
-                  Enter a name for the new folder
+                  Enter a meaningful name for your folder
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="py-4">
+              <div className="py-4 space-y-2">
                 <Input
-                  placeholder="Folder name"
+                  placeholder="e.g. Documents, Projects, Assignments"
                   value={newFolderName}
                   onChange={(e) => setNewFolderName(e.target.value)}
                   onKeyDown={(e) =>
-                    e.key === "Enter" && !isCreating && handleCreateFolder()
+                    e.key === "Enter" && !isCreating && isFormValid && handleCreateFolder()
                   }
-                  className="border-border"
                   disabled={isCreating}
+                  className={validationError ? "border-red-500" : ""}
+                  autoFocus
                 />
+
+                {validationError && (
+                  <div className="flex items-center gap-2 text-red-500 text-sm mt-1">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>{validationError}</span>
+                  </div>
+                )}
+
+                {!validationError && newFolderName.trim() && (
+                  <div className="text-green-600 text-sm mt-1">✓ Folder name looks good!</div>
+                )}
+
+                <ul className="text-muted-foreground text-xs space-y-1 mt-3 list-disc list-inside">
+                  <li>At least 2 characters long</li>
+                  <li>Must be meaningful (not random letters)</li>
+                  <li>No invalid symbols like &lt; &gt; : " / \ | ? * etc.</li>
+                  <li>Example: “Documents”, “Photos”, “Dawood Projects”</li>
+                </ul>
               </div>
 
               <DialogFooter>
@@ -757,15 +1011,12 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
                 >
                   Cancel
                 </Button>
-
                 <Button
                   className="bg-panel flex items-center gap-2"
                   onClick={handleCreateFolder}
-                  disabled={!newFolderName.trim() || isCreating}
+                  disabled={!isFormValid}
                 >
-                  {isCreating && (
-                    <Loader2 className="h-4 w-4 animate-spin text-white" />
-                  )}
+                  {isCreating && <Loader2 className="h-4 w-4 animate-spin text-white" />}
                   {isCreating ? "Creating..." : "Create Folder"}
                 </Button>
               </DialogFooter>
@@ -773,16 +1024,16 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
           </Dialog>
 
           {/* Move Item Dialog */}
-         <MoveFileDialog
-  isOpen={isMoveDialogOpen}
-  onClose={() => {
-    setIsMoveDialogOpen(false);
-    setItemToMove(null);
-  }}
-  itemToMove={itemToMove}
-  onMoveSuccess={handleMoveSuccess}
-  currentPath={currentPath}
-/>
+          <MoveFileDialog
+            isOpen={isMoveDialogOpen}
+            onClose={() => {
+              setIsMoveDialogOpen(false);
+              setItemToMove(null);
+            }}
+            itemToMove={itemToMove}
+            onMoveSuccess={handleMoveSuccess}
+            currentPath={currentPath}
+          />
 
           {/* User Permissions Dialog */}
           <Dialog
@@ -794,7 +1045,7 @@ placeholder={searchTerm ? "Searching..." : "Search files..."}
                 selectedItem={itemForPermissions}
                 onPermissionChange={() => loadFiles({ force: true })}
                 openUsersDialog={false}
-                onOpenUsersDialogChange={() => {}}
+                onOpenUsersDialogChange={() => { }}
                 onClose={() => setShowPermissionsDialog(false)}
               />
             </DialogContent>

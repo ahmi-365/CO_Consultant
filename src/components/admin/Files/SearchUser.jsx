@@ -210,7 +210,7 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
 
   const selectedUserData = users.find(u => u.id === selectedUser);
 
-  return (
+ return (
     <div ref={triggerRef} className={`relative inline-block ${className}`}>
       <Button
         variant="outline"
@@ -221,11 +221,11 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
         {loadingUsers ? (
           <Loader2 className="h-4 w-4 animate-spin" />
         ) : selectedUser && selectedUserData ? (
-          <span className="truncate text-gray-900 font-medium">
+          <span className="truncate text-gray-900 dark:text-gray-100 font-medium">
             {selectedUserData.name}
           </span>
         ) : (
-          <span className="text-gray-500">All Users</span>
+          <span className="text-gray-500 dark:text-gray-400">All Users</span>
         )}
         <ChevronDown
           className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''
@@ -243,13 +243,13 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
         onClose={handleCloseDropdown}
       >
         {/* Header with search and close button */}
-        <div className="p-3 border-b border-gray-100 bg-gray-50 flex items-center justify-between">
+        <div className="p-3 border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex items-center justify-between">
           <div className="flex-1 mr-2">
             <Input
               placeholder="Search users..."
               value={userSearchTerm}
               onChange={(e) => setUserSearchTerm(e.target.value)}
-              className="h-9 bg-white"
+              className="h-9 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-600"
               autoFocus
             />
           </div>
@@ -257,23 +257,23 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
             variant="ghost"
             size="sm"
             onClick={handleCloseDropdown}
-            className="h-9 w-9 p-0 hover:bg-gray-200"
+            className="h-9 w-9 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 text-gray-600 dark:text-gray-400" />
           </Button>
         </div>
 
         {/* Users list */}
-        <div className="max-h-64 overflow-y-auto">
+        <div className="max-h-64 overflow-y-auto bg-white dark:bg-gray-800">
           {/* All Users option */}
           <button
             onClick={() => handleUserSelect("")}
-            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors duration-150 hover:bg-blue-50 group ${selectedUser === ""
-                ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                : "text-gray-700 hover:text-gray-900"
+            className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors duration-150 hover:bg-blue-50 dark:hover:bg-blue-900/20 group ${selectedUser === ""
+                ? "bg-blue-50 dark:bg-blue-900/30 border-r-2 border-blue-500 text-blue-700 dark:text-blue-300"
+                : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
               }`}
           >
-            <Users className="h-5 w-5 text-gray-400 group-hover:text-gray-600" />
+            <Users className="h-5 w-5 text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400" />
             <span className="font-medium">All Users</span>
           </button>
 
@@ -282,9 +282,9 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
             <button
               key={user.id}
               onClick={() => handleUserSelect(user.id)}
-              className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors duration-150 hover:bg-blue-50 group ${selectedUser === user.id
-                  ? "bg-blue-50 border-r-2 border-blue-500 text-blue-700"
-                  : "text-gray-700 hover:text-gray-900"
+              className={`w-full px-4 py-3 text-left flex items-center gap-3 transition-colors duration-150 hover:bg-blue-50 dark:hover:bg-blue-900/20 group ${selectedUser === user.id
+                  ? "bg-blue-50 dark:bg-blue-900/30 border-r-2 border-blue-500 text-blue-700 dark:text-blue-300"
+                  : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                 }`}
             >
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white text-sm font-medium flex items-center justify-center shadow-sm">
@@ -294,7 +294,7 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
                 <div className="font-medium truncate text-current">
                   {user.name}
                 </div>
-                <div className="text-xs truncate text-gray-500 group-hover:text-gray-600 mt-0.5">
+                <div className="text-xs truncate text-gray-500 dark:text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 mt-0.5">
                   {user.email}
                 </div>
               </div>
@@ -303,8 +303,8 @@ export default function SearchUser({ selectedUser, onUserSelect, className = "" 
 
           {/* No results */}
           {filteredUsers.length === 0 && userSearchTerm && (
-            <div className="px-4 py-8 text-center text-gray-500">
-              <Users className="h-12 w-12 mx-auto text-gray-300 mb-2" />
+            <div className="px-4 py-8 text-center text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800">
+              <Users className="h-12 w-12 mx-auto text-gray-300 dark:text-gray-600 mb-2" />
               <p className="text-sm">No users found for "{userSearchTerm}"</p>
             </div>
           )}

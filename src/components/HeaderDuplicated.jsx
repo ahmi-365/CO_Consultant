@@ -1,25 +1,15 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Building2, Menu, X } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Menu, X } from "lucide-react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 
-const Header = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+const HeaderDuplicated = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
-  useEffect(() => {
-    // Get user data from localStorage
     const userData = localStorage.getItem("user");
     if (userData) {
       try {
@@ -31,68 +21,64 @@ const Header = () => {
     }
   }, []);
 
-  const scrollToSection = (sectionId) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth" });
-      setIsMobileMenuOpen(false);
-    }
-  };
-
   const handleNavigation = () => {
     if (!user) {
-      // User not logged in - show login
       navigate("/login");
-    } else if (user.roles && user.roles.includes("admin")) {
-      // User is admin - show dashboard
-      navigate("/dash");
-    } else if (user.roles && user.roles.includes("manager")) {
-      // User is manager - show dashboard
+    } else if (
+      user.roles?.includes("admin") ||
+      user.roles?.includes("manager")
+    ) {
       navigate("/dash");
     } else {
-      // Regular user - show file manager
       navigate("/filemanager");
     }
     setIsMobileMenuOpen(false);
   };
 
   const getButtonText = () => {
-    if (!user) {
-      return "Login";
-    } else if (
-      user.roles &&
-      (user.roles.includes("admin") || user.roles.includes("manager"))
-    ) {
-      return "CO Access";
+    if (!user) return "Login";
+    if (user.roles?.includes("admin") || user.roles?.includes("manager"))
+      return "Dashboard";
+    return "File Manager";
+  };
+  const menuItems = [
+    { label: "Home", path: "/" },
+    { label: "Services", path: "/services" },
+    { label: "Why Choose Us", path: "/why-choose-us" },
+    { label: "Projects", path: "/projects" },
+    { label: "Contact", path: "/contact" },
+  ];
+  // ✅ Scroll or Redirect Logic
+  const handleMenuClick = (id) => {
+    setIsMobileMenuOpen(false);
+
+    if (location.pathname !== "/") {
+      // if not on homepage → go to homepage and scroll after load
+      navigate("/", { state: { scrollTo: id } });
     } else {
-      return "File Manager";
+      // if already on homepage → just scroll
+      const element = document.getElementById(id);
+      if (element) element.scrollIntoView({ behavior: "smooth" });
     }
   };
 
-  const menuItems = [
-    // { label: "Home", id: "hero" },
-    { label: "Services", id: "services" },
-    { label: "Why Data Matters", id: "data-matters" },
-    { label: "Why Choose Us", id: "why-choose-us" },
-    { label: "Our Workflow", id: "workflow" },
-    { label: "Contact", id: "contact" },
-  ];
+  useEffect(() => {
+    // when redirected from another route, perform scroll after load
+    if (location.state?.scrollTo) {
+      const sectionId = location.state.scrollTo;
+      setTimeout(() => {
+        const element = document.getElementById(sectionId);
+        if (element) element.scrollIntoView({ behavior: "smooth" });
+      }, 300);
+    }
+  }, [location]);
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled || isMobileMenuOpen
-          ? "bg-gray-900/95 backdrop-blur-md shadow-lg"
-          : "bg-transparent"
-      }`}
-    >
+    <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-md backdrop-blur-md">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
-          <div
-            className="flex items-center gap-3 cursor-pointer"
-            onClick={() => scrollToSection("hero")}
-          >
+          {/* ✅ Logo with Link */}
+          <Link to="/" className="flex items-center gap-3 cursor-pointer">
             <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
               <img
                 src="/assets/icon.png"
@@ -100,33 +86,17 @@ const Header = () => {
                 className="w-6 h-6 object-contain"
               />
             </div>
-            {/* Show company name only when scrolled or on mobile */}
-            <span
-              className={`text-2xl font-bold text-white transition-opacity duration-300 ${
-                isScrolled || isMobileMenuOpen
-                  ? "opacity-100"
-                  : "opacity-100 md:opacity-0 lg:opacity-100"
-              }`}
-            >
+            <span className="text-2xl font-bold text-white">
               CO Consultants
             </span>
+          </Link>
 
-            {/* <span
-  className={`block text-sm text-gray-300 tracking-wide mt-1 transition-opacity duration-300 md:opacity-100 ${
-    isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
-  }`}
-  style={{ fontFamily: "'Oswald', sans-serif" }}
->
-  Construction Organised. Decisions Unlocked.
-</span> */}
-          </div>
-
-          {/* Desktop Navigation */}
+          {/* ✅ Desktop Menu with Smart Links */}
           <nav className="hidden md:flex items-center space-x-8">
             {menuItems.map((item) => (
               <button
                 key={item.id}
-                onClick={() => scrollToSection(item.id)}
+                onClick={() => handleMenuClick(item.id)}
                 className="text-white hover:text-blue-400 transition-colors duration-200 font-medium"
               >
                 {item.label}
@@ -142,7 +112,7 @@ const Header = () => {
             </Button>
           </nav>
 
-          {/* Mobile Menu Button */}
+          {/* ✅ Mobile Menu Button */}
           <button
             className="md:hidden text-white"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -151,14 +121,14 @@ const Header = () => {
           </button>
         </div>
 
-        {/* Mobile Menu */}
+        {/* ✅ Mobile Dropdown Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden bg-gray-900/95 backdrop-blur-md border-t border-gray-700">
+          <div className="md:hidden bg-gray-900 border-t border-gray-700">
             <nav className="py-4 space-y-2">
               {menuItems.map((item) => (
                 <button
                   key={item.id}
-                  onClick={() => scrollToSection(item.id)}
+                  onClick={() => handleMenuClick(item.id)}
                   className="block w-full text-left px-4 py-3 text-white hover:text-blue-400 hover:bg-gray-800 transition-colors duration-200"
                 >
                   {item.label}
@@ -182,4 +152,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default HeaderDuplicated;

@@ -23,6 +23,66 @@ const getFileIcon = (type) => {
   }
 };
 
+// Single unified formatFileSize function
+// Single unified formatFileSize function
+const formatFileSize = (bytes) => {
+  // Check for invalid or zero bytes
+  if (bytes === undefined || bytes === null || bytes === 0) return "0 B";
+
+  // If bytes is already a string (e.g., "folder" check was removed)
+  if (typeof bytes === 'string') {
+    // Attempt to parse a number if the string is numeric, otherwise return as-is
+    const parsedBytes = parseFloat(bytes);
+    if (!isNaN(parsedBytes) && isFinite(parsedBytes) && parsedBytes > 0) {
+      // If it's a numeric string, continue to format it from bytes
+      bytes = parsedBytes;
+    } else {
+      // If it's a non-numeric string (e.g., "unknown"), return it.
+      return bytes;
+    }
+  }
+
+  const k = 1024;
+  const sizes = ["B", "KB", "MB", "GB", "TB"];
+  // Ensure bytes is a positive number before calculating log
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  // Guard against negative infinity if bytes was extremely small positive
+  const index = Math.max(0, i);
+
+  const exactSize = (bytes / Math.pow(k, index)).toFixed(2);
+  const formattedSize = parseFloat(exactSize);
+
+  return formattedSize + " " + sizes[index];
+};
+
+// Helper function to format date
+const formatDate = (dateString) => {
+  if (!dateString) return "Unknown";
+  try {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      return "Today";
+    } else if (diffDays === 1) {
+      return "Yesterday";
+    } else if (diffDays < 7) {
+      return `${diffDays} days ago`;
+    } else {
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+      });
+    }
+  } catch (error) {
+    return "Unknown";
+  }
+};
+
 export default function StarredPage() {
   const [starredFiles, setStarredFiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +95,25 @@ export default function StarredPage() {
     setLoading(true);
     try {
       const response = await starService.getStarredFiles();
+      console.log("API Response:", response); // Debug log
       if (response.status === "ok") {
-        setStarredFiles(response.data || []);
+        const files = response.data || [];
+        console.log("Files received:", files); // Debug log
+
+        // Log file structure to debug
+        files.forEach((file, index) => {
+          console.log(`File ${index}:`, {
+            name: file.name,
+            type: file.type,
+            size: file.size,
+            file_size: file.file_size,
+            fileSize: file.fileSize,
+            size_in_bytes: file.size_in_bytes,
+            allProps: file
+          });
+        });
+
+        setStarredFiles(files);
       } else {
         toast.error("Failed to load starred files");
       }
@@ -85,7 +162,7 @@ export default function StarredPage() {
 
   const getFileLocationPath = (fileId, parentId, filePath) => {
     const parentFolderId = parentId || extractParentFolderFromPath(filePath);
-    
+
     if (parentFolderId) {
       return `/folder/${parentFolderId}`;
     } else {
@@ -95,7 +172,7 @@ export default function StarredPage() {
 
   const extractParentFolderFromPath = (filePath) => {
     if (!filePath) return null;
-    
+
     const pathParts = filePath.split('/').filter(part => part.length > 0);
     if (pathParts.length > 1) {
       return pathParts[pathParts.length - 2];
@@ -105,8 +182,21 @@ export default function StarredPage() {
 
   const FileRow = ({ file, index }) => {
     const isFolder = file.type === "folder";
-    const linkPath = isFolder 
-      ? getFolderPath(file.id) 
+
+
+    const rawSize = file.size || file.file_size || file.fileSize || file.size_in_bytes;
+
+
+    const fileSize = formatFileSize(rawSize); // <--- CHANGE IS HERE
+
+    const modifiedDate = formatDate(
+      file.updated_at || file.updatedAt || file.modified_at ||
+      file.modifiedAt || file.created_at || file.createdAt
+    );
+    const owner = file.user_id || file.userId || file.owner || "Unknown";
+
+    const linkPath = isFolder
+      ? getFolderPath(file.id)
       : getFileLocationPath(file.id, file.parent_id, file.path);
 
     return (
@@ -121,7 +211,7 @@ export default function StarredPage() {
         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-blue-50/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
         <Link to={linkPath} className="block relative">
-          {/* Desktop Layout - Unchanged */}
+          {/* Desktop Layout */}
           <div className="hidden sm:grid grid-cols-12 lg:grid-cols-5 gap-4 text-sm items-center px-6 py-4">
             <div className="col-span-6 lg:col-span-1 flex items-center min-w-0">
               <div className="flex-shrink-0 mr-3">{getFileIcon(file.type)}</div>
@@ -129,19 +219,21 @@ export default function StarredPage() {
                 {file.name}
               </span>
             </div>
-            <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium">{file.user_id}</div>
-            <div className="col-span-3 lg:col-span-1 hidden md:block text-muted-foreground">{file.updated_at}</div>
+            <div className="col-span-3 lg:col-span-1 text-muted-foreground font-medium">{owner}</div>
+            <div className="col-span-3 lg:col-span-1 hidden md:block text-muted-foreground">{modifiedDate}</div>
             <div className="col-span-3 lg:col-span-1 hidden lg:block">
-              <span className="text-muted-foreground font-mono text-xs bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">{file.size}</span>
+              <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">
+                {fileSize}
+              </span>
             </div>
             <div className="col-span-6 lg:col-span-1 flex items-center justify-end gap-2">
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={(e) => { 
+                onClick={(e) => {
                   e.preventDefault();
-                  e.stopPropagation(); 
-                  handleToggleStar(file.id); 
+                  e.stopPropagation();
+                  handleToggleStar(file.id);
                 }}
                 className="h-9 w-9 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                 title="Remove from starred"
@@ -151,26 +243,26 @@ export default function StarredPage() {
             </div>
           </div>
 
-          {/* Mobile Layout - Fixed */}
+          {/* Mobile Layout */}
           <div className="sm:hidden p-4">
             <div className="flex items-start gap-3">
               {/* Icon and File Info */}
               <div className="flex-shrink-0 mt-0.5">
                 {getFileIcon(file.type)}
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="text-foreground font-medium text-sm mb-2 break-words">
                   {file.name}
                 </div>
-                
+
                 <div className="text-xs text-muted-foreground space-y-1">
-                  <div>By {file.user_id}</div>
+                  <div>By {owner}</div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span>{file.updated_at}</span>
+                    <span>{modifiedDate}</span>
                     <span>•</span>
-                    <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-0.5 rounded">
-                      {file.size}
+                    <span className="font-mono bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded-md inline-block">
+                      {fileSize}
                     </span>
                   </div>
                 </div>
@@ -181,10 +273,10 @@ export default function StarredPage() {
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={(e) => { 
+                  onClick={(e) => {
                     e.preventDefault();
-                    e.stopPropagation(); 
-                    handleToggleStar(file.id); 
+                    e.stopPropagation();
+                    handleToggleStar(file.id);
                   }}
                   className="h-9 w-9 p-0 rounded-full hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-900/20 dark:hover:text-red-400"
                   title="Remove from starred"

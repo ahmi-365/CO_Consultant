@@ -9,24 +9,30 @@ import ProjectsSection from "@/components/ProjectsSection";
 import ContactSection from "@/components/ContactSection";
 import CTASection from "@/components/CTASection";
 import Footer from "@/components/Footer";
-
+import { HoleBackground } from "../components/backgrounds/Holebackgound";
+import SmoothFollower from "@/components/SmoothFollower";
 const Index = () => {
   return (
     <div className="min-h-screen">
+              <SmoothFollower />
+      
       <Header />
       <main>
         <section id="hero">
           <HeroSection />
         </section>
         <ServicesSection />
-        <PrecisionSection />
+        <section id="data-matters">
+          <HoleBackground />
+          <PrecisionSection />
+        </section>
         <section id="why-choose-us">
           <WhyChooseUsSection />
         </section>
+        <section id="workflow">
         <DataAnalyticsSection />
-        <ProjectsSection />
-        {/* <ProcessSection /> */}
-
+        </section>
+        
         <ContactSection />
         <CTASection />
       </main>

@@ -17,172 +17,272 @@ const ContactSection = () => {
     projectType: "",
     message: ""
   });
+
+  const [errors, setErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission
-    toast({
-      title: "Message Sent!",
-      description: "Thank you for contacting us. We'll get back to you within 24 hours.",
-    });
-    setFormData({
-      name: "",
-      email: "",
-      phone: "",
-      company: "",
-      projectType: "",
-      message: ""
-    });
-  };
+
+  const BASE_URL = "https://co-consultant.majesticsofts.com/api";
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setErrors(prev => ({ ...prev, [field]: "" })); // Clear error on change
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = "Full name is required.";
+
+    if (!formData.email.trim()) {
+      newErrors.email = "Email address is required.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address.";
+    }
+
+    // ✅ Phone number now compulsory
+    if (!formData.phone.trim()) {
+      newErrors.phone = "Phone number is required.";
+    } else if (!/^\d+$/.test(formData.phone)) {
+      newErrors.phone = "Phone number must contain digits only.";
+    } else if (formData.phone.length < 7 || formData.phone.length > 15) {
+      newErrors.phone = "Phone number should be between 7–15 digits.";
+    }
+
+    // ❌ Message is optional now (no validation)
+
+    return newErrors;
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const newErrors = validateForm();
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      toast({
+        title: "Form not submitted!",
+        description: "Please fix the highlighted errors and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Prepare data to match your API structure
+      const apiData = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        company_name: formData.company || "",
+        project_type: formData.projectType || "",
+        subject: `${formData.projectType || "General"} Inquiry`,
+        message: formData.message || ""
+      };
+
+      const response = await fetch(`${BASE_URL}/contact-us`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(apiData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      toast({
+        title: "Message Sent!",
+        description: "Thank you for reaching us. Expect to hear from us shortly.",
+      });
+
+      // Reset form
+      setFormData({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        projectType: "",
+        message: "",
+      });
+
+    } catch (error) {
+      console.error("Submission error:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Unable to send your message. Please try again or contact us directly.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const contactInfo = [
-   
     {
       icon: Mail,
       title: "Email Us",
       info: "admin@thecoconsultants.com",
       subinfo: "We respond within 24hrs"
     },
-  
   ];
 
   return (
-    <section id="contact" className="py-20 bg-construction-light-grey">
+    <section id="contact" className="py-4 bg-gray-50">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-primary">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6 text-gray-900">
             Get In Touch
           </h2>
-          <p className="text-xl text-construction-grey max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Ready to start your next construction project? Contact us today for a free consultation and quote.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          {/* Contact Information */}
-          <div className="lg:col-span-1">
-            <div className="space-y-6">
-              {contactInfo.map((item, index) => (
-                <Card key={index} className="border-0 shadow-card hover:shadow-card-hover transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="p-3 bg-secondary/10 rounded-full">
-                        <item.icon className="w-6 h-6 text-secondary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-primary mb-1">
-                          {item.title}
-                        </h3>
-                        <p className="text-foreground font-medium">
-                          {item.info}
-                        </p>
-                        <p className="text-construction-grey text-sm">
-                          {item.subinfo}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-
+        <div className="max-w-4xl mx-auto">
           {/* Contact Form */}
-          <div className="lg:col-span-2">
-            <Card className="border-0 shadow-card">
-              <CardHeader>
-                <CardTitle className="text-2xl text-primary">
-                  Send Us a Message
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
+          <div>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-100">
+              <div className="p-8">
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">Send Us a Message</h3>
+                <p className="text-gray-600 mb-6">
+                  Fill out the form below and we'll get back to you within 24 hours.
+                </p>
+
                 <form onSubmit={handleSubmit} className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Full Name */}
                     <div>
-                      <Label htmlFor="name">Full Name *</Label>
-                      <Input
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">Full Name *</label>
+                      <input
                         id="name"
                         value={formData.name}
-                        onChange={(e) => handleInputChange('name', e.target.value)}
-                        required
-                        className="mt-2"
+                        onChange={(e) => handleInputChange("name", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${errors.name ? "border-red-500" : "border-gray-300"
+                          }`}
                       />
+                      {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
                     </div>
+
+                    {/* Email */}
                     <div>
-                      <Label htmlFor="email">Email Address *</Label>
-                      <Input
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                      <input
                         id="email"
                         type="email"
                         value={formData.email}
-                        onChange={(e) => handleInputChange('email', e.target.value)}
-                        required
-                        className="mt-2"
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${errors.email ? "border-red-500" : "border-gray-300"
+                          }`}
                       />
+                      {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email}</p>}
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Phone */}
                     <div>
-                      <Label htmlFor="phone">Phone Number</Label>
-                      <Input
+                      <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">Phone Number *</label>
+                      <input
                         id="phone"
-                        type="tel"
+                        type="number"
                         value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="mt-2"
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                        className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 ${errors.phone ? "border-red-500" : "border-gray-300"
+                          }`}
                       />
+                      {errors.phone && <p className="text-red-500 text-sm mt-1">{errors.phone}</p>}
                     </div>
+
+                    {/* Company */}
                     <div>
-                      <Label htmlFor="company">Company Name</Label>
-                      <Input
+                      <label htmlFor="company" className="block text-sm font-medium text-gray-700 mb-2">Company Name</label>
+                      <input
                         id="company"
                         value={formData.company}
-                        onChange={(e) => handleInputChange('company', e.target.value)}
-                        className="mt-2"
+                        onChange={(e) => handleInputChange("company", e.target.value)}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200"
                       />
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="projectType">Project Type</Label>
-                    <Select onValueChange={(value) => handleInputChange('projectType', value)}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Select project type" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="commercial">Commercial Construction</SelectItem>
-                        <SelectItem value="residential">Residential Development</SelectItem>
-                        <SelectItem value="infrastructure">Infrastructure Project</SelectItem>
-                        <SelectItem value="renovation">Renovation/Remodeling</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {/* Project Type */}
+                  {/* <div>
+                    <label htmlFor="projectType" className="block text-sm font-medium text-gray-700 mb-2">Project Type</label>
+                    <select
+                      onChange={(e) => handleInputChange("projectType", e.target.value)}
+                      value={formData.projectType}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 bg-white"
+                    >
+                      <option value="">Select project type</option>
+                      <option value="commercial">Commercial Construction</option>
+                      <option value="residential">Residential Development</option>
+                      <option value="infrastructure">Infrastructure Project</option>
+                      <option value="renovation">Renovation/Remodeling</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div> */}
 
+                  {/* Message */}
                   <div>
-                    <Label htmlFor="message">Project Details *</Label>
-                    <Textarea
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-2">Message: </label>
+                    <textarea
                       id="message"
                       value={formData.message}
-                      onChange={(e) => handleInputChange('message', e.target.value)}
-                      required
+                      onChange={(e) => handleInputChange("message", e.target.value)}
                       placeholder="Tell us about your project requirements, timeline, and any specific needs..."
-                      className="mt-2 min-h-32"
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 min-h-32 ${errors.message ? "border-red-500" : "border-gray-300"
+                        }`}
                     />
+                    {errors.message && <p className="text-red-500 text-sm mt-1">{errors.message}</p>}
                   </div>
 
-                  <Button type="submit" variant="hero" className="w-full">
-                    Send Message
-                  </Button>
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full bg-blue-900 hover:bg-blue-800 text-white font-semibold py-4 px-6 rounded-lg transition-all duration-300 transform hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  >
+                    {isSubmitting ? "Sending..." : "Send Message"}
+                  </button>
                 </form>
-              </CardContent>
-            </Card>
+                <div className="mt-12 text-center">
+  <div
+    className="
+      inline-flex items-center gap-2 sm:gap-3 
+      bg-white rounded-xl shadow-lg border border-gray-100 
+      px-4 py-3 sm:px-8 sm:py-4 
+      max-w-full
+    "
+  >
+    <div className="p-2 sm:p-3 bg-blue-400/10 rounded-full">
+      <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
+    </div>
+
+    <div className="text-left">
+      <h3 className="font-semibold text-gray-900 text-xs sm:text-sm">
+        Email Us
+      </h3>
+
+      <p className="text-black font-medium text-sm sm:text-base break-all">
+        admin@thecoconsultants.com
+      </p>
+    </div>
+  </div>
+</div>
+
+              </div>
+            </div>
           </div>
+
+          {/* Email Contact Info at Bottom */}
+
         </div>
       </div>
     </section>

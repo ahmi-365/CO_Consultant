@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   ChevronDown,
   ChevronRight,
@@ -17,6 +18,8 @@ import {
   LogOut,
   X,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -44,6 +47,12 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   const [expandedFolders, setExpandedFolders] = useState(new Set());
   const [isMobile, setIsMobile] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [collapsed, setCollapsed] = useState(false);
+  const [folderContent, setFolderContent] = useState([]);
+  const [items, setItems] = useState([]);
+
+
+
 
   // Drag and drop state
   const [dragOverFolder, setDragOverFolder] = useState(null);
@@ -52,13 +61,36 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   // Debounce timer ref
   const searchTimeoutRef = useRef(null);
   const searchInputRef = useRef(null);
-  
+
   useEffect(() => {
     // Focus on input when search results change or when the search value is changed
     if (searchValue && document.activeElement !== searchInputRef.current) {
       searchInputRef.current?.focus();
     }
   }, [searchResults, searchValue]);
+  // Add this NEW useEffect to load permissions
+useEffect(() => {
+  const storedUser = localStorage.getItem("user");
+
+  if (storedUser) {
+    try {
+      const parsedUser = JSON.parse(storedUser);
+      const perms = Array.isArray(parsedUser.permissions)
+        ? parsedUser.permissions
+        : [];
+      setUserPermissions(perms);
+    } catch (error) {
+      console.error("Error parsing user from localStorage:", error);
+    }
+  }
+}, []);
+  const [userPermissions, setUserPermissions] = useState({
+    star: false,
+    trash: false,
+    download: false,
+    move: false,
+    rename: false,
+  });
 
   // Load user data
   useEffect(() => {
@@ -118,10 +150,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   // Function to get user initials
   const getUserInitials = (user) => {
     if (!user) return "CV";
-    
+
     const firstName = user.name || "";
     const lastName = user.last_name || "";
-    
+
     if (firstName && lastName) {
       return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
     } else if (firstName) {
@@ -129,14 +161,26 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     } else if (user.email) {
       return user.email.charAt(0).toUpperCase();
     }
-    
+
     return "CV";
   };
+
+
+  const canToggleStar =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("starred-files.list");
+
+  const canTrash =
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.trash");
+
+
+
 
   // Function to get user display name
   const getUserDisplayName = (user) => {
     if (!user) return "CloudVault";
-    
+
     if (user.name && user.last_name) {
       return `${user.name} ${user.last_name}`;
     } else if (user.name) {
@@ -144,7 +188,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     } else if (user.email) {
       return user.email.split('@')[0];
     }
-    
+
     return "CloudVault";
   };
 
@@ -166,7 +210,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   const handleDrop = async (e, targetFolderId) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const draggedItemId = e.dataTransfer.getData("text/plain");
     setDragOverFolder(null);
 
@@ -179,12 +223,12 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
 
     try {
       const response = await fileApi.moveItem(draggedItemId, targetFolderId);
-      
+
       // Check for various success response formats
-      const isSuccess = response.status === 'success' || 
-                       response.status === 'ok' || 
-                       response.success === true;
-      
+      const isSuccess = response.status === 'success' ||
+        response.status === 'ok' ||
+        response.success === true;
+
       if (isSuccess) {
         toast.success(response.message || "Item moved successfully");
         loadAllItems();
@@ -204,18 +248,27 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   const loadAllItems = async () => {
     try {
       setIsLoading(true);
-      const response = await fileApi.listFiles();
-      if (Array.isArray(response)) {
-        setAllItems(response);
-        const organizedFolders = organizeItemsHierarchically(response);
-        setFolders(organizedFolders);
-      } else if (response.status === "ok" && Array.isArray(response.data)) {
+
+      // Use the new folder tree API
+      const response = await fileApi.getFolderTree();
+
+      console.log('Folder tree response:', response); // Debug log
+
+      // Handle different response formats
+      if (response.status === "ok" && Array.isArray(response.data)) {
         setAllItems(response.data);
         const organizedFolders = organizeItemsHierarchically(response.data);
         setFolders(organizedFolders);
+      } else if (Array.isArray(response)) {
+        setAllItems(response);
+        const organizedFolders = organizeItemsHierarchically(response);
+        setFolders(organizedFolders);
+      } else {
+        console.error('Unexpected response format:', response);
+        toast.error("Unexpected folder structure format");
       }
     } catch (error) {
-      console.error("Error loading items:", error);
+      console.error("Error loading folder tree:", error);
       toast.error("Error loading folders");
     } finally {
       setIsLoading(false);
@@ -316,7 +369,6 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     navigate("/login");
     toast.success("Logged out successfully");
   };
-
   const renderFolder = (folder, level = 0) => {
     const isExpanded = expandedFolders.has(folder.id);
     const isCurrentFolder = currentPath === `/folder/${folder.id}`;
@@ -328,49 +380,49 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
         <div className="flex items-center">
           {/* Indentation for hierarchy level */}
           <div style={{ width: `${level * 16}px` }} className="flex-shrink-0" />
-          
-          {/* Expand/Collapse button */}
-          {hasChildren ? (
-            <button
-              onClick={() => toggleFolder(folder.id)}
-              className="p-0.5 hover:bg-sidebar-accent rounded transition-colors flex-shrink-0 mr-1"
-            >
-              {isExpanded ? (
+
+          {/* Expand/Collapse button - ALWAYS show for folders */}
+          <button
+            onClick={() => toggleFolder(folder.id)}
+            className="p-0.5 hover:bg-sidebar-accent rounded transition-colors flex-shrink-0 mr-1"
+            disabled={!hasChildren}
+          >
+            {hasChildren ? (
+              isExpanded ? (
                 <ChevronDown className="w-3 h-3 text-sidebar-foreground/60" />
               ) : (
                 <ChevronRight className="w-3 h-3 text-sidebar-foreground/60" />
-              )}
-            </button>
-          ) : (
-            <div className="w-5 flex-shrink-0" />
-          )}
-          
-          {/* Folder button with drag and drop */}
+              )
+            ) : (
+              <div className="w-3 h-3" /> // Empty space for alignment
+            )}
+          </button>
+
+          {/* Folder button */}
           <button
             onClick={() => handleFolderClick(folder.id)}
             onDragOver={(e) => handleDragOver(e, folder.id)}
             onDragLeave={(e) => handleDragLeave(e, folder.id)}
             onDrop={(e) => handleDrop(e, folder.id)}
-            className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors group ${
-              isCurrentFolder
+            className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors group ${isCurrentFolder
                 ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                 : isDragOver
-                ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+                  ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
             style={{
               border: isDragOver ? '2px dashed #3b82f6' : 'none',
             }}
           >
-            {isExpanded ? (
+            {isExpanded && hasChildren ? (
               <FolderOpen className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
             ) : (
               <Folder className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
             )}
-            <span 
-              className="break-words line-clamp-2 leading-tight" 
+            <span
+              className="break-words line-clamp-2 leading-tight"
               title={folder.name}
-              style={{ 
+              style={{
                 wordBreak: 'break-word',
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
@@ -388,6 +440,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           </button>
         </div>
 
+        {/* Render children if folder is expanded and has children */}
         {isExpanded && hasChildren && (
           <div className="space-y-1">
             {folder.children.map((child) => renderFolder(child, level + 1))}
@@ -409,26 +462,25 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
         <button className="p-0.5 flex-shrink-0 mr-1">
           <ChevronRight className="w-3 h-3 text-sidebar-foreground/60" />
         </button>
-        
+
         <button
           onClick={() => handleFolderClick(item.id)}
           onDragOver={(e) => handleDragOver(e, item.id)}
           onDragLeave={(e) => handleDragLeave(e, item.id)}
           onDrop={(e) => handleDrop(e, item.id)}
-          className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors ${
-            isDragOver
-              ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
-              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-          }`}
+          className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors ${isDragOver
+            ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
+            : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+            }`}
           style={{
             border: isDragOver ? '2px dashed #3b82f6' : 'none',
           }}
         >
           <Folder className="w-4 h-4 text-panel flex-shrink-0 mt-0.5 self-start" />
-          <span 
-            className="break-words line-clamp-2 leading-tight" 
+          <span
+            className="break-words line-clamp-2 leading-tight"
             title={item.name}
-            style={{ 
+            style={{
               wordBreak: 'break-word',
               display: '-webkit-box',
               WebkitLineClamp: 2,
@@ -446,34 +498,25 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   };
 
   const organizeItemsHierarchically = (items) => {
-    const itemMap = new Map();
-    const rootFolders = [];
+    console.log('Raw items for organization:', items); // Debug log
 
-    const folderItems = items.filter(item => item.type === "folder");
+    if (!items || items.length === 0) {
+      return [];
+    }
 
-    folderItems.forEach((item) => {
-      itemMap.set(item.id, {
+    // The API already returns the hierarchical structure, so we can use it directly
+    // We just need to ensure all items have the proper type and children array
+    const processItems = (items) => {
+      return items.map(item => ({
         ...item,
-        children: [],
-        isLoaded: true,
-      });
+        type: item.type || "folder",
+        children: item.children ? processItems(item.children) : []
+      }));
+    };
 
-      if (
-        (item.parent_id === 1 || item.parent_id === 2 || item.parent_id === null) &&
-        item.type === "folder"
-      ) {
-        rootFolders.push(item.id);
-      }
-    });
-
-    folderItems.forEach((item) => {
-      if (item.parent_id && itemMap.has(item.parent_id)) {
-        const parent = itemMap.get(item.parent_id);
-        parent.children.push(itemMap.get(item.id));
-      }
-    });
-
-    return rootFolders.map((id) => itemMap.get(id)).filter(Boolean);
+    const processedItems = processItems(items);
+    console.log('Processed folders:', processedItems); // Debug log
+    return processedItems;
   };
 
   const getTotalItems = () => {
@@ -501,7 +544,31 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     };
   }, []);
 
-  const stats = getTotalItems();
+  const [stats, setStats] = useState({
+    total: 0,
+    totalFolders: 0,
+    totalFiles: 0,
+  });
+
+  useEffect(() => {
+    if (!allItems || allItems.length === 0) {
+      setStats({ total: 0, totalFolders: 0, totalFiles: 0 });
+      return;
+    }
+
+    const folders = allItems.filter(i => i.type === "folder").length;
+    const files = allItems.filter(i => i.type === "file").length;
+
+    setStats({
+      total: folders + files,
+      totalFolders: folders,
+      totalFiles: files,
+    });
+  }, [allItems]);
+
+
+
+  // const stats = getTotalItems();
 
   const SidebarContent = ({ isMobileViewProp }) => (
     <div
@@ -511,39 +578,53 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
       `}
     >
       {/* Updated Header with Profile Photo and User Name */}
-      <div className={`p-3 border-b border-sidebar-border ${isMobileViewProp ? "px-4" : ""}`}>
+      <div
+        className={`p-3 border-b border-gray-200 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors ${isMobileViewProp ? "px-4" : ""
+          }`}
+      >
         <div className="flex items-center gap-3">
-          <Avatar className="w-8 h-8 border border-sidebar-border">
+          <Avatar className="w-8 h-8 border border-gray-200 dark:border-gray-700">
             {user?.profile_photo ? (
-              <AvatarImage 
-                src={user.profile_photo} 
+              <AvatarImage
+                src={user.profile_photo}
                 alt={getUserDisplayName(user)}
                 className="object-cover"
               />
             ) : null}
-            <AvatarFallback className="bg-panel text-panel-foreground font-medium text-sm">
+            <AvatarFallback className="bg-red-600 text-white dark:bg-[#1e40af] dark:text-gray-100 font-medium text-sm">
               {getUserInitials(user)}
             </AvatarFallback>
           </Avatar>
+
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-sidebar-foreground text-sm truncate">
+            <div className="font-semibold text-gray-900 dark:text-gray-100 text-sm truncate">
               {getUserDisplayName(user)}
             </div>
-            <div className="text-xs text-sidebar-foreground/60 truncate">
+            <div className="text-xs text-gray-600 dark:text-gray-400 truncate">
               {user?.email || "Loading..."}
             </div>
           </div>
-          {isLoading && <Loader2 className="w-4 h-4 animate-spin text-sidebar-foreground/60 flex-shrink-0" />}
+
+          {isLoading && (
+            <Loader2 className="w-4 h-4 animate-spin text-gray-500 dark:text-gray-400 flex-shrink-0" />
+          )}
         </div>
-        <div className="text-xs text-sidebar-foreground/60 mt-2">
+
+        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2">
           {isLoading
             ? "Loading..."
             : `${stats.total} items (${stats.totalFolders} folders, ${stats.totalFiles} files)`}
         </div>
+
+
       </div>
 
-      <div className="flex-1 flex flex-col min-h-0">
-        <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10">
+
+      <div className="flex-1 flex flex-col min-h-0 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
+        <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
           <nav className="space-y-1 p-2">
             <button
               onClick={() => handleNavigationClick("/dashboard")}
@@ -564,34 +645,37 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
                 }`}
             >
               <Home className="w-4 h-4" />
-              <span className="text-sm">Home</span>
+              <span className="text-sm">Files</span>
             </button>
           </nav>
 
           <div className="px-2 pb-2">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-sidebar-foreground/60" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search files and folders..."
+                placeholder="Search files..."
                 value={searchValue}
                 onChange={handleSearchChange}
-                className="pl-9 pr-8 py-1.5 h-9 w-full bg-sidebar-input border-sidebar-border text-sidebar-foreground placeholder:text-sidebar-foreground/60 focus:ring-1 focus:ring-sidebar-accent focus:border-sidebar-accent"
+                className="pl-10 pr-8 py-1.5 h-9 w-full bg-input border-border text-foreground placeholder:text-muted-foreground focus:ring-1 focus:ring-ring focus:border-ring transition-colors"
               />
+
               {searchValue && !isSearching && (
                 <button
                   onClick={handleClearSearch}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-sidebar-accent rounded"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded transition-colors"
                 >
-                  <X className="w-3 h-3 text-sidebar-foreground/60" />
+                  <X className="w-3 h-3 text-muted-foreground" />
                 </button>
               )}
+
               {isSearching && (
-                <Loader2 className="absolute right-2 top-1/3 w-3 h-3 animate-spin text-sidebar-foreground/60" />
+                <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 animate-spin text-muted-foreground" />
               )}
             </div>
           </div>
+
         </div>
 
         <div className="flex-1 overflow-y-auto px-2 py-2">
@@ -633,13 +717,15 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               </div>
             )}
 
-         
+
           </nav>
         </div>
 
         {/* Updated Footer with Upload and Logout in one row */}
-        <div className="p-3 border-t border-sidebar-border bg-sidebar">
-             <div className=" gap-10 mb-3">
+        <div className="p-3 border-t border-sidebar-border bg-sidebar dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
+          <div className=" gap-10 mb-3">
+            {canToggleStar && (
               <button
                 onClick={() => handleNavigationClick("/starred")}
                 className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/starred")
@@ -649,7 +735,8 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               >
                 <Star className="w-4 h-4" />
                 <span>Starred</span>
-              </button>
+              </button>)}
+            {canTrash && (
 
               <button
                 onClick={() => handleNavigationClick("/trash")}
@@ -660,35 +747,71 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
               >
                 <Trash2 className="w-4 h-4" />
                 <span>Trash</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigationClick("/customerprofile")}
-                className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/customerprofile")
-                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                  }`}
-              >
-                <User className="w-4 h-4" />
-                <span>Profile</span>
-              </button>
-            </div>
+              </button>)}
+            <button
+              onClick={() => handleNavigationClick("/customerprofile")}
+              className={`flex items-center gap-2 px-3 py-2 text-sm w-full rounded-md transition-colors ${isActive("/customerprofile")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                }`}
+            >
+              <User className="w-4 h-4" />
+              <span>Profile</span>
+            </button>
+          </div>
           <div className="flex gap-2">
-            <Button
-              className="flex-1 bg-panel hover:bg-panel/90 text-panel-foreground"
+            {/* <Button
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white 
+             dark:bg-[#1e40af] dark:hover:bg-[#1d4ed8] dark:text-white 
+             transition-all duration-200 shadow-sm dark:shadow-md"
               onClick={handleUploadClick}
             >
-              <Upload className="w-4 h-4" />Upload
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="flex-shrink-0 text-sidebar-foreground  hover:bg-panel/90"
-              onClick={handleLogout}
-              title="Logout"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
+              <Upload className="w-4 h-4 mr-2" />
+              Upload
+            </Button> */}
+
+
+            <div className="flex items-center justify-between w-full">
+
+              {/* Logout Button (Left) */}
+              <button
+                onClick={handleLogout}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
+                  "text-gray-700 dark:text-gray-300 hover:text-red-600 dark:hover:text-[#60a5fa] hover:bg-red-50 dark:hover:bg-[#1e3a8a]/30",
+                  collapsed && "justify-center"
+                )}
+              >
+                <LogOut className="h-5 w-5" />
+                {!collapsed && <span>Logout</span>}
+              </button>
+
+              {/* Home Button (Right) */}
+              <Link
+                to="/"
+                className={cn(
+                  "flex items-center justify-center h-10 w-10 rounded-lg transition-colors",
+                  "text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-[#60a5fa] hover:bg-blue-50 dark:hover:bg-[#1e3a8a]/30"
+                )}
+              >
+                <Home className="h-5 w-5" />
+              </Link>
+
+            </div>
+
+            {/* <Button
+  onClick={handleLogout}
+  className="
+   flex-1 bg-red-600 hover:bg-red-700 text-white 
+             dark:bg-[#1e40af] dark:hover:bg-[#1d4ed8] dark:text-white 
+             transition-all duration-200 shadow-sm dark:shadow-md
+  "
+>
+  <LogOut className="w-4 h-4" />
+  <span>Logout</span>
+</Button> */}
+
+
           </div>
         </div>
       </div>
@@ -701,12 +824,13 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     return (
       <>
         {/* Mobile Sidebar (icon-only) */}
-        <div className="fixed top-0 left-0 h-full w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 space-y-6 z-50">
+        <div className="fixed top-0 left-0 h-full w-16 bg-sidebar border-r border-sidebar-border flex flex-col items-center py-4 space-y-6 z-50 dark:border-gray-700 
+              bg-white dark:bg-[#0f172a] transition-colors">
           {/* Profile Photo / Avatar (Top) */}
           <Avatar className="w-9 h-9 border border-sidebar-border">
             {user?.profile_photo ? (
-              <AvatarImage 
-                src={user.profile_photo} 
+              <AvatarImage
+                src={user.profile_photo}
                 alt={getUserDisplayName(user)}
                 className="object-cover"
               />
@@ -719,11 +843,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           {/* Dashboard */}
           <button
             onClick={() => handleNavigationClick("/dashboard")}
-            className={`p-2 rounded-md transition-colors ${
-              isActive("/dashboard")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`p-2 rounded-md transition-colors ${isActive("/dashboard")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <BarChart3 className="w-5 h-5" />
           </button>
@@ -731,11 +854,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           {/* Home */}
           <button
             onClick={() => handleNavigationClick("/filemanager")}
-            className={`p-2 rounded-md transition-colors ${
-              isActive("/filemanager")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`p-2 rounded-md transition-colors ${isActive("/filemanager")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <Home className="w-5 h-5" />
           </button>
@@ -743,11 +865,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           {/* Starred */}
           <button
             onClick={() => handleNavigationClick("/starred")}
-            className={`p-2 rounded-md transition-colors ${
-              isActive("/starred")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`p-2 rounded-md transition-colors ${isActive("/starred")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <Star className="w-5 h-5" />
           </button>
@@ -755,11 +876,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           {/* Trash */}
           <button
             onClick={() => handleNavigationClick("/trash")}
-            className={`p-2 rounded-md transition-colors ${
-              isActive("/trash")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`p-2 rounded-md transition-colors ${isActive("/trash")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <Trash2 className="w-5 h-5" />
           </button>
@@ -767,11 +887,10 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
           {/* Profile */}
           <button
             onClick={() => handleNavigationClick("/customerprofile")}
-            className={`p-2 rounded-md transition-colors ${
-              isActive("/customerprofile")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-            }`}
+            className={`p-2 rounded-md transition-colors ${isActive("/customerprofile")
+              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+              : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              }`}
           >
             <User className="w-5 h-5" />
           </button>
@@ -801,7 +920,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
         </div>
 
         {/* Upload Modal */}
-       
+
       </>
     );
   }
@@ -827,9 +946,9 @@ async function getUserData() {
   if (userData) {
     return JSON.parse(userData);
   }
-  
+
   // Or from an API call:
   // return await authApi.getCurrentUser();
-  
+
   return null;
 }
