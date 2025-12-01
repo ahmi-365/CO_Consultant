@@ -37,8 +37,8 @@ const Footer = () => {
             <p className="leading-relaxed text-gray-300">
               CO Consultants is a construction focused project management and
               analytics consultancy based in Dubai, UAE. With over a decade of
-              experience across the GCC, Europe, and Central Asia, we help
-              contractors, developers, and consultants turn daily field data
+              experience across the GCC, EuropeX and Central Asia, we help
+              contractors, developers and consultants turn daily field data
               into strategic project insights. We bridge the gap between on site
               operations and decision making through smart digitization.
             </p>

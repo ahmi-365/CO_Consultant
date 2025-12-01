@@ -9,7 +9,14 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-
+const Flag = ({ code, alt }) => (
+  <img
+    src={`https://flagcdn.com/${code.toLowerCase()}.svg`}
+    alt={alt}
+    className=" border inline-block w-6 h-4 object-cover"
+    loading="lazy"
+  />
+);
 const WhyChooseUsSection = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const stepCounterRef = useRef(null);
@@ -90,12 +97,24 @@ const WhyChooseUsSection = () => {
       description: (
         <>
           With over a decade of hands on project management experience across:
-          <p className="mt-2 font-semibold text-gray-700">
-            🇦🇪 UAE • 🇹🇷 Turkey • 🇶🇦 Qatar • 🇷🇺 Russia • 🇸🇦 Saudi Arabia • 🇮🇶
-            Iraq • 🇰🇿 Kazakhstan • 🇯🇴 Jordan • 🇪🇸 Spain
+          <p className="mt-2 font-semibold text-gray-700 flex flex-wrap gap-2 items-center">
+            <Flag code="AE" alt="UAE" /> UAE •
+            <Flag code="TR" alt="Turkey" /> Turkey •
+            <Flag code="QA" alt="Qatar" /> Qatar •
+            <Flag code="RU" alt="Russia" /> Russia •
+            <Flag code="SA" alt="Saudi Arabia" /> Saudi Arabia •
+            <Flag code="IQ" alt="Iraq" /> Iraq •
+
+            <span className="w-full" />
+
+            <Flag code="KZ" alt="Kazakhstan" /> Kazakhstan •
+            <Flag code="JO" alt="Jordan" /> Jordan •
+            <Flag code="ES" alt="Spain" /> Spain
           </p>
+
+
           <p className="mt-2">
-            We understand what clients, contractors, and consultants need — and
+            We understand what clients, contractors and consultants need — and
             how to align them around <b>facts, not fiction.</b>
           </p>
         </>
@@ -121,9 +140,9 @@ const WhyChooseUsSection = () => {
   const handleStepChange = (newStep) => {
     setCurrentStep(newStep);
     setTimeout(() => {
-      stepCounterRef.current?.scrollIntoView({ 
-        behavior: 'smooth', 
-        block: 'center' 
+      stepCounterRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
       });
     }, 100);
   };
@@ -140,6 +159,7 @@ const WhyChooseUsSection = () => {
     }
   };
 
+
   const currentStepData = steps[currentStep];
 
   return (
@@ -151,15 +171,15 @@ const WhyChooseUsSection = () => {
             Why Choose Us?
           </h2>
           <p className="text-sm text-gray-600 max-w-2xl mx-auto">
-            Because We Don't Just Track Projects, We Organise Construction 
+            Because We Don't Just Track Projects, We Organise Construction
             <span className="text-yellow-600 font-semibold text-base ml-1">
-               Intelligently.
+              Intelligently.
             </span>
           </p>
         </div>
 
         {/* Progress dots - clickable navigation */}
-       
+
 
         {/* Step counter - scroll target */}
         {/* <div ref={stepCounterRef} className="text-center mb-3">
@@ -193,41 +213,38 @@ const WhyChooseUsSection = () => {
           <button
             onClick={handlePrevious}
             disabled={currentStep === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-              currentStep === 0
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-gray-800 text-white hover:bg-gray-700 hover:shadow-lg"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${currentStep === 0
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-gray-800 text-white hover:bg-gray-700 hover:shadow-lg"
+              }`}
           >
             <ChevronLeft className="w-4 h-4" />
             Previous
           </button>
 
-           <div className="flex justify-center items-center gap-2 mb-4">
-          {steps.map((_, index) => (
-            <button
-              key={index}
-              onClick={() => handleStepChange(index)}
-              className={`rounded-full transition-all duration-300 hover:scale-110 ${
-                index === currentStep
+          <div className="flex justify-center items-center gap-2 mb-4">
+            {steps.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => handleStepChange(index)}
+                className={`rounded-full transition-all duration-300 hover:scale-110 ${index === currentStep
                   ? "w-8 h-2 bg-yellow-500"
                   : index < currentStep
-                  ? "w-2 h-2 bg-yellow-300"
-                  : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
-              }`}
-              aria-label={`Go to step ${index + 1}`}
-            />
-          ))}
-        </div>
+                    ? "w-2 h-2 bg-yellow-300"
+                    : "w-2 h-2 bg-gray-300 hover:bg-gray-400"
+                  }`}
+                aria-label={`Go to step ${index + 1}`}
+              />
+            ))}
+          </div>
 
           <button
             onClick={handleNext}
             disabled={currentStep === steps.length - 1}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${
-              currentStep === steps.length - 1
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-yellow-500 text-white hover:bg-yellow-600 hover:shadow-lg"
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold transition-all ${currentStep === steps.length - 1
+              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+              : "bg-yellow-500 text-white hover:bg-yellow-600 hover:shadow-lg"
+              }`}
           >
             Next
             <ChevronRight className="w-4 h-4" />

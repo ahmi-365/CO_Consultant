@@ -20,11 +20,10 @@ export default function BreadcrumbNav({ items }) {
       {items.map((crumb, index) => (
         <div key={crumb.path} className="flex items-center gap-2">
           {index > 0 && <ChevronRight className="w-4 h-4" />}
-          <button 
+          <button
             onClick={() => navigate(crumb.path)}
-            className={`hover:text-foreground transition-colors ${
-              index === items.length - 1 ? 'text-foreground font-medium' : ''
-            }`}
+            className={`hover:text-foreground transition-colors ${index === items.length - 1 ? 'text-foreground font-medium' : ''
+              }`}
           >
             {crumb.name}
           </button>

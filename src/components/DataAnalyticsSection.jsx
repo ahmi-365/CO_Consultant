@@ -1,93 +1,113 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Cloud, HardHat, RefreshCw, FolderArchive, 
-  Play, Pause, Activity, CheckCircle2 
+  FileText, 
+  Wifi, 
+  BarChart3, 
+  Brain,
+  // Alternatives:
+  ClipboardCheck,
+  Users,
+  PieChart,
+  Cpu,
+  Filter,
+  CircuitBoard,
+  Play,
+  Activity,
+  CheckCircle2,
+  Pause
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
-const ConstructionDataFlow = () => {
+const DataAnalyticsFlow = () => {
   const [activeStep, setActiveStep] = useState(1);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [hoveredStep, setHoveredStep] = useState(null);
   
-  // Simulated "Live Data" counters for file sizes/counts
-  const [metrics, setMetrics] = useState({ 1: 120, 2: 4500, 3: 890, 4: 240 });
+  // Simulated "Live Data" counters
+  const [metrics, setMetrics] = useState({ 1: 450, 2: 2100, 3: 780, 4: 320 });
 
-  // Configuration for steps tailored to Construction + OneDrive
-  const steps = useMemo(() => [
-    {
-      id: 1,
-      title: "Site Documentation Upload",
-      subtitle: "Field Data Capture",
-      desc: "Upload site photos, progress reports, and CAD revisions from mobile devices.",
-      metricLabel: "Files Uploaded",
-      statusText: "Secure Upload Active",
-      icon: HardHat,
-      color: "orange",
-      gradient: "from-orange-500 to-orange-600",
-      stroke: "#ea580c",
-      bg: "bg-orange-50",
-      border: "border-orange-500",
-      text: "text-orange-600",
-      shadow: "shadow-orange-500/30",
-      pathProgress: 0.14,
-      storageText: "1TB Storage Available"
-    },
-    {
-      id: 2,
-      title: "Centralized Cloud Vault",
-      subtitle: "OneDrive Secure Storage",
-      desc: "Secure storage with AES-256 encryption and automatic version control.",
-      metricLabel: "GBs Securely Stored",
-      statusText: "Encrypted & Protected",
-      icon: Cloud,
-      color: "blue",
-      gradient: "from-blue-400 to-blue-500",
-      stroke: "#0ea5e9",
-      bg: "bg-sky-50",
-      border: "border-sky-500",
-      text: "text-sky-600",
-      shadow: "shadow-sky-500/30",
-      pathProgress: 0.38,
-      storageText: "Auto-Backup Enabled"
-    },
-    {
-      id: 3,
-      title: "Team Collaboration Hub",
-      subtitle: "Real-time Sync",
-      desc: "Seamless file sharing with real-time updates and co-authoring.",
-      metricLabel: "Active Sessions",
-      statusText: "Real-time Sync Active",
-      icon: RefreshCw,
-      color: "emerald",
-      gradient: "from-emerald-500 to-emerald-600",
-      stroke: "#10b981",
-      bg: "bg-emerald-50",
-      border: "border-emerald-500",
-      text: "text-emerald-600",
-      shadow: "shadow-emerald-500/30",
-      pathProgress: 0.63,
-      storageText: "Team Sharing Active"
-    },
-    {
-      id: 4,
-      title: "Project Archive & Handover",
-      subtitle: "Compliance Ready",
-      desc: "Automated organization of as-built drawings and compliance docs.",
-      metricLabel: "Records Archived",
-      statusText: "10-Year Retention",
-      icon: FolderArchive,
-      color: "indigo",
-      gradient: "from-indigo-800 to-indigo-900",
-      stroke: "#312e81",
-      bg: "bg-indigo-50",
-      border: "border-indigo-900",
-      text: "text-indigo-900",
-      shadow: "shadow-indigo-900/30",
-      pathProgress: 1.0,
-      storageText: "Archive Protection Active"
-    }
-  ], []);
+const steps = useMemo(() => [
+  {
+    id: 1,
+    title: "Claims & Tendering",
+    subtitle: "Financial Planning",
+    desc: "Structured record keeping for potential claims, arbitration, and future project tendering optimization.",
+    metricLabel: "Claims Processed",
+    statusText: "Tracking Active",
+    // More relevant icons:
+    icon: FileText, // For documentation/records
+    // Alternative: ClipboardCheck, FileCheck, Scale (for arbitration/legal)
+    color: "orange",
+    gradient: "from-orange-500 to-orange-600",
+    stroke: "#ea580c",
+    bg: "bg-orange-50",
+    border: "border-orange-500",
+    text: "text-orange-600",
+    shadow: "shadow-orange-500/30",
+    pathProgress: 0.14,
+    storageText: "Secure Documentation"
+  },
+  {
+    id: 2,
+    title: "Data Collection",
+    subtitle: "Information Gathering",
+    desc: "Comprehensive data gathering from manual entries and IoT blueprint devices for real-time employee tracking.",
+    metricLabel: "Data Points Collected",
+    statusText: "Collection Active",
+    // More relevant icons:
+    icon: Wifi, // For IoT/device connectivity
+    // Alternative: Cpu (for IoT devices), Users (for employee tracking), RadioTower
+    color: "emerald",
+    gradient: "from-emerald-500 to-emerald-600",
+    stroke: "#10b981",
+    bg: "bg-emerald-50",
+    border: "border-emerald-500",
+    text: "text-emerald-600",
+    shadow: "shadow-emerald-500/30",
+    pathProgress: 0.38,
+    storageText: "Real-Time Sync"
+  },
+  {
+    id: 3,
+    title: "Interactive Dashboards",
+    subtitle: "Visual Analytics",
+    desc: "Real-time dashboards for displaying insights, workforce trends and emerging patterns with key performance indicators.",
+    metricLabel: "Active Visualizations",
+    statusText: "Dashboard Live",
+    // More relevant icons:
+    icon: BarChart3, // For analytics/visualizations
+    // Alternative: PieChart, TrendingUp, Grid (for dashboard layout)
+    color: "blue",
+    gradient: "from-blue-500 to-blue-600",
+    stroke: "#3b82f6",
+    bg: "bg-blue-50",
+    border: "border-blue-500",
+    text: "text-blue-600",
+    shadow: "shadow-blue-500/30",
+    pathProgress: 0.63,
+    storageText: "Live Updates"
+  },
+  {
+    id: 4,
+    title: "Data Processing",
+    subtitle: "Advanced Analytics",
+    desc: "Advanced algorithmic framework, data cleaning, transformation, and mining for actionable insights.",
+    metricLabel: "Records Processed",
+    statusText: "Processing Active",
+    // More relevant icons:
+    icon: Brain, // For AI/advanced algorithms
+    // Alternative: Cogs (for processing), Filter (for data cleaning), CircuitBoard
+    color: "purple", // Changed from lime to purple for AI/advanced tech
+    gradient: "from-purple-500 to-purple-600",
+    stroke: "#8b5cf6",
+    bg: "bg-purple-50",
+    border: "border-purple-500",
+    text: "text-purple-600",
+    shadow: "shadow-purple-500/30",
+    pathProgress: 1.0,
+    storageText: "AI-Powered Analysis"
+  }
+], []);
 
   // Simulate Live Data Counter
   useEffect(() => {
@@ -121,33 +141,35 @@ const ConstructionDataFlow = () => {
   return (
     <section className="relative w-full min-h-[600px] bg-white text-gray-900 flex flex-col overflow-hidden font-sans selection:bg-blue-100 py-6 sm:py-8">
       
-      {/* Top Bar Controls */}
-      <div className="w-full px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 pointer-events-none mb-6 sm:mb-8">
-        <div className="pointer-events-auto">
-          <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-black">
-            Construction<span className="text-blue-600">Drive</span> Manager
-          </h2>
-          <p className="text-gray-400 text-xs sm:text-sm font-medium flex items-center gap-2 mt-1">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="hidden sm:inline">OneDrive for Construction - Secure Document Management</span>
-            <span className="sm:hidden">Secure Document Management</span>
-          </p>
-        </div>
+      {/* Top Bar - Centered Heading Only */}
+    <div className="w-full px-4 sm:px-6 flex justify-center items-center mb-6 sm:mb-8 relative">
+  <div className="text-center">
+    <h2 className="text-3xl md:text-4xl font-bold text-gray-800 mb-2">
+      Data Analytics Workflow
+    </h2>
+    <p className="text-gray-400 text-xs sm:text-sm font-medium flex items-center gap-2 mt-1">
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+      </span>
+      <span>From collection to claims our workflow turns data into actionable insights.</span>
+    </p>
+  </div>
 
-        <button 
-          onClick={() => setIsAutoPlaying(!isAutoPlaying)}
-          className={`
-            pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm transition-all shadow-lg hover:scale-105 active:scale-95
-            ${isAutoPlaying ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-200' : 'bg-gray-900 text-white'}
-          `}
-        >
-          {isAutoPlaying ? <Pause size={14} /> : <Play size={14} />}
-          {isAutoPlaying ? "Pause Demo" : "Demo Workflow"}
-        </button>
-      </div>
+  <button
+    onClick={() => setIsAutoPlaying(!isAutoPlaying)}
+    className={`
+      pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full font-bold text-xs sm:text-sm transition-all shadow-lg hover:scale-105 active:scale-95
+      ${isAutoPlaying ? 'bg-orange-50 text-orange-600 ring-1 ring-orange-200' : 'bg-gray-900 text-white'}
+      absolute right-4
+    `}
+  >
+    {isAutoPlaying ? <Pause size={14} /> : <Play size={14} />}
+    {isAutoPlaying ? "Pause Demo" : "Demo Workflow"}
+  </button>
+</div>
+ 
+
 
       <div className="flex-1 flex flex-col justify-center max-w-7xl mx-auto w-full px-4 relative">
         
@@ -179,9 +201,9 @@ const ConstructionDataFlow = () => {
             <defs>
               <linearGradient id="activeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                 <stop offset="0%" stopColor="#ea580c" />
-                <stop offset="35%" stopColor="#0ea5e9" />
-                <stop offset="65%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#312e81" />
+                <stop offset="35%" stopColor="#10b981" />
+                <stop offset="65%" stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#84cc16" />
               </linearGradient>
               
               <filter id="glossyPipe" x="-50%" y="-50%" width="200%" height="200%">
@@ -333,7 +355,7 @@ const ConstructionDataFlow = () => {
                    </p>
                  </div>
 
-                 {/* CONSTRUCTION-ORIENTED STORAGE STATUS */}
+                 {/* STATUS BADGE */}
                  <div className={`
                     w-full mt-auto py-2 px-2 sm:px-3 rounded-lg flex flex-col items-center justify-center gap-1
                     border ${isCurrent ? step.border : 'border-gray-100'} 
@@ -360,4 +382,4 @@ const ConstructionDataFlow = () => {
   );
 };
 
-export default ConstructionDataFlow;
+export default DataAnalyticsFlow;

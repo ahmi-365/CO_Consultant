@@ -236,7 +236,7 @@ const ContactSection = () => {
                       id="message"
                       value={formData.message}
                       onChange={(e) => handleInputChange("message", e.target.value)}
-                      placeholder="Tell us about your project requirements, timeline, and any specific needs..."
+                      placeholder="Tell us about your project requirements, timeline and any specific needs..."
                       className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 transition-colors duration-200 min-h-32 ${errors.message ? "border-red-500" : "border-gray-300"
                         }`}
                     />

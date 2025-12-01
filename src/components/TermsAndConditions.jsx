@@ -42,8 +42,8 @@ const TermsAndConditions = () => {
             <h2 className="text-2xl font-semibold mt-6 mb-2">5. Contact Us</h2>
             <p className="mb-4">
                For any questions about these Terms & Conditions, please contact us at{" "}
-               <a href="mailto:info@thecoconsultants.com" className="text-blue-700 underline">
-                  info@thecoconsultants.com
+               <a href="mailto:admin@thecoconsultants.com" className="text-blue-700 underline">
+                  admin@thecoconsultants.com
                </a>.
             </p>
 

@@ -25,7 +25,7 @@ const projects = [
   },
   {
     id: 2,
-    title: "Riverside Housing Development", 
+    title: "Riverside Housing Development",
     image: project2,
     category: "Residential",
     status: "In Progress",
@@ -42,7 +42,7 @@ const projects = [
     id: 3,
     title: "Harbor Bridge Infrastructure",
     image: project3,
-    category: "Infrastructure", 
+    category: "Infrastructure",
     status: "Completed",
     description: "Major bridge construction project connecting two districts with advanced engineering solutions.",
     details: {
@@ -68,7 +68,7 @@ const ProjectsSection = () => {
 
   const project = projects[activeProject];
 
-return (
+  return (
     <section id="projects" className="py-20 bg-white overflow-hidden">
       <div className="container mx-auto px-4">
         <div className="text-center mb-16">
@@ -87,23 +87,22 @@ return (
               {/* Project Image - Reduced height */}
               <div className="relative group">
                 <div className="aspect-[5/4] overflow-hidden"> {/* Changed from aspect-[4/3] */}
-                  <img 
-                    src={project.image} 
+                  <img
+                    src={project.image}
                     alt={project.title}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                 </div>
-                
+
                 {/* Enhanced Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-transparent to-transparent" />
-                
+
                 {/* Status & Category Badges */}
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    project.status === 'Completed' 
-                      ? 'bg-green-500 text-white' 
+                  <div className={`px-3 py-1 rounded-full text-sm font-semibold ${project.status === 'Completed'
+                      ? 'bg-green-500 text-white'
                       : 'bg-yellow-500 text-white'
-                  }`}>
+                    }`}>
                     {project.status}
                   </div>
                   <div className="px-3 py-1 rounded-full text-sm font-semibold bg-white/90 text-gray-900">
@@ -117,7 +116,7 @@ return (
                 <h3 className="text-2xl font-bold mb-3 text-gray-900"> {/* Reduced text size */}
                   {project.title}
                 </h3>
-                
+
                 <p className="text-gray-600 mb-6 leading-relaxed"> {/* Reduced margin */}
                   {project.description}
                 </p>
@@ -133,7 +132,7 @@ return (
                       <p className="font-semibold text-gray-900 text-sm">{project.details.budget}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-green-50">
                     <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
                       <Calendar className="w-4 h-4 text-white" />
@@ -143,7 +142,7 @@ return (
                       <p className="font-semibold text-gray-900 text-sm">{project.details.duration}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-purple-50">
                     <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
                       <Users className="w-4 h-4 text-white" />
@@ -153,7 +152,7 @@ return (
                       <p className="font-semibold text-gray-900 text-sm">{project.details.team}</p>
                     </div>
                   </div>
-                  
+
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-orange-50">
                     <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                       <MapPin className="w-4 h-4 text-white" />
@@ -170,7 +169,7 @@ return (
                   <h4 className="font-semibold text-gray-900 mb-2 text-sm">Key Features:</h4> {/* Smaller text */}
                   <div className="flex flex-wrap gap-1"> {/* Reduced gap */}
                     {project.features.map((feature, index) => (
-                      <div 
+                      <div
                         key={index}
                         className="px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-medium" /* Smaller badges */
                       >
@@ -185,7 +184,7 @@ return (
                   <div className="flex gap-2">
                     <Button
                       variant="outline"
-                      size="sm" 
+                      size="sm"
                       onClick={prevProject}
                       className="hover:bg-blue-500 hover:text-white border-gray-300"
                     >
@@ -206,9 +205,8 @@ return (
                       <button
                         key={index}
                         onClick={() => setActiveProject(index)}
-                        className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                          index === activeProject ? 'bg-blue-500' : 'bg-gray-300'
-                        }`}
+                        className={`w-2 h-2 rounded-full transition-all duration-300 ${index === activeProject ? 'bg-blue-500' : 'bg-gray-300'
+                          }`}
                       />
                     ))}
                   </div>
@@ -221,16 +219,15 @@ return (
         {/* All Projects Grid Preview - Same size cards */}
         <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
           {projects.map((proj, index) => (
-            <div 
+            <div
               key={proj.id}
-              className={`cursor-pointer bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${
-                index === activeProject ? 'ring-2 ring-blue-500' : ''
-              }`}
+              className={`cursor-pointer bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2 ${index === activeProject ? 'ring-2 ring-blue-500' : ''
+                }`}
               onClick={() => setActiveProject(index)}
             >
               <div className="aspect-[4/3] overflow-hidden">
-                <img 
-                  src={proj.image} 
+                <img
+                  src={proj.image}
                   alt={proj.title}
                   className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                 />
@@ -241,11 +238,10 @@ return (
                   <div className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
                     {proj.category}
                   </div>
-                  <div className={`px-2 py-1 rounded text-xs ${
-                    proj.status === 'Completed' 
-                      ? 'bg-green-500 text-white' 
+                  <div className={`px-2 py-1 rounded text-xs ${proj.status === 'Completed'
+                      ? 'bg-green-500 text-white'
                       : 'bg-yellow-500 text-white'
-                  }`}>
+                    }`}>
                     {proj.status}
                   </div>
                 </div>

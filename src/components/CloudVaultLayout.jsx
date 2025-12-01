@@ -30,13 +30,13 @@ import { fileApi, formatFileSize, formatDate } from "@/services/FileService";
 
 const getFileIcon = (filename, type) => {
   const iconClass = "w-4 h-4 text-muted-foreground mr-2";
-  
+
   if (type === "folder") {
     return <Folder className={iconClass} />;
   }
-  
+
   const extension = filename?.split('.').pop()?.toLowerCase();
-  
+
   switch (extension) {
     case 'pdf':
     case 'doc':
@@ -107,115 +107,115 @@ export default function CloudVaultLayout({ children }) {
     loadFiles();
     loadAllFolders();
   }, [folderId]);
-// In your loadFiles function, change this:
-const loadFiles = async () => {
-  setLoading(true);
-  try {
-    console.log('Loading files for folder:', folderId);
+  // In your loadFiles function, change this:
+  const loadFiles = async () => {
+    setLoading(true);
+    try {
+      console.log('Loading files for folder:', folderId);
 
-    const parentId = folderId || null;
-    // CHANGE: listFilesNoUser -> listFiles
-    const response = await fileApi.listFiles(parentId);
+      const parentId = folderId || null;
+      // CHANGE: listFilesNoUser -> listFiles
+      const response = await fileApi.listFiles(parentId);
 
-    console.log('API Response:', response);
+      console.log('API Response:', response);
 
-    if (response && Array.isArray(response)) {
-      const fileItems = response.filter(item => item.type === 'file');
-      const folderItems = response.filter(item => item.type === 'folder');
+      if (response && Array.isArray(response)) {
+        const fileItems = response.filter(item => item.type === 'file');
+        const folderItems = response.filter(item => item.type === 'folder');
 
 
-      setFiles(fileItems);
-      setFolders(folderItems);
-    } else {
-      console.warn('Invalid response format:', response);
+        setFiles(fileItems);
+        setFolders(folderItems);
+      } else {
+        console.warn('Invalid response format:', response);
+        setFiles([]);
+        setFolders([]);
+      }
+    } catch (error) {
+      console.error("Error loading files:", error);
+      toast.error(`Error loading files: ${error.message}`);
       setFiles([]);
       setFolders([]);
+    } finally {
+      setLoading(false);
     }
-  } catch (error) {
-    console.error("Error loading files:", error);
-    toast.error(`Error loading files: ${error.message}`);
-    setFiles([]);
-    setFolders([]);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
-// In your loadAllFolders function, change this:
-const loadAllFolders = async () => {
-  try {
-    console.log('Loading all folders');
-    
-    // CHANGE: listFilesNoUser -> listFiles
-    const response = await fileApi.listFiles(null);
-    
-    console.log('All folders response:', response);
-    
-    if (response && Array.isArray(response)) {
-      const folderItems = response.filter(item => item.type === 'folder');
-      console.log('All folder items:', folderItems);
-      setAllFolders(folderItems);
-    } else {
-      console.warn('Invalid all folders response format:', response);
+  // In your loadAllFolders function, change this:
+  const loadAllFolders = async () => {
+    try {
+      console.log('Loading all folders');
+
+      // CHANGE: listFilesNoUser -> listFiles
+      const response = await fileApi.listFiles(null);
+
+      console.log('All folders response:', response);
+
+      if (response && Array.isArray(response)) {
+        const folderItems = response.filter(item => item.type === 'folder');
+        console.log('All folder items:', folderItems);
+        setAllFolders(folderItems);
+      } else {
+        console.warn('Invalid all folders response format:', response);
+        setAllFolders([]);
+      }
+    } catch (error) {
+      console.error("Error loading all folders:", error);
+      toast.error(`Error loading folders: ${error.message}`);
       setAllFolders([]);
     }
-  } catch (error) {
-    console.error("Error loading all folders:", error);
-    toast.error(`Error loading folders: ${error.message}`);
-    setAllFolders([]);
-  }
-};
+  };
 
-// In your handleSearch function, change this:
-const handleSearch = async (query) => {
-  setLoading(true);
-  try {
-    console.log('Searching for:', query, 'in folder:', folderId);
+  // In your handleSearch function, change this:
+  const handleSearch = async (query) => {
+    setLoading(true);
+    try {
+      console.log('Searching for:', query, 'in folder:', folderId);
 
-    let response;
-    if (!query || !query.trim()) {
-      // CHANGE: listFilesNoUser -> listFiles
-      response = await fileApi.listFiles(folderId || null);
-    } else {
-      console.warn('Search functionality may need API modification');
-      // CHANGE: listFilesNoUser -> listFiles
-      response = await fileApi.listFiles(folderId || null);
-      if (response && Array.isArray(response)) {
-        const searchTerm = query.trim().toLowerCase();
-        response = response.filter(item => 
-          item.name && item.name.toLowerCase().includes(searchTerm)
-        );
+      let response;
+      if (!query || !query.trim()) {
+        // CHANGE: listFilesNoUser -> listFiles
+        response = await fileApi.listFiles(folderId || null);
+      } else {
+        console.warn('Search functionality may need API modification');
+        // CHANGE: listFilesNoUser -> listFiles
+        response = await fileApi.listFiles(folderId || null);
+        if (response && Array.isArray(response)) {
+          const searchTerm = query.trim().toLowerCase();
+          response = response.filter(item =>
+            item.name && item.name.toLowerCase().includes(searchTerm)
+          );
+        }
       }
+
+      console.log('Search response:', response);
+
+      if (response && Array.isArray(response)) {
+        const fileItems = response.filter(item => item.type === 'file');
+        const folderItems = response.filter(item => item.type === 'folder');
+        setFiles(fileItems);
+        setFolders(folderItems);
+      } else {
+        console.warn('Invalid search response:', response);
+        setFiles([]);
+        setFolders([]);
+      }
+    } catch (error) {
+      console.error("Error searching files:", error);
+      toast.error(`Error searching: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-    
-    console.log('Search response:', response);
-    
-    if (response && Array.isArray(response)) {
-      const fileItems = response.filter(item => item.type === 'file');
-      const folderItems = response.filter(item => item.type === 'folder');
-      setFiles(fileItems);
-      setFolders(folderItems);
-    } else {
-      console.warn('Invalid search response:', response);
-      setFiles([]);
-      setFolders([]);
-    }
-  } catch (error) {
-    console.error("Error searching files:", error);
-    toast.error(`Error searching: ${error.message}`);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
   const handleFileUploaded = async (file) => {
     setLoading(true);
     try {
       console.log('Uploading file:', file.name, 'to folder:', folderId);
 
       const response = await fileApi.uploadFile(file, folderId || null);
-      
+
       console.log('Upload response:', response);
-      
+
       if (response) {
         await loadFiles();
         await loadAllFolders();
@@ -242,9 +242,9 @@ const handleSearch = async (query) => {
       console.log('Creating folder:', folderName, 'in parent:', folderId);
 
       const response = await fileApi.createFolder(folderName.trim(), folderId || null);
-      
+
       console.log('Create folder response:', response);
-      
+
       // Handle the nested response structure properly
       if (response && response.status === 'ok') {
         if (response.folder && response.folder.status === 'error') {
@@ -252,12 +252,12 @@ const handleSearch = async (query) => {
           toast.error(response.folder.message || "Failed to create folder");
           return;
         }
-        
+
         // Folder created successfully
         await loadFiles();
         await loadAllFolders();
         toast.success(`Folder "${folderName}" created successfully`);
-        
+
         // Dispatch custom event for any listeners
         window.dispatchEvent(new CustomEvent("folderCreated", {
           detail: { folderName, folderId, response }
@@ -293,7 +293,7 @@ const handleSearch = async (query) => {
       await fileApi.deleteItem(fileId);
       await loadFiles();
       await loadAllFolders();
-      
+
       toast.success("Item moved to trash");
     } catch (error) {
       console.error("Error moving item to trash:", error);
@@ -311,19 +311,19 @@ const handleSearch = async (query) => {
       console.log('Downloading file:', fileId, fileName);
 
       const response = await fileApi.getDownloadUrl(fileId);
-      
+
       console.log('Download URL response:', response);
-      
+
       if (response && response.download_url) {
         const link = document.createElement('a');
         link.href = response.download_url;
         link.download = fileName || 'download';
         link.target = '_blank';
-        
+
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
+
         toast.success(`Downloaded ${fileName}`);
       } else {
         toast.error("Failed to get download URL");
@@ -360,11 +360,11 @@ const handleSearch = async (query) => {
     input.type = 'file';
     input.multiple = true;
     input.accept = '*/*';
-    
+
     input.onchange = (event) => {
       const selectedFiles = Array.from(event.target.files);
       console.log('Selected files for upload:', selectedFiles);
-      
+
       if (selectedFiles.length === 0) {
         return;
       }
@@ -408,34 +408,34 @@ const handleSearch = async (query) => {
         <main className="flex-1 p-6">
           {children || (
             <div className="space-y-6">
-          
+
 
               {/* Quick Actions */}
-         <div className="mb-6">
-  <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
+              <div className="mb-6">
+                <h2 className="text-lg font-semibold mb-3">Quick Actions</h2>
 
-  <div className="flex items-center gap-3">
-    <Button
-      // variant="cloudvault-primary"
-      onClick={handleUpload}
-      disabled={loading}
-      className="px-6 py-2 bg-panel hover:bg-panel/50 text-white"
-    >
-      <Upload className="w-4 h-4" />
-      {loading ? "Uploading..." : "Upload"}
-    </Button>
+                <div className="flex items-center gap-3">
+                  <Button
+                    // variant="cloudvault-primary"
+                    onClick={handleUpload}
+                    disabled={loading}
+                    className="px-6 py-2 bg-panel hover:bg-panel/50 text-white"
+                  >
+                    <Upload className="w-4 h-4" />
+                    {loading ? "Uploading..." : "Upload"}
+                  </Button>
 
-    <Button
-      variant="secondary"
-      onClick={handleNewFolder}
-      disabled={loading}
-      className="px-6 py-2"
-    >
-      <FolderPlus className="w-4 h-4" />
-      New Folder
-    </Button>
-  </div>
-</div>
+                  <Button
+                    variant="secondary"
+                    onClick={handleNewFolder}
+                    disabled={loading}
+                    className="px-6 py-2"
+                  >
+                    <FolderPlus className="w-4 h-4" />
+                    New Folder
+                  </Button>
+                </div>
+              </div>
 
 
               {/* Files Section */}

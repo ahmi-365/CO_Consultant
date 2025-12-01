@@ -170,6 +170,8 @@
 
 html {
   scroll-behavior: smooth;
+    scroll-padding-top: 60px; /* adjust based on your navbar height */
+
 }
   body {
     @apply m-0 p-0 overflow-x-hidden;

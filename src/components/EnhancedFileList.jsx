@@ -96,12 +96,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [nameError, setNameError] = useState("");
   const [duplicateWarning, setDuplicateWarning] = useState("");
   const [isNameValid, setIsNameValid] = useState(false);
-const [pagination, setPagination] = useState({
-  currentPage: 1,
-  perPage: 10, // Changed from 25 to 10
-  totalItems: 0,
-  totalPages: 1
-});
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    perPage: 10, // Changed from 25 to 10
+    totalItems: 0,
+    totalPages: 1
+  });
 
 
   // Tab state
@@ -157,10 +157,10 @@ const [pagination, setPagination] = useState({
     move: false,
     rename: false,
   });
-// Add this useEffect after your existing useEffects (around line 400)
-useEffect(() => {
-  loadFiles(activeSearchQuery);
-}, [pagination.currentPage, pagination.perPage]);
+  // Add this useEffect after your existing useEffects (around line 400)
+  useEffect(() => {
+    loadFiles(activeSearchQuery);
+  }, [pagination.currentPage, pagination.perPage]);
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
@@ -206,95 +206,71 @@ useEffect(() => {
     return () => window.removeEventListener("resize", checkIsMobile);
   }, []);
   // Load files function with enhanced folder details extraction
-const loadFiles = useCallback(
-  async (searchQuery = "") => {
-    try {
-      setLoading(true);
-      const params = {
-        page: pagination.currentPage,
-        per_page: pagination.perPage
-      };
+  const loadFiles = useCallback(
+    async (searchQuery = "") => {
+      try {
+        setLoading(true);
+        const params = {
+          page: pagination.currentPage,
+          per_page: pagination.perPage
+        };
 
-      if (searchQuery && searchQuery.trim()) {
-        params.search = searchQuery.trim();
-      }
-
-      // Fetch ALL files for hierarchy building
-      const allFilesResponse = await fileApi.listadminFiles(null, {});
-      const allFilesData = allFilesResponse.data || allFilesResponse;
-      setAllFiles(allFilesData);
-
-      // Build complete folder hierarchy
-      const hierarchyMap = new Map();
-      allFilesData.forEach((item) => {
-        if (item.type === "folder") {
-          hierarchyMap.set(item.id, {
-            id: item.id,
-            name: item.name,
-            parentId: item.parent_id,
-            type: item.type,
-            iframe_url: item.iframe_url,
-          });
+        if (searchQuery && searchQuery.trim()) {
+          params.search = searchQuery.trim();
         }
-      });
-      setFolderHierarchy(hierarchyMap);
 
-      // Now fetch paginated data for current folder
-      let response;
-      if (searchQuery && searchQuery.trim()) {
-        response = await fileApi.listadminFiles(null, params);
-      } else {
-        response = await fileApi.listadminFiles(folderId, params);
-      }
+        // Fetch ALL files for hierarchy building
+        const allFilesResponse = await fileApi.listadminFiles(null, {});
+        const allFilesData = allFilesResponse.data || allFilesResponse;
+        setAllFiles(allFilesData);
 
-      const filesData = response.data || response;
-      
-      // Update pagination state
-      setPagination(prev => ({
-        ...prev,
-        totalItems: response.pagination?.total || filesData.length,
-        totalPages: response.pagination?.total_pages || 1
-      }));
+        // Build complete folder hierarchy
+        const hierarchyMap = new Map();
+        allFilesData.forEach((item) => {
+          if (item.type === "folder") {
+            hierarchyMap.set(item.id, {
+              id: item.id,
+              name: item.name,
+              parentId: item.parent_id,
+              type: item.type,
+              iframe_url: item.iframe_url,
+            });
+          }
+        });
+        setFolderHierarchy(hierarchyMap);
 
-      // Filter files based on folder
-      let filteredFiles = filesData;
-      if (!folderId) {
-        const existingIds = new Set(allFilesData.map((item) => item.id));
-        filteredFiles = allFilesData.filter(
-          (item) => !existingIds.has(item.parent_id)
-        );
-
-        if (response.iframe_url) {
-          setRootIframeUrl(response.iframe_url);
-          setSelectedItemForIframe({
-            id: 'root-iframe',
-            name: 'Root Embedded Content',
-            iframe_url: response.iframe_url,
-            type: 'root',
-            is_iframe: true
-          });
-          setShowIframePanel(true);
+        // Now fetch paginated data for current folder
+        let response;
+        if (searchQuery && searchQuery.trim()) {
+          response = await fileApi.listadminFiles(null, params);
         } else {
-          setRootIframeUrl(null);
-          setShowIframePanel(false);
-          setSelectedItemForIframe(null);
+          response = await fileApi.listadminFiles(folderId, params);
         }
-      } else {
-        filteredFiles = filesData.filter(
-          (item) => item.parent_id && item.parent_id.toString() === folderId
-        );
 
-        const currentFolderData = hierarchyMap.get(parseInt(folderId));
-        if (currentFolderData) {
-          setCurrentFolder(currentFolderData);
+        const filesData = response.data || response;
 
-          if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
-            setRootIframeUrl(currentFolderData.iframe_url);
+        // Update pagination state
+        setPagination(prev => ({
+          ...prev,
+          totalItems: response.pagination?.total || filesData.length,
+          totalPages: response.pagination?.total_pages || 1
+        }));
+
+        // Filter files based on folder
+        let filteredFiles = filesData;
+        if (!folderId) {
+          const existingIds = new Set(allFilesData.map((item) => item.id));
+          filteredFiles = allFilesData.filter(
+            (item) => !existingIds.has(item.parent_id)
+          );
+
+          if (response.iframe_url) {
+            setRootIframeUrl(response.iframe_url);
             setSelectedItemForIframe({
-              id: currentFolderData.id,
-              name: currentFolderData.name,
-              iframe_url: currentFolderData.iframe_url,
-              type: 'folder',
+              id: 'root-iframe',
+              name: 'Root Embedded Content',
+              iframe_url: response.iframe_url,
+              type: 'root',
               is_iframe: true
             });
             setShowIframePanel(true);
@@ -304,26 +280,50 @@ const loadFiles = useCallback(
             setSelectedItemForIframe(null);
           }
         } else {
-          setCurrentFolder(null);
-          setRootIframeUrl(null);
-          setShowIframePanel(false);
-          setSelectedItemForIframe(null);
+          filteredFiles = filesData.filter(
+            (item) => item.parent_id && item.parent_id.toString() === folderId
+          );
+
+          const currentFolderData = hierarchyMap.get(parseInt(folderId));
+          if (currentFolderData) {
+            setCurrentFolder(currentFolderData);
+
+            if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
+              setRootIframeUrl(currentFolderData.iframe_url);
+              setSelectedItemForIframe({
+                id: currentFolderData.id,
+                name: currentFolderData.name,
+                iframe_url: currentFolderData.iframe_url,
+                type: 'folder',
+                is_iframe: true
+              });
+              setShowIframePanel(true);
+            } else {
+              setRootIframeUrl(null);
+              setShowIframePanel(false);
+              setSelectedItemForIframe(null);
+            }
+          } else {
+            setCurrentFolder(null);
+            setRootIframeUrl(null);
+            setShowIframePanel(false);
+            setSelectedItemForIframe(null);
+          }
         }
+
+        setFiles(filteredFiles);
+
+      } catch (error) {
+        console.error("Error loading files:", error);
+        toast.error("Error loading files");
+        setFiles([]);
+        setAllFiles([]);
+      } finally {
+        setLoading(false);
       }
-
-      setFiles(filteredFiles);
-
-    } catch (error) {
-      console.error("Error loading files:", error);
-      toast.error("Error loading files");
-      setFiles([]);
-      setAllFiles([]);
-    } finally {
-      setLoading(false);
-    }
-  },
-  [folderId, pagination.currentPage, pagination.perPage]
-);
+    },
+    [folderId, pagination.currentPage, pagination.perPage]
+  );
 
   // useEffect(() => {
   //   loadCurrentFolderIframe();
@@ -341,21 +341,21 @@ const loadFiles = useCallback(
     return srcMatch ? srcMatch[1] : iframeCode;
   };
 
-// Pagination handlers
-const handlePageChange = (newPage) => {
-  setPagination(prev => ({
-    ...prev,
-    currentPage: newPage
-  }));
-};
+  // Pagination handlers
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({
+      ...prev,
+      currentPage: newPage
+    }));
+  };
 
-const handleItemsPerPageChange = (newPerPage) => {
-  setPagination(prev => ({
-    ...prev,
-    perPage: newPerPage,
-    currentPage: 1 // Reset to first page when changing items per page
-  }));
-};
+  const handleItemsPerPageChange = (newPerPage) => {
+    setPagination(prev => ({
+      ...prev,
+      perPage: newPerPage,
+      currentPage: 1 // Reset to first page when changing items per page
+    }));
+  };
   const getPreviewUrl = () => {
     if (!selectedItemForIframe?.iframe_url) return rootIframeUrl || "";
     return extractSrcFromIframe(selectedItemForIframe.iframe_url);
@@ -1605,43 +1605,43 @@ const handleItemsPerPageChange = (newPerPage) => {
                 )}
 
               {/* File List Panel - Always full width on mobile */}
-             {/* File List Panel - Always full width on mobile */}
-<div className={showIframePanel ? "flex-1" : "flex-1 p-3"}>
-  <div className="space-y-4">
-    {loading ? (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
-      </div>
-    ) : (
-      <>
-        {filteredFiles.length === 0 ? (
-          <EmptyState />
-        ) : (
-          <>
-            <div className="space-y-3">
-              {filteredFiles.map((item) => (
-                <MobileCardView key={item.id} item={item} />
-              ))}
-            </div>
-            
-            {/* Add Pagination for Mobile */}
-            {!loading && filteredFiles.length > 0 && (
-              <Pagination
-                currentPage={pagination.currentPage}
-                totalPages={pagination.totalPages}
-                onPageChange={handlePageChange}
-                itemsPerPage={pagination.perPage}
-                totalItems={pagination.totalItems}
-                onItemsPerPageChange={handleItemsPerPageChange}
-                isLoading={loading}
-              />
-            )}
-          </>
-        )}
-      </>
-    )}
-  </div>
-</div>
+              {/* File List Panel - Always full width on mobile */}
+              <div className={showIframePanel ? "flex-1" : "flex-1 p-3"}>
+                <div className="space-y-4">
+                  {loading ? (
+                    <div className="flex items-center justify-center h-64">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
+                    </div>
+                  ) : (
+                    <>
+                      {filteredFiles.length === 0 ? (
+                        <EmptyState />
+                      ) : (
+                        <>
+                          <div className="space-y-3">
+                            {filteredFiles.map((item) => (
+                              <MobileCardView key={item.id} item={item} />
+                            ))}
+                          </div>
+
+                          {/* Add Pagination for Mobile */}
+                          {!loading && filteredFiles.length > 0 && (
+                            <Pagination
+                              currentPage={pagination.currentPage}
+                              totalPages={pagination.totalPages}
+                              onPageChange={handlePageChange}
+                              itemsPerPage={pagination.perPage}
+                              totalItems={pagination.totalItems}
+                              onItemsPerPageChange={handleItemsPerPageChange}
+                              isLoading={loading}
+                            />
+                          )}
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             /* Desktop Layout - Full width iframe above file list in root folder */
@@ -2053,7 +2053,7 @@ const handleItemsPerPageChange = (newPerPage) => {
                               ))}
                             </TableBody>
                           </Table>
-                          
+
                         )}
                       </>
                     )}
@@ -2061,15 +2061,15 @@ const handleItemsPerPageChange = (newPerPage) => {
                 )}
               </div>
               {/* Add this right after the Table closing tag or Grid view closing div */}
-  <Pagination
-    currentPage={pagination.currentPage}
-    totalPages={pagination.totalPages}
-    onPageChange={handlePageChange}
-    itemsPerPage={pagination.perPage}
-    totalItems={pagination.totalItems}
-    onItemsPerPageChange={handleItemsPerPageChange}
-    isLoading={loading}
-  />
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                onPageChange={handlePageChange}
+                itemsPerPage={pagination.perPage}
+                totalItems={pagination.totalItems}
+                onItemsPerPageChange={handleItemsPerPageChange}
+                isLoading={loading}
+              />
             </div>
           )}
         </div>
@@ -2143,19 +2143,19 @@ const handleItemsPerPageChange = (newPerPage) => {
               </Button>
             )}
             {canTrash && (
-<Button
-  variant="destructive"
-  onClick={() => {
-    setFileToTrash(selectedItemForActions); // 👈 Set the file first
-    setShowConfirmPopup(true); // 👈 Show confirmation popup
-    setShowMobileActions(false); // 👈 Close the mobile actions sheet
-  }}
-  disabled={actionLoading.trashing[selectedItemForActions?.id]}
-  className="flex items-center gap-2 h-12 col-span-2"
->
-  <Trash2 className="w-4 h-4" />
-  Move to Trash
-</Button>)}
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  setFileToTrash(selectedItemForActions); // 👈 Set the file first
+                  setShowConfirmPopup(true); // 👈 Show confirmation popup
+                  setShowMobileActions(false); // 👈 Close the mobile actions sheet
+                }}
+                disabled={actionLoading.trashing[selectedItemForActions?.id]}
+                className="flex items-center gap-2 h-12 col-span-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Move to Trash
+              </Button>)}
           </div>
         </SheetContent>
       </Sheet>
