@@ -69,21 +69,21 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     }
   }, [searchResults, searchValue]);
   // Add this NEW useEffect to load permissions
-useEffect(() => {
-  const storedUser = localStorage.getItem("user");
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
 
-  if (storedUser) {
-    try {
-      const parsedUser = JSON.parse(storedUser);
-      const perms = Array.isArray(parsedUser.permissions)
-        ? parsedUser.permissions
-        : [];
-      setUserPermissions(perms);
-    } catch (error) {
-      console.error("Error parsing user from localStorage:", error);
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const perms = Array.isArray(parsedUser.permissions)
+          ? parsedUser.permissions
+          : [];
+        setUserPermissions(perms);
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+      }
     }
-  }
-}, []);
+  }, []);
   const [userPermissions, setUserPermissions] = useState({
     star: false,
     trash: false,
@@ -405,10 +405,10 @@ useEffect(() => {
             onDragLeave={(e) => handleDragLeave(e, folder.id)}
             onDrop={(e) => handleDrop(e, folder.id)}
             className={`flex items-center gap-2 px-2 py-1 text-sm flex-1 text-left rounded transition-colors group ${isCurrentFolder
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : isDragOver
-                  ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+              ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+              : isDragOver
+                ? "bg-blue-100 border border-blue-300 text-sidebar-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             style={{
               border: isDragOver ? '2px dashed #3b82f6' : 'none',
@@ -626,16 +626,7 @@ useEffect(() => {
         <div className="sticky top-0 bg-sidebar border-b border-sidebar-border z-10 dark:border-gray-700 
               bg-white dark:bg-[#0f172a] transition-colors">
           <nav className="space-y-1 p-2">
-            <button
-              onClick={() => handleNavigationClick("/dashboard")}
-              className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/dashboard")
-                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
-            >
-              <BarChart3 className="w-4 h-4" />
-              <span className="text-sm">Dashboard</span>
-            </button>
+
 
             <button
               onClick={() => handleNavigationClick("/filemanager")}
@@ -725,6 +716,16 @@ useEffect(() => {
         <div className="p-3 border-t border-sidebar-border bg-sidebar dark:border-gray-700 
               bg-white dark:bg-[#0f172a] transition-colors">
           <div className=" gap-10 mb-3">
+            <button
+              onClick={() => handleNavigationClick("/dashboard")}
+              className={`flex items-center gap-2 px-3 py-2 w-full text-left rounded-md transition-colors ${isActive("/dashboard")
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                }`}
+            >
+              <BarChart3 className="w-4 h-4" />
+              <span className="text-sm">Statistics</span>
+            </button>
             {canToggleStar && (
               <button
                 onClick={() => handleNavigationClick("/starred")}

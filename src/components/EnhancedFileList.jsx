@@ -24,6 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   AlertCircle,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -225,19 +226,21 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         setAllFiles(allFilesData);
 
         // Build complete folder hierarchy
-        const hierarchyMap = new Map();
-        allFilesData.forEach((item) => {
-          if (item.type === "folder") {
-            hierarchyMap.set(item.id, {
-              id: item.id,
-              name: item.name,
-              parentId: item.parent_id,
-              type: item.type,
-              iframe_url: item.iframe_url,
-            });
-          }
-        });
-        setFolderHierarchy(hierarchyMap);
+        // Build complete folder hierarchy - PRESERVE is_iframe flag
+const hierarchyMap = new Map();
+allFilesData.forEach((item) => {
+  if (item.type === "folder") {
+    hierarchyMap.set(item.id, {
+      id: item.id,
+      name: item.name,
+      parentId: item.parent_id,
+      type: item.type,
+      iframe_url: item.iframe_url,
+      is_iframe: item.is_iframe, // ← ADD THIS CRITICAL LINE
+    });
+  }
+});
+setFolderHierarchy(hierarchyMap);
 
         // Now fetch paginated data for current folder
         let response;
@@ -328,18 +331,23 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   // useEffect(() => {
   //   loadCurrentFolderIframe();
   // }, [folderId, location.pathname, loadCurrentFolderIframe]);
-  const extractSrcFromIframe = (iframeCode) => {
-    if (!iframeCode) return "";
+const extractSrcFromIframe = (iframeCode) => {
+  if (!iframeCode) return "";
 
-    // If it's already a URL, return it
-    if (iframeCode.startsWith("http")) {
-      return iframeCode;
-    }
+  // If it's already a URL, return it directly
+  if (iframeCode.startsWith("http")) {
+    return iframeCode;
+  }
 
-    // Extract src from iframe tag
-    const srcMatch = iframeCode.match(/src="([^"]*)"/);
-    return srcMatch ? srcMatch[1] : iframeCode;
-  };
+  // Try to extract src from iframe tag (handles both single and double quotes)
+  const srcMatch = iframeCode.match(/src=["']([^"']+)["']/i);
+  if (srcMatch && srcMatch[1]) {
+    return srcMatch[1];
+  }
+
+  // If no match, return the original code
+  return iframeCode;
+};
 
   // Pagination handlers
   const handlePageChange = (newPage) => {
@@ -1215,7 +1223,19 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                       {item.is_starred && (
                                         <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
                                       )}
-                                    </div>
+                                      
+                                   {/* IFRAME INDICATOR */}
+    {item.iframe_url && (
+      item.type === 'root' ||
+      item.type === 'iframe' ||
+      item.is_iframe === true
+    ) && (
+      <Code
+        className="w-3 h-3 text-blue-500 flex-shrink-0"
+        title="Has embedded content - Click to view"
+      />
+    )}
+  </div>
 
                                     {/* File details */}
                                     <div className="text-xs text-muted-foreground space-y-1">
@@ -1403,8 +1423,19 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           {item.is_starred && (
                                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
                                           )}
-                                        </div>
-                                        {/* Mobile-only details */}
+
+{/* IFRAME INDICATOR */}
+    {item.iframe_url && (
+      item.type === 'root' ||
+      item.type === 'iframe' ||
+      item.is_iframe === true
+    ) && (
+      <Code
+        className="w-3 h-3 text-blue-500 flex-shrink-0"
+        title="Has embedded content - Click to view"
+      />
+    )}
+  </div>                                        {/* Mobile-only details */}
                                         <div className="md:hidden text-xs text-muted-foreground mt-1">
                                           {formatDate(item.updated_at)}
                                           {item.type !== "folder" && (
@@ -1538,8 +1569,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                       className="w-full h-full border-0"
                       title={`Embedded content: ${selectedItemForIframe?.name || "Content"
                         }`}
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                      loading="lazy"
+sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"                      loading="lazy"
                       onError={(e) => console.error("Iframe load error:", e)}
                     />
                   ) : (
@@ -1740,8 +1770,19 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         {item.is_starred && (
                                           <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
                                         )}
-                                      </div>
 
+{/* IFRAME INDICATOR */}
+    {item.iframe_url && (
+      item.type === 'root' ||
+      item.type === 'iframe' ||
+      item.is_iframe === true
+    ) && (
+      <Code
+        className="w-3 h-3 text-blue-500 flex-shrink-0"
+        title="Has embedded content - Click to view"
+      />
+    )}
+  </div>
                                       {/* File details */}
                                       <div className="text-xs text-muted-foreground space-y-1">
                                         <div>{formatDate(item.updated_at)}</div>
@@ -1927,6 +1968,16 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           {item.is_starred && (
                                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
                                           )}
+                                          {item.iframe_url && (
+          item.type === 'root' ||
+          item.type === 'iframe' ||
+          item.is_iframe === true
+        ) && (
+          <Code
+            className="w-4 h-4 text-blue-500 flex-shrink-0"
+            title="Has embedded content - Click to view"
+          />
+        )}
                                         </div>
                                         {/* Mobile-only details */}
                                         <div className="md:hidden text-xs text-muted-foreground mt-1">

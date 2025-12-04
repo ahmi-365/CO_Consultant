@@ -230,24 +230,37 @@ const loadFiles = async (opts = {}) => {
     console.log("📊 Pagination data:", paginationData);
 
     // ✅ FIXED: Filter by current folder when NOT searching/filtering by user
-    const safeData = opts.search || selectedUser
-      ? data
-      : data.filter((f) => {
-          // Normalize parent_id for comparison (handle string/number)
-          const normalizedParentId = f.parent_id === null ? null : parseInt(f.parent_id);
-          const normalizedCurrentId = currentParentId === null ? null : parseInt(currentParentId);
-          
-          if (currentParentId === null) {
-            // Root level: show items with parent_id = 1 or null
-            return normalizedParentId === 1 || normalizedParentId === null;
-          } else {
-            // Inside folder: show items with matching parent_id
-            return normalizedParentId === normalizedCurrentId;
-          }
-        });
+   // ✅ IMPROVED: Better filtering logic that preserves iframe folders
+const safeData = opts.search || selectedUser
+  ? data
+  : data.filter((f) => {
+      // Normalize parent_id for comparison (handle string/number)
+      const normalizedParentId = f.parent_id === null ? null : parseInt(f.parent_id);
+      const normalizedCurrentId = currentParentId === null ? null : parseInt(currentParentId);
+      
+      console.log('🔍 Filtering item:', {
+        name: f.name,
+        id: f.id,
+        parent_id: f.parent_id,
+        normalizedParentId,
+        normalizedCurrentId,
+        has_iframe: !!f.iframe_url,
+        is_iframe: f.is_iframe
+      });
+      
+      if (currentParentId === null) {
+        // Root level: show items with parent_id = 1 or null or "1" (string)
+        return normalizedParentId === 1 || 
+               normalizedParentId === null || 
+               f.parent_id === "1";
+      } else {
+        // Inside folder: show items with matching parent_id
+        return normalizedParentId === normalizedCurrentId;
+      }
+    });
 
-    console.log("🎯 Final files to display:", safeData);
-    console.log("🔍 Filtering by currentParentId:", currentParentId);
+console.log('✅ Filtered items to display:', safeData.length);
+console.log('📊 Items with iframe:', safeData.filter(f => f.iframe_url).map(f => f.name));
 
     setFiles(safeData);
     setTotalItems(paginationData.total);
@@ -372,44 +385,33 @@ const handleCreateFolder = async () => {
       // For now, this opens the modal and user can select files again
     }
   };
-  const validateFolderName = (name) => {
-    const trimmedName = name.trim();
-    if (!trimmedName) return "Folder name cannot be empty";
-    if (trimmedName.length < 2) return "Folder name must be at least 2 characters long";
+ // ----------------- REPLACE validateFolderName WITH THIS -----------------
+const validateFolderName = (name) => {
+  const trimmedName = name.trim();
 
-    // Disallowed characters
-    const invalidChars = /[<>:"/\\|?*\x00-\x1F!@#$%^&*()+=[\]{};',~`]/;
-    if (invalidChars.test(trimmedName)) {
-      return "Folder name contains invalid characters. Avoid: < > : \" / \\ | ? * ! @ # $ % ^ & ( ) + = [ ] { } ; ' , ~ `";
-    }
+  // If empty -> error
+  if (!trimmedName) return "Folder name cannot be empty";
 
-    if (trimmedName.endsWith(".") || trimmedName.endsWith(" ")) {
-      return "Folder name cannot end with a dot or space";
-    }
+  // ✅ NEW: Check if name has only 1 word (no spaces)
+  const wordCount = trimmedName.split(/\s+/).length;
+  if (wordCount < 2) {
+    return "Folder name must contain at least 2 words (e.g., 'My Documents', 'Project Files')";
+  }
 
-    // vowel + consonant check (basic meaningful check)
-    const hasVowel = /[aeiouAEIOU]/.test(trimmedName);
-    const hasConsonant = /[bcdfghjklmnpqrstvwxyzBCDFGHJKLMNPQRSTVWXYZ]/.test(trimmedName);
-    if (!hasVowel || !hasConsonant) return "Please use a meaningful folder name (contains letters and vowels)";
+  // If single character and NOT an alphabet letter -> block
+  if (trimmedName.length === 1 && !/^[a-zA-Z]$/.test(trimmedName)) {
+    return "Single dot, number, or symbol is not allowed. Use at least one letter.";
+  }
 
-    // reject obvious gibberish / patterns
-    const repeatedChars = /(.)\1{3,}/.test(trimmedName);
-    const sequentialChars = /(abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz)/i.test(trimmedName);
-    const commonPatterns = ["qwerty", "asdf", "zxcv", "uiop", "ghjk", "bnm"];
-    const looksRandom =
-      commonPatterns.some((p) => trimmedName.toLowerCase().includes(p)) ||
-      /[bcdfghjklmnpqrstvwxyz]{4,}/i.test(trimmedName);
+  // Block reserved system names
+  const reserved = ["con", "prn", "aux", "nul", "com1", "lpt1"];
+  if (reserved.includes(trimmedName.toLowerCase())) {
+    return `"${trimmedName}" is a reserved system name.`;
+  }
 
-    if (repeatedChars) return "Folder name contains repeated characters. Use proper words.";
-    if (sequentialChars) return "Folder name has sequential letters. Use proper words.";
-    if (looksRandom) return "Folder name looks random. Please use a meaningful name.";
+  return ""; // valid
+};
 
-    // reserved names
-    const reserved = ["con", "prn", "aux", "nul", "com1", "lpt1"];
-    if (reserved.includes(trimmedName.toLowerCase())) return `"${trimmedName}" is a reserved system name.`;
-
-    return ""; // no error
-  };
 
   const handleFileSelect = (item) => {
     if (item.type === "folder") {
@@ -672,9 +674,21 @@ const handleMoveSuccess = async (movedItem, destination) => {
     : null;
 
 
-  const isFormValid =
-    newFolderName.trim().length >= 2 &&
-    /^[a-zA-Z0-9\s_-]+$/.test(newFolderName.trim());
+ // ----------------- REPLACE isFormValid WITH THIS -----------------
+const isFormValid = (() => {
+  const name = newFolderName.trim();
+  if (!name) return false; // empty not allowed
+  
+  // Check word count
+  const wordCount = name.split(/\s+/).length;
+  if (wordCount < 2) return false;
+  
+  // if single char and not letter -> invalid
+  if (name.length === 1 && !/^[a-zA-Z]$/.test(name)) return false;
+  
+  return true;
+})();
+
 
 
   return (
@@ -995,12 +1009,13 @@ const handleMoveSuccess = async (movedItem, destination) => {
                   <div className="text-green-600 text-sm mt-1">✓ Folder name looks good!</div>
                 )}
 
-                <ul className="text-muted-foreground text-xs space-y-1 mt-3 list-disc list-inside">
-                  <li>At least 2 characters long</li>
-                  <li>Must be meaningful (not random letters)</li>
-                  <li>No invalid symbols like &lt; &gt; : " / \ | ? * etc.</li>
-                  <li>Example: “Documents”, “Photos”, “Dawood Projects”</li>
-                </ul>
+               <ul className="text-muted-foreground text-xs space-y-1 mt-3 list-disc list-inside">
+  <li>Must contain at least 2 words (e.g., "My Documents")</li>
+  <li>At least 2 characters long</li>
+  <li>Must be meaningful (not random letters)</li>
+  <li>No invalid symbols like &lt; &gt; : " / \ | ? * etc.</li>
+  <li>Example: "Project Files", "Team Photos"</li>
+</ul>
               </div>
 
               <DialogFooter>

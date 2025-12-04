@@ -118,7 +118,7 @@ export function Pagination({
       </div>
 
       {/* Per page dropdown */}
-      <div className="flex items-center gap-2">
+      {/* <div className="flex items-center gap-2">
         <span className="text-sm text-muted-foreground hidden sm:inline">Show:</span>
         <Select
           value={itemsPerPage.toString()}
@@ -137,7 +137,7 @@ export function Pagination({
           </SelectContent>
         </Select>
         <span className="text-sm text-muted-foreground hidden sm:inline">per page</span>
-      </div>
+      </div> */}
     </div>
   );
 }

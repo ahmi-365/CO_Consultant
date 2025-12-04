@@ -21,18 +21,18 @@ const Footer = () => {
     <footer className="bg-blue-900 text-white">
       <div className="container mx-auto px-4 py-16">
         {/* Main Footer Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 mb-12 text-gray-300">
+        <div className="grid grid-cols-1 md:grid-cols-3 g  text-gray-300">
           {/* About Us */}
           <div>
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">
+            <div className="flex items-center gap-3 ">
+              <div className="w-36 h-36    ">
                 <img
                   src="/assets/icon.png"
                   alt="CO Consultants Logo"
-                  className="w-6 h-6 object-contain"
+                  className="w-32 h-32 "
                 />
               </div>
-              <h3 className="text-2xl font-bold text-white">About Us</h3>
+
             </div>
             <p className="leading-relaxed text-gray-300">
               CO Consultants is a construction focused project management and

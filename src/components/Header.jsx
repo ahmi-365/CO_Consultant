@@ -93,15 +93,15 @@ const Header = () => {
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => scrollToSection("hero")}
           >
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <div className="w-34 h-34 mt-8  rounded-lg flex items-center justify-center">
               <img
                 src="/assets/icon.png"
                 alt="Building Icon"
-                className="w-6 h-6 object-contain"
+                className="w-32 h-32 object-contain"
               />
             </div>
             {/* Show company name only when scrolled or on mobile */}
-            <span
+            {/* <span
               className={`text-2xl font-bold text-white transition-opacity duration-300 ${
                 isScrolled || isMobileMenuOpen
                   ? "opacity-100"
@@ -109,7 +109,7 @@ const Header = () => {
               }`}
             >
               CO Consultants
-            </span>
+            </span> */}
 
             {/* <span
   className={`block text-sm text-gray-300 tracking-wide mt-1 transition-opacity duration-300 md:opacity-100 ${
