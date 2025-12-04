@@ -321,11 +321,11 @@ export default function LoginPage() {
             <div className="absolute -inset-4 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 transform rotate-3"></div>
             <div className="absolute -inset-2 bg-gradient-to-tl from-blue-400/20 to-purple-400/20 backdrop-blur-lg rounded-2xl border border-white/30 transform -rotate-1"></div>
             <div className="absolute top-1/2 right-12 -translate-y-1/2">
-              <div className="w-64 h-34 bg-white/10 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center shadow-lg overflow-hidden">
+              <div className="w-64 h-34 bg-white/10  backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center shadow-lg overflow-hidden">
                 <img
                   src="/assets/icon.png"
                   alt="Icon"
-                  className="w-34 h-34 object-contain"
+                  className="w-34 h-34 mt-8 pt-2 mb-0 object-contain"
                 />
               </div>
             </div>

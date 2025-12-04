@@ -72,13 +72,13 @@ export default function FileManagement() {
   const [itemToMove, setItemToMove] = useState(null);
   const [validationError, setValidationError] = useState("");
   const [sortOption, setSortOption] = useState(""); // "name" or "date"
-// Replace these state declarations
-const [currentPage, setCurrentPage] = useState(1);
-const [totalPages, setTotalPages] = useState(1);
-const [totalItems, setTotalItems] = useState(0);
-const [itemsPerPage, setItemsPerPage] = useState(10);
+  // Replace these state declarations
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  const [currentUserRole, setCurrentUserRole] = useState(""); 
+  const [currentUserRole, setCurrentUserRole] = useState("");
 
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null); // ← ADD THIS LINE
   const { toast } = useToast();
@@ -170,138 +170,138 @@ const [itemsPerPage, setItemsPerPage] = useState(10);
     }
   }, []);
 
-const loadFiles = async (opts = {}) => {
-  console.log("🔄 loadFiles called with opts:", opts);
-  setLoading(true);
+  const loadFiles = async (opts = {}) => {
+    console.log("🔄 loadFiles called with opts:", opts);
+    setLoading(true);
 
-  try {
-    const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
+    try {
+      const currentParentId = currentPath.length > 0 ? currentPath[currentPath.length - 1].id : null;
 
-    const params = {
-      ...(selectedUser ? { user_id: selectedUser } : {}),
-      ...(opts.search ? { search: opts.search } : {}),
-      page: opts.page || currentPage,
-      per_page: opts.per_page || itemsPerPage,
-    };
-
-    const options = {
-      force: opts.force || !!selectedUser || !!opts.search,
-    };
-
-    console.log("📡 API call params:", { currentParentId, params, options });
-
-    const response = await fileApi.listadminFiles(currentParentId, params, options);
-    console.log("✅ Full API Response:", response);
-
-    let data = [];
-    let paginationData = {
-      total: 0,
-      current_page: 1,
-      per_page: itemsPerPage,
-      last_page: 1
-    };
-
-    if (response.pagination) {
-      data = response.data || [];
-      paginationData = {
-        total: response.pagination.total || 0,
-        current_page: parseInt(response.pagination.page) || 1,
-        per_page: parseInt(response.pagination.per_page) || itemsPerPage,
-        last_page: response.pagination.total_pages || 1
+      const params = {
+        ...(selectedUser ? { user_id: selectedUser } : {}),
+        ...(opts.search ? { search: opts.search } : {}),
+        page: opts.page || currentPage,
+        per_page: opts.per_page || itemsPerPage,
       };
-    } else if (response.items) {
-      data = response.items;
-      paginationData = {
-        total: response.total || 0,
-        current_page: response.current_page || 1,
-        per_page: response.per_page || itemsPerPage,
-        last_page: response.last_page || 1
+
+      const options = {
+        force: opts.force || !!selectedUser || !!opts.search,
       };
-    } else if (Array.isArray(response)) {
-      data = response;
-      paginationData.total = response.length;
-    } else if (response?.data) {
-      data = Array.isArray(response.data) ? response.data : [response.data];
-    } else if (response?.files) {
-      data = Array.isArray(response.files) ? response.files : [response.files];
-    }
 
-    console.log("📊 Extracted data:", data);
-    console.log("📊 Pagination data:", paginationData);
+      console.log("📡 API call params:", { currentParentId, params, options });
 
-    // ✅ FIXED: Filter by current folder when NOT searching/filtering by user
-   // ✅ IMPROVED: Better filtering logic that preserves iframe folders
-const safeData = opts.search || selectedUser
-  ? data
-  : data.filter((f) => {
-      // Normalize parent_id for comparison (handle string/number)
-      const normalizedParentId = f.parent_id === null ? null : parseInt(f.parent_id);
-      const normalizedCurrentId = currentParentId === null ? null : parseInt(currentParentId);
-      
-      console.log('🔍 Filtering item:', {
-        name: f.name,
-        id: f.id,
-        parent_id: f.parent_id,
-        normalizedParentId,
-        normalizedCurrentId,
-        has_iframe: !!f.iframe_url,
-        is_iframe: f.is_iframe
-      });
-      
-      if (currentParentId === null) {
-        // Root level: show items with parent_id = 1 or null or "1" (string)
-        return normalizedParentId === 1 || 
-               normalizedParentId === null || 
-               f.parent_id === "1";
-      } else {
-        // Inside folder: show items with matching parent_id
-        return normalizedParentId === normalizedCurrentId;
+      const response = await fileApi.listadminFiles(currentParentId, params, options);
+      console.log("✅ Full API Response:", response);
+
+      let data = [];
+      let paginationData = {
+        total: 0,
+        current_page: 1,
+        per_page: itemsPerPage,
+        last_page: 1
+      };
+
+      if (response.pagination) {
+        data = response.data || [];
+        paginationData = {
+          total: response.pagination.total || 0,
+          current_page: parseInt(response.pagination.page) || 1,
+          per_page: parseInt(response.pagination.per_page) || itemsPerPage,
+          last_page: response.pagination.total_pages || 1
+        };
+      } else if (response.items) {
+        data = response.items;
+        paginationData = {
+          total: response.total || 0,
+          current_page: response.current_page || 1,
+          per_page: response.per_page || itemsPerPage,
+          last_page: response.last_page || 1
+        };
+      } else if (Array.isArray(response)) {
+        data = response;
+        paginationData.total = response.length;
+      } else if (response?.data) {
+        data = Array.isArray(response.data) ? response.data : [response.data];
+      } else if (response?.files) {
+        data = Array.isArray(response.files) ? response.files : [response.files];
       }
-    });
 
-console.log('✅ Filtered items to display:', safeData.length);
-console.log('📊 Items with iframe:', safeData.filter(f => f.iframe_url).map(f => f.name));
+      console.log("📊 Extracted data:", data);
+      console.log("📊 Pagination data:", paginationData);
 
-    setFiles(safeData);
-    setTotalItems(paginationData.total);
-    setTotalPages(paginationData.last_page);
-    
-    if (opts.page !== undefined) {
-      setCurrentPage(paginationData.current_page);
+      // ✅ FIXED: Filter by current folder when NOT searching/filtering by user
+      // ✅ IMPROVED: Better filtering logic that preserves iframe folders
+      const safeData = opts.search || selectedUser
+        ? data
+        : data.filter((f) => {
+          // Normalize parent_id for comparison (handle string/number)
+          const normalizedParentId = f.parent_id === null ? null : parseInt(f.parent_id);
+          const normalizedCurrentId = currentParentId === null ? null : parseInt(currentParentId);
+
+          console.log('🔍 Filtering item:', {
+            name: f.name,
+            id: f.id,
+            parent_id: f.parent_id,
+            normalizedParentId,
+            normalizedCurrentId,
+            has_iframe: !!f.iframe_url,
+            is_iframe: f.is_iframe
+          });
+
+          if (currentParentId === null) {
+            // Root level: show items with parent_id = 1 or null or "1" (string)
+            return normalizedParentId === 1 ||
+              normalizedParentId === null ||
+              f.parent_id === "1";
+          } else {
+            // Inside folder: show items with matching parent_id
+            return normalizedParentId === normalizedCurrentId;
+          }
+        });
+
+      console.log('✅ Filtered items to display:', safeData.length);
+      console.log('📊 Items with iframe:', safeData.filter(f => f.iframe_url).map(f => f.name));
+
+      setFiles(safeData);
+      setTotalItems(paginationData.total);
+      setTotalPages(paginationData.last_page);
+
+      if (opts.page !== undefined) {
+        setCurrentPage(paginationData.current_page);
+      }
+
+      if (opts.per_page !== undefined) {
+        setItemsPerPage(paginationData.per_page);
+      }
+
+    } catch (error) {
+      console.error("❌ Failed to load files:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load files",
+        variant: "destructive",
+      });
+      setFiles([]);
+      setTotalItems(0);
+      setTotalPages(1);
+      setCurrentPage(1);
+    } finally {
+      setLoading(false);
     }
-    
-    if (opts.per_page !== undefined) {
-      setItemsPerPage(paginationData.per_page);
-    }
-
-  } catch (error) {
-    console.error("❌ Failed to load files:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load files",
-      variant: "destructive",
-    });
-    setFiles([]);
-    setTotalItems(0);
-    setTotalPages(1);
-    setCurrentPage(1);
-  } finally {
-    setLoading(false);
-  }
-};
-const handleItemsPerPageChange = (value) => {
-  const newPerPage = parseInt(value);
-  setItemsPerPage(newPerPage);
-  setCurrentPage(1); // Reset to page 1
-  loadFiles({ page: 1, per_page: newPerPage });
-};
- const handlePageChange = (newPage) => {
-  if (newPage < 1 || newPage > totalPages) return;
-  setCurrentPage(newPage);
-  loadFiles({ page: newPage });
-  // Scroll to top of file list
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-};
+  };
+  const handleItemsPerPageChange = (value) => {
+    const newPerPage = parseInt(value);
+    setItemsPerPage(newPerPage);
+    setCurrentPage(1); // Reset to page 1
+    loadFiles({ page: 1, per_page: newPerPage });
+  };
+  const handlePageChange = (newPage) => {
+    if (newPage < 1 || newPage > totalPages) return;
+    setCurrentPage(newPage);
+    loadFiles({ page: newPage });
+    // Scroll to top of file list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   const loadAvailableFolders = async () => {
     setLoadingFolders(true);
     try {
@@ -323,50 +323,50 @@ const handleItemsPerPageChange = (value) => {
     }
   };
 
-const handleCreateFolder = async () => {
-  const error = validateFolderName(newFolderName);
-  if (error) {
-    toast({
-      title: "Error",
-      description: error,
-      variant: "destructive",
-    });
-    setValidationError(error);
-    return;
-  }
+  const handleCreateFolder = async () => {
+    const error = validateFolderName(newFolderName);
+    if (error) {
+      toast({
+        title: "Error",
+        description: error,
+        variant: "destructive",
+      });
+      setValidationError(error);
+      return;
+    }
 
-  // Use parent ID from currentPath, or 1 if at root
-  const parentId =
-    currentPath.length > 0
-      ? currentPath[currentPath.length - 1].id
-      : 1;
+    // Use parent ID from currentPath, or 1 if at root
+    const parentId =
+      currentPath.length > 0
+        ? currentPath[currentPath.length - 1].id
+        : 1;
 
-  setIsCreating(true);
-  try {
-    const newFolder = await fileApi.createFolder(newFolderName.trim(), parentId);
+    setIsCreating(true);
+    try {
+      const newFolder = await fileApi.createFolder(newFolderName.trim(), parentId);
 
-    toast({
-      title: "Success",
-      description: `Folder "${newFolder?.name || newFolderName}" created successfully!`,
-    });
+      toast({
+        title: "Success",
+        description: `Folder "${newFolder?.name || newFolderName}" created successfully!`,
+      });
 
-    setIsCreateFolderOpen(false);
-    setNewFolderName("");
-    setValidationError("");
+      setIsCreateFolderOpen(false);
+      setNewFolderName("");
+      setValidationError("");
 
-    // Reload files in the current folder
-    await loadFiles({ force: true });
-  } catch (err) {
-    console.error("Create folder failed:", err);
-    toast({
-      title: "Error",
-      description: err?.message || "Failed to create folder",
-      variant: "destructive",
-    });
-  } finally {
-    setIsCreating(false);
-  }
-};
+      // Reload files in the current folder
+      await loadFiles({ force: true });
+    } catch (err) {
+      console.error("Create folder failed:", err);
+      toast({
+        title: "Error",
+        description: err?.message || "Failed to create folder",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
 
   // Handle file upload completion from FileUploadModal
@@ -385,32 +385,32 @@ const handleCreateFolder = async () => {
       // For now, this opens the modal and user can select files again
     }
   };
- // ----------------- REPLACE validateFolderName WITH THIS -----------------
-const validateFolderName = (name) => {
-  const trimmedName = name.trim();
+  // ----------------- REPLACE validateFolderName WITH THIS -----------------
+  const validateFolderName = (name) => {
+    const trimmedName = name.trim();
 
-  // If empty -> error
-  if (!trimmedName) return "Folder name cannot be empty";
+    // If empty -> error
+    if (!trimmedName) return "Folder name cannot be empty";
 
-  // ✅ NEW: Check if name has only 1 word (no spaces)
-  const wordCount = trimmedName.split(/\s+/).length;
-  if (wordCount < 2) {
-    return "Folder name must contain at least 2 words (e.g., 'My Documents', 'Project Files')";
-  }
+    // ✅ NEW: Check if name has only 1 word (no spaces)
+    const wordCount = trimmedName.split(/\s+/).length;
+    if (wordCount < 2) {
+      return "Folder name must contain at least 2 words (e.g., 'My Documents', 'Project Files')";
+    }
 
-  // If single character and NOT an alphabet letter -> block
-  if (trimmedName.length === 1 && !/^[a-zA-Z]$/.test(trimmedName)) {
-    return "Single dot, number, or symbol is not allowed. Use at least one letter.";
-  }
+    // If single character and NOT an alphabet letter -> block
+    if (trimmedName.length === 1 && !/^[a-zA-Z]$/.test(trimmedName)) {
+      return "Single dot, number, or symbol is not allowed. Use at least one letter.";
+    }
 
-  // Block reserved system names
-  const reserved = ["con", "prn", "aux", "nul", "com1", "lpt1"];
-  if (reserved.includes(trimmedName.toLowerCase())) {
-    return `"${trimmedName}" is a reserved system name.`;
-  }
+    // Block reserved system names
+    const reserved = ["con", "prn", "aux", "nul", "com1", "lpt1"];
+    if (reserved.includes(trimmedName.toLowerCase())) {
+      return `"${trimmedName}" is a reserved system name.`;
+    }
 
-  return ""; // valid
-};
+    return ""; // valid
+  };
 
 
   const handleFileSelect = (item) => {
@@ -507,63 +507,63 @@ const validateFolderName = (name) => {
   };
 
   const handleMove = async (item) => {
-  console.log("handleMove called with:", item);
+    console.log("handleMove called with:", item);
 
-  if (!item || !item.id) {
-    toast({
-      title: "Error",
-      description: "Invalid item selected",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (!item || !item.id) {
+      toast({
+        title: "Error",
+        description: "Invalid item selected",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  setItemToMove(item); // Pass the full item object
-  setIsMoveDialogOpen(true);
-};
+    setItemToMove(item); // Pass the full item object
+    setIsMoveDialogOpen(true);
+  };
 
   const handleConfirmMove = async () => {
-  if (!itemToMove || !moveDestination) {
-    toast({
-      title: "Error",
-      description: "Please select an item and destination",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (!itemToMove || !moveDestination) {
+      toast({
+        title: "Error",
+        description: "Please select an item and destination",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  setIsMoving(true);
-  try {
-    // ✅ UPDATED: Use 1 for root instead of null
-    const dest = moveDestination === "root" ? 1 : moveDestination; // Changed from null to 1
+    setIsMoving(true);
+    try {
+      // ✅ UPDATED: Use 1 for root instead of null
+      const dest = moveDestination === "root" ? 1 : moveDestination; // Changed from null to 1
 
-    console.log("📦 Moving item", { itemToMove, dest });
+      console.log("📦 Moving item", { itemToMove, dest });
 
-    const result = await fileApi.moveItem(itemToMove, dest);
-    console.log("✅ Move result:", result);
+      const result = await fileApi.moveItem(itemToMove, dest);
+      console.log("✅ Move result:", result);
 
-    toast({
-      title: "Success",
-      description: "Item moved successfully",
-    });
+      toast({
+        title: "Success",
+        description: "Item moved successfully",
+      });
 
-    setIsMoveDialogOpen(false);
-    setItemToMove(null);
-    setMoveDestination("");
+      setIsMoveDialogOpen(false);
+      setItemToMove(null);
+      setMoveDestination("");
 
-    await loadFiles({ force: true });
+      await loadFiles({ force: true });
 
-  } catch (error) {
-    console.error("🚨 Move failed:", error);
-    toast({
-      title: "Error",
-      description: "Failed to move item",
-      variant: "destructive",
-    });
-  } finally {
-    setIsMoving(false);
-  }
-};
+    } catch (error) {
+      console.error("🚨 Move failed:", error);
+      toast({
+        title: "Error",
+        description: "Failed to move item",
+        variant: "destructive",
+      });
+    } finally {
+      setIsMoving(false);
+    }
+  };
 
   const handleRename = async (id, newName) => {
     setIsRenaming((prev) => ({ ...prev, [id]: true }));
@@ -585,25 +585,25 @@ const validateFolderName = (name) => {
       setIsRenaming((prev) => ({ ...prev, [id]: false }));
     }
   };
-const handleMoveSuccess = async (movedItem, destination) => {
-  console.log("Move success:", { movedItem, destination });
-  
-  // Update the item in local state immediately
-  setFiles(prevFiles => 
-    prevFiles.map(file => 
-      file.id === movedItem.id 
-        ? { ...file, parent_id: destination }
-        : file
-    )
-  );
-  
-  // Then reload to get fresh data
-  await loadFiles({ force: true, page: currentPage });
-  
-  if (selectedItem?.id === movedItem.id) {
-    setSelectedItem(null);
-  }
-};
+  const handleMoveSuccess = async (movedItem, destination) => {
+    console.log("Move success:", { movedItem, destination });
+
+    // Update the item in local state immediately
+    setFiles(prevFiles =>
+      prevFiles.map(file =>
+        file.id === movedItem.id
+          ? { ...file, parent_id: destination }
+          : file
+      )
+    );
+
+    // Then reload to get fresh data
+    await loadFiles({ force: true, page: currentPage });
+
+    if (selectedItem?.id === movedItem.id) {
+      setSelectedItem(null);
+    }
+  };
 
   const handleManagePermissions = (item) => {
     setItemForPermissions(item);
@@ -674,20 +674,20 @@ const handleMoveSuccess = async (movedItem, destination) => {
     : null;
 
 
- // ----------------- REPLACE isFormValid WITH THIS -----------------
-const isFormValid = (() => {
-  const name = newFolderName.trim();
-  if (!name) return false; // empty not allowed
-  
-  // Check word count
-  const wordCount = name.split(/\s+/).length;
-  if (wordCount < 2) return false;
-  
-  // if single char and not letter -> invalid
-  if (name.length === 1 && !/^[a-zA-Z]$/.test(name)) return false;
-  
-  return true;
-})();
+  // ----------------- REPLACE isFormValid WITH THIS -----------------
+  const isFormValid = (() => {
+    const name = newFolderName.trim();
+    if (!name) return false; // empty not allowed
+
+    // Check word count
+    const wordCount = name.split(/\s+/).length;
+    if (wordCount < 2) return false;
+
+    // if single char and not letter -> invalid
+    if (name.length === 1 && !/^[a-zA-Z]$/.test(name)) return false;
+
+    return true;
+  })();
 
 
 
@@ -803,98 +803,96 @@ const isFormValid = (() => {
                       Files & Folders
                     </CardTitle>
 
-                   <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto">
-  {/* User Filter */}
-  <div className="w-full lg:w-auto">
-    <SearchUser
-      selectedUser={selectedUser}
-      onUserSelect={setSelectedUser}
-    />
-  </div>
-  
-  <div className="flex items-center gap-2 w-full lg:w-auto">
-    <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
-    <Select
-      value={itemsPerPage.toString()}
-      onValueChange={handleItemsPerPageChange}
-    >
-      <SelectTrigger className="w-[100px]">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        <SelectItem value="10">10</SelectItem>
-        <SelectItem value="20">20</SelectItem>
-        <SelectItem value="50">50</SelectItem>
-        <SelectItem value="100">100</SelectItem>
-      </SelectContent>
-    </Select>
-  </div>
-  
-  {/* Smart Sort Toggle - Only shows if files exist */}
-  {files.length > 1 && (
-    <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm rounded-full p-1 border border-border/50 shadow-sm w-full lg:w-auto justify-center lg:justify-start">
-      <button
-        onClick={() => setSortOption(sortOption === "name" ? "" : "name")}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-          sortOption === "name"
-            ? "bg-primary text-primary-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
-        </svg>
-        Name
-      </button>
+                    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-3 w-full lg:w-auto">
+                      {/* User Filter */}
+                      <div className="w-full lg:w-auto">
+                        <SearchUser
+                          selectedUser={selectedUser}
+                          onUserSelect={setSelectedUser}
+                        />
+                      </div>
 
-      <button
-        onClick={() => setSortOption(sortOption === "date" ? "" : "date")}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${
-          sortOption === "date"
-            ? "bg-primary text-primary-foreground shadow-sm"
-            : "text-muted-foreground hover:text-foreground hover:bg-muted"
-        }`}
-      >
-        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Date
-      </button>
+                      <div className="flex items-center gap-2 w-full lg:w-auto">
+                        <span className="text-sm text-muted-foreground whitespace-nowrap">Show:</span>
+                        <Select
+                          value={itemsPerPage.toString()}
+                          onValueChange={handleItemsPerPageChange}
+                        >
+                          <SelectTrigger className="w-[100px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="10">10</SelectItem>
+                            <SelectItem value="20">20</SelectItem>
+                            <SelectItem value="50">50</SelectItem>
+                            <SelectItem value="100">100</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
 
-      {/* Clear Sort Button - Only if sorted */}
-      {sortOption && (
-        <button
-          onClick={() => setSortOption("")}
-          className="ml-1 p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
-          title="Clear sorting"
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
-      )}
-    </div>
-  )}
+                      {/* Smart Sort Toggle - Only shows if files exist */}
+                      {files.length > 1 && (
+                        <div className="flex items-center gap-1 bg-muted/50 backdrop-blur-sm rounded-full p-1 border border-border/50 shadow-sm w-full lg:w-auto justify-center lg:justify-start">
+                          <button
+                            onClick={() => setSortOption(sortOption === "name" ? "" : "name")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${sortOption === "name"
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h7" />
+                            </svg>
+                            Name
+                          </button>
 
-  {/* Search Input */}
-  <div className="relative w-full lg:w-64">
-    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-    <Input
-      placeholder={searchTerm ? "Searching..." : "Search files..."}
-      className="pl-9 w-full border-border bg-background"
-      value={searchTerm}
-      onChange={(e) => setSearchTerm(e.target.value)}
-    />
-    {searchTerm && (
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setSearchTerm("")}
-        className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-      >
-        <X className="h-3 w-3" />
-      </Button>
-    )}
-  </div>
-</div>
+                          <button
+                            onClick={() => setSortOption(sortOption === "date" ? "" : "date")}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 ${sortOption === "date"
+                                ? "bg-primary text-primary-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                              }`}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Date
+                          </button>
+
+                          {/* Clear Sort Button - Only if sorted */}
+                          {sortOption && (
+                            <button
+                              onClick={() => setSortOption("")}
+                              className="ml-1 p-1.5 rounded-full hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-all"
+                              title="Clear sorting"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Search Input */}
+                      <div className="relative w-full lg:w-64">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                        <Input
+                          placeholder={searchTerm ? "Searching..." : "Search files..."}
+                          className="pl-9 w-full border-border bg-background"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                        />
+                        {searchTerm && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSearchTerm("")}
+                            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </CardHeader>
 
@@ -950,16 +948,16 @@ const isFormValid = (() => {
                   </div>
                 </CardContent>
 
-                 <div className="border-t">
-    <Pagination
-      currentPage={currentPage}
-      totalPages={totalPages}
-      onPageChange={handlePageChange}
-      itemsPerPage={itemsPerPage}
-      totalItems={totalItems}
-      isLoading={loading}
-    />
-  </div>
+                <div className="border-t">
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={handlePageChange}
+                    itemsPerPage={itemsPerPage}
+                    totalItems={totalItems}
+                    isLoading={loading}
+                  />
+                </div>
               </Card>
             </div>
           </div>
@@ -1009,13 +1007,13 @@ const isFormValid = (() => {
                   <div className="text-green-600 text-sm mt-1">✓ Folder name looks good!</div>
                 )}
 
-               <ul className="text-muted-foreground text-xs space-y-1 mt-3 list-disc list-inside">
-  <li>Must contain at least 2 words (e.g., "My Documents")</li>
-  <li>At least 2 characters long</li>
-  <li>Must be meaningful (not random letters)</li>
-  <li>No invalid symbols like &lt; &gt; : " / \ | ? * etc.</li>
-  <li>Example: "Project Files", "Team Photos"</li>
-</ul>
+                <ul className="text-muted-foreground text-xs space-y-1 mt-3 list-disc list-inside">
+                  <li>Must contain at least 2 words (e.g., "My Documents")</li>
+                  <li>At least 2 characters long</li>
+                  <li>Must be meaningful (not random letters)</li>
+                  <li>No invalid symbols like &lt; &gt; : " / \ | ? * etc.</li>
+                  <li>Example: "Project Files", "Team Photos"</li>
+                </ul>
               </div>
 
               <DialogFooter>

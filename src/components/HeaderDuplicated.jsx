@@ -79,16 +79,14 @@ const HeaderDuplicated = () => {
         <div className="flex items-center justify-between h-20">
           {/* ✅ Logo with Link */}
           <Link to="/" className="flex items-center gap-3 cursor-pointer">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
+            <div className="w-34 h-34 mt-8  rounded-lg flex items-center justify-center">
               <img
                 src="/assets/icon.png"
                 alt="Building Icon"
-                className="w-6 h-6 object-contain"
+                className="w-32 h-32 object-contain"
               />
             </div>
-            <span className="text-2xl font-bold text-white">
-              CO Consultants
-            </span>
+           
           </Link>
 
           {/* ✅ Desktop Menu with Smart Links */}

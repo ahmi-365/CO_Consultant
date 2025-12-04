@@ -20,19 +20,19 @@ const Footer = () => {
   return (
     <footer className="bg-blue-900 text-white">
       <div className="container mx-auto px-4 py-16">
+       {/* Main Footer Grid */}
         {/* Main Footer Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 g  text-gray-300">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-gray-300">
           {/* About Us */}
           <div>
-            <div className="flex items-center gap-3 ">
-              <div className="w-36 h-36    ">
+            <div className="mb-4">
+              <div className="w-32 h-32 -mt-2">
                 <img
                   src="/assets/icon.png"
                   alt="CO Consultants Logo"
-                  className="w-32 h-32 "
+                  className="w-full h-full object-contain"
                 />
               </div>
-
             </div>
             <p className="leading-relaxed text-gray-300">
               CO Consultants is a construction focused project management and
@@ -44,10 +44,10 @@ const Footer = () => {
             </p>
           </div>
 
-          {/* Our Services */}
-          <div className="text-center md:text-left">
+          {/* Our Services & Quick Links Combined */}
+          <div>
             <h3 className="text-xl font-bold mb-6 text-white">Our Services</h3>
-            <ul className="space-y-3">
+            <ul className="space-y-3 mb-8">
               {servicesItems.map((item, index) => (
                 <li key={index}>
                   <a
@@ -60,23 +60,19 @@ const Footer = () => {
               ))}
             </ul>
 
-            {/* Quick Links below Services */}
-            {/* Quick Links below Services */}
-            <div className="mt-8">
-              <h3 className="text-xl font-bold mb-4 text-white">Quick Links</h3>
-              <ul className="grid grid-cols-2 gap-2">
-                {quickLinks.map((link, idx) => (
-                  <li key={idx}>
-                    <a
-                      href={`#${link.id}`}
-                      className="hover:text-yellow-400 hover:underline transition-colors duration-200"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <h3 className="text-xl font-bold mb-6 text-white">Quick Links</h3>
+            <ul className="space-y-3">
+              {quickLinks.map((link, idx) => (
+                <li key={idx}>
+                  <a
+                    href={`#${link.id}`}
+                    className="hover:text-yellow-400 hover:underline transition-colors duration-200"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
 
           {/* Contact Info */}
@@ -84,32 +80,22 @@ const Footer = () => {
             <h3 className="text-xl font-bold mb-6 text-white">Contact Info</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-yellow-400 mt-0.5" />
+                <MapPin className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                 <span>Dubai, UAE</span>
               </div>
 
-              {/* <div className="flex items-center gap-3">
-                <Phone className="w-5 h-5 text-yellow-400" />
-                <a
-                  href="tel:+15551234567"
-                  className="hover:text-yellow-400 transition-colors duration-200"
-                >
-                  +1 (555) 123-4567
-                </a>
-              </div> */}
-
-              <div className="flex items-center gap-3">
-                <Mail className="w-5 h-5 text-yellow-400" />
+              <div className="flex items-start gap-3">
+                <Mail className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                 <a
                   href="mailto:admin@thecoconsultants.com"
-                  className="hover:text-yellow-400 transition-colors duration-200"
+                  className="hover:text-yellow-400 transition-colors duration-200 break-all"
                 >
                   admin@thecoconsultants.com
                 </a>
               </div>
 
               <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-yellow-400 mt-0.5" />
+                <Clock className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
                 <span>
                   Mon–Fri: 8AM–6PM <br /> Sat: 9AM–4PM
                 </span>
