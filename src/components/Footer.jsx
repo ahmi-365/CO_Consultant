@@ -1,5 +1,5 @@
 import { MapPin, Phone, Mail, Clock } from "lucide-react";
-
+import { Link } from 'react-router-dom'; 
 const Footer = () => {
   const servicesItems = [
     { label: "Real Time Tracking System", id: "services" },
@@ -20,10 +20,9 @@ const Footer = () => {
   return (
     <footer className="bg-blue-900 text-white">
       <div className="container mx-auto px-4 py-16">
-       {/* Main Footer Grid */}
         {/* Main Footer Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-gray-300">
-          {/* About Us */}
+        {/* Main Footer Grid */}
+<div className="grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr] gap-8 text-gray-300">          {/* About Us */}
           <div>
             <div className="mb-4">
               <div className="w-32 h-32 -mt-2">
@@ -38,15 +37,15 @@ const Footer = () => {
               CO Consultants is a construction focused project management and
               analytics consultancy based in Dubai, UAE. With over a decade of
               experience across the GCC, EuropeX and Central Asia, we help
-              contractors, developers and consultants turn daily field data
-              into strategic project insights. We bridge the gap between on site
+              contractors, developers and consultants turn daily field data into
+              strategic project insights. We bridge the gap between on site
               operations and decision making through smart digitization.
             </p>
           </div>
 
           {/* Our Services & Quick Links Combined */}
           <div>
-            <h3 className="text-xl font-bold mb-6 text-white">Our Services</h3>
+            {/* <h3 className="text-xl font-bold mb-6 text-white">Our Services</h3>
             <ul className="space-y-3 mb-8">
               {servicesItems.map((item, index) => (
                 <li key={index}>
@@ -58,9 +57,10 @@ const Footer = () => {
                   </a>
                 </li>
               ))}
-            </ul>
-
-            <h3 className="text-xl font-bold mb-6 text-white">Quick Links</h3>
+            </ul> */}
+            <h3 className="text-xl font-bold mb-6 mt-0 lg:mt-32 text-white">
+              Quick Links
+            </h3>
             <ul className="space-y-3">
               {quickLinks.map((link, idx) => (
                 <li key={idx}>
@@ -77,7 +77,9 @@ const Footer = () => {
 
           {/* Contact Info */}
           <div>
-            <h3 className="text-xl font-bold mb-6 text-white">Contact Info</h3>
+            <h3 className="text-xl font-bold mt-0 lg:mt-32 mb-6 text-white">
+              Contact Info
+            </h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
                 <MapPin className="w-5 h-5 text-yellow-400 flex-shrink-0 mt-0.5" />
@@ -112,23 +114,23 @@ const Footer = () => {
           </p>
 
           {/* Policy Links */}
-          <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 mt-4 md:mt-0 text-sm">
-            <a
-              href="/privacy-policy"
-              className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
-            >
-              Privacy Policy
-            </a>
+         <div className="flex flex-wrap items-center justify-center md:justify-end gap-4 mt-4 md:mt-0 text-sm">
+  <Link
+    to="/privacy-policy"
+    className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
+  >
+    Privacy Policy
+  </Link>
 
-            <span className="text-gray-500 hidden md:inline">|</span>
+  <span className="text-gray-500 hidden md:inline">|</span>
 
-            <a
-              href="/terms-and-conditions"
-              className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
-            >
-              Terms & Conditions
-            </a>
-          </div>
+  <Link
+    to="/terms-and-conditions"
+    className="text-gray-300 hover:text-yellow-400 transition-all duration-200 hover:underline underline-offset-4"
+  >
+    Terms & Conditions
+  </Link>
+</div>
         </div>
       </div>
     </footer>
