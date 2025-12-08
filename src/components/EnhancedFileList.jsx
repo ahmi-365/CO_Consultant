@@ -24,7 +24,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   AlertCircle,
-  AlertTriangle,
+  AlertTriangle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -99,10 +99,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   const [isNameValid, setIsNameValid] = useState(false);
   const [pagination, setPagination] = useState({
     currentPage: 1,
-    perPage: 10, // Changed from 25 to 10
+    perPage: 10000, // Changed from 25 to 10
     totalItems: 0,
-    totalPages: 1,
+    totalPages: 1
   });
+
 
   // Tab state
   const [activeTab, setActiveTab] = useState("file-manager");
@@ -123,17 +124,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   }
 
   // Determine if we should show tabs - NOW it can access selectedItemForIframe
-  const shouldShowTabs = useMemo(() => {
-    // For root iframe, just check if URL exists (no is_iframe flag check)
-    if (
-      selectedItemForIframe?.type === "root" ||
-      selectedItemForIframe?.type === "iframe"
-    ) {
-      return !!rootIframeUrl;
-    }
-    // For folders/files, check both URL and is_iframe flag
-    return rootIframeUrl && selectedItemForIframe?.is_iframe === true;
-  }, [rootIframeUrl, selectedItemForIframe]);
+  const shouldShowTabs = useMemo(
+    () => {
+      // For root iframe, just check if URL exists (no is_iframe flag check)
+      if (selectedItemForIframe?.type === 'root' || selectedItemForIframe?.type === 'iframe') {
+        return !!rootIframeUrl;
+      }
+      // For folders/files, check both URL and is_iframe flag
+      return rootIframeUrl && selectedItemForIframe?.is_iframe === true;
+    },
+    [rootIframeUrl, selectedItemForIframe]
+  );
   const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
 
@@ -157,7 +158,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     move: false,
     rename: false,
   });
-  // Removed duplicate useEffect - loadFiles is already called in useEffect with loadFiles dependency
+  // Add this useEffect after your existing useEffects (around line 400)
+  useEffect(() => {
+    loadFiles(activeSearchQuery);
+  }, [pagination.currentPage, pagination.perPage]);
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
 
@@ -179,16 +183,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     Array.isArray(userPermissions) &&
     userPermissions.includes("starred-files.toggle");
   const canTrash =
-    Array.isArray(userPermissions) && userPermissions.includes("files.trash");
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.trash");
   const canMove =
-    Array.isArray(userPermissions) && userPermissions.includes("files.move");
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.move");
   const canRename =
-    Array.isArray(userPermissions) && userPermissions.includes("files.rename");
+    Array.isArray(userPermissions) &&
+    userPermissions.includes("files.rename");
   const canDownload =
     Array.isArray(userPermissions) &&
     userPermissions.includes("files.download");
-  const canUpload =
-    Array.isArray(userPermissions) && userPermissions.includes("files.upload");
 
   // Check if device is mobile
   useEffect(() => {
@@ -208,14 +213,36 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         setLoading(true);
         const params = {
           page: pagination.currentPage,
-          per_page: pagination.perPage,
+          per_page: pagination.perPage
         };
 
         if (searchQuery && searchQuery.trim()) {
           params.search = searchQuery.trim();
         }
 
-        // Fetch paginated data for current folder (single API call)
+        // Fetch ALL files for hierarchy building
+        const allFilesResponse = await fileApi.listadminFiles(null, {});
+        const allFilesData = allFilesResponse.data || allFilesResponse;
+        setAllFiles(allFilesData);
+
+        // Build complete folder hierarchy
+        // Build complete folder hierarchy - PRESERVE is_iframe flag
+const hierarchyMap = new Map();
+allFilesData.forEach((item) => {
+  if (item.type === "folder") {
+    hierarchyMap.set(item.id, {
+      id: item.id,
+      name: item.name,
+      parentId: item.parent_id,
+      type: item.type,
+      iframe_url: item.iframe_url,
+      is_iframe: item.is_iframe, // ← ADD THIS CRITICAL LINE
+    });
+  }
+});
+setFolderHierarchy(hierarchyMap);
+
+        // Now fetch paginated data for current folder
         let response;
         if (searchQuery && searchQuery.trim()) {
           response = await fileApi.listadminFiles(null, params);
@@ -225,88 +252,29 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
         const filesData = response.data || response;
 
-        // Build folder hierarchy from current response and update allFiles
-        // This avoids an extra API call while still maintaining hierarchy for breadcrumbs
-        const hierarchyMap = new Map();
-        const allItemsMap = new Map();
-
-        // Add current folder items to map for deduplication
-        if (Array.isArray(filesData)) {
-          filesData.forEach((item) => {
-            // Deduplicate by id
-            if (!allItemsMap.has(item.id)) {
-              allItemsMap.set(item.id, item);
-
-              // Build hierarchy for folders
-              if (item.type === "folder") {
-                hierarchyMap.set(item.id, {
-                  id: item.id,
-                  name: item.name,
-                  parentId: item.parent_id,
-                  type: item.type,
-                  iframe_url: item.iframe_url,
-                  is_iframe: item.is_iframe,
-                });
-              }
-            }
-          });
-        }
-
-        // Update allFiles with deduplicated items
-        setAllFiles(Array.from(allItemsMap.values()));
-        setFolderHierarchy(hierarchyMap);
-
         // Update pagination state
-        setPagination((prev) => ({
+        setPagination(prev => ({
           ...prev,
           totalItems: response.pagination?.total || filesData.length,
-          totalPages: response.pagination?.total_pages || 1,
+          totalPages: response.pagination?.total_pages || 1
         }));
 
-        // Filter files based on folder - Fix for User Rights issue
-        // The API should return items filtered by permissions, we just need to filter by parent_id
-        // This ensures subfolders are visible when user has access and prevents duplication
-        let filteredFiles = Array.isArray(filesData) ? filesData : [];
-
-        // Deduplicate files by id to prevent showing same item multiple times
-        const seenIds = new Set();
-        filteredFiles = filteredFiles.filter((item) => {
-          if (seenIds.has(item.id)) {
-            return false; // Skip duplicates
-          }
-          seenIds.add(item.id);
-          return true;
-        });
-
+        // Filter files based on folder
+        let filteredFiles = filesData;
         if (!folderId) {
-          // At root level: show only items that are direct children of root
-          // Root items have parent_id as null, 1, "1", 0, undefined, or empty string
-          // IMPORTANT: Don't filter out items based on whether their parent exists in allFilesData
-          // The API handles permissions, we just need to show root-level items
-          filteredFiles = filteredFiles.filter((item) => {
-            const parentId = item.parent_id;
-            // Check if parent_id indicates root level (null, 1, "1", 0, undefined, or empty)
-            if (
-              parentId === null ||
-              parentId === undefined ||
-              parentId === "" ||
-              parentId === 0 ||
-              parentId === 1 ||
-              parentId === "1"
-            ) {
-              return true;
-            }
-            return false;
-          });
+          const existingIds = new Set(allFilesData.map((item) => item.id));
+          filteredFiles = allFilesData.filter(
+            (item) => !existingIds.has(item.parent_id)
+          );
 
           if (response.iframe_url) {
             setRootIframeUrl(response.iframe_url);
             setSelectedItemForIframe({
-              id: "root-iframe",
-              name: "Root Embedded Content",
+              id: 'root-iframe',
+              name: 'Root Embedded Content',
               iframe_url: response.iframe_url,
-              type: "root",
-              is_iframe: true,
+              type: 'root',
+              is_iframe: true
             });
             setShowIframePanel(true);
           } else {
@@ -315,32 +283,22 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
             setSelectedItemForIframe(null);
           }
         } else {
-          // Inside a folder: show only DIRECT children (parent_id matches current folderId)
-          // Normalize both IDs to ensure proper comparison
-          const normalizedFolderId = folderId.toString();
-          filteredFiles = filesData.filter((item) => {
-            if (!item.parent_id) return false;
-            // Normalize parent_id for comparison
-            const normalizedParentId = item.parent_id.toString();
-            // Only show direct children
-            return normalizedParentId === normalizedFolderId;
-          });
+          filteredFiles = filesData.filter(
+            (item) => item.parent_id && item.parent_id.toString() === folderId
+          );
 
           const currentFolderData = hierarchyMap.get(parseInt(folderId));
           if (currentFolderData) {
             setCurrentFolder(currentFolderData);
 
-            if (
-              currentFolderData.iframe_url &&
-              currentFolderData.is_iframe === true
-            ) {
+            if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
               setRootIframeUrl(currentFolderData.iframe_url);
               setSelectedItemForIframe({
                 id: currentFolderData.id,
                 name: currentFolderData.name,
                 iframe_url: currentFolderData.iframe_url,
-                type: "folder",
-                is_iframe: true,
+                type: 'folder',
+                is_iframe: true
               });
               setShowIframePanel(true);
             } else {
@@ -357,6 +315,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         }
 
         setFiles(filteredFiles);
+
       } catch (error) {
         console.error("Error loading files:", error);
         toast.error("Error loading files");
@@ -372,37 +331,37 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
   // useEffect(() => {
   //   loadCurrentFolderIframe();
   // }, [folderId, location.pathname, loadCurrentFolderIframe]);
-  const extractSrcFromIframe = (iframeCode) => {
-    if (!iframeCode) return "";
+const extractSrcFromIframe = (iframeCode) => {
+  if (!iframeCode) return "";
 
-    // If it's already a URL, return it directly
-    if (iframeCode.startsWith("http")) {
-      return iframeCode;
-    }
-
-    // Try to extract src from iframe tag (handles both single and double quotes)
-    const srcMatch = iframeCode.match(/src=["']([^"']+)["']/i);
-    if (srcMatch && srcMatch[1]) {
-      return srcMatch[1];
-    }
-
-    // If no match, return the original code
+  // If it's already a URL, return it directly
+  if (iframeCode.startsWith("http")) {
     return iframeCode;
-  };
+  }
+
+  // Try to extract src from iframe tag (handles both single and double quotes)
+  const srcMatch = iframeCode.match(/src=["']([^"']+)["']/i);
+  if (srcMatch && srcMatch[1]) {
+    return srcMatch[1];
+  }
+
+  // If no match, return the original code
+  return iframeCode;
+};
 
   // Pagination handlers
   const handlePageChange = (newPage) => {
-    setPagination((prev) => ({
+    setPagination(prev => ({
       ...prev,
-      currentPage: newPage,
+      currentPage: newPage
     }));
   };
 
   const handleItemsPerPageChange = (newPerPage) => {
-    setPagination((prev) => ({
+    setPagination(prev => ({
       ...prev,
       perPage: newPerPage,
-      currentPage: 1, // Reset to first page when changing items per page
+      currentPage: 1 // Reset to first page when changing items per page
     }));
   };
   const getPreviewUrl = () => {
@@ -430,15 +389,9 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     [folderHierarchy]
   );
 
-  // Load files when folderId or search query changes
   useEffect(() => {
-    loadFiles(activeSearchQuery);
-  }, [folderId, activeSearchQuery]);
-
-  // Load files when pagination changes
-  useEffect(() => {
-    loadFiles(activeSearchQuery);
-  }, [pagination.currentPage, pagination.perPage]);
+    loadFiles();
+  }, [loadFiles]);
 
   useEffect(() => {
     const handleFileUploaded = () => loadFiles();
@@ -540,9 +493,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     if (folderHierarchy.has(parsedFolderId)) {
       const folderInfo = folderHierarchy.get(parsedFolderId);
       const folderPath = buildFolderPath(parsedFolderId);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(
-        " / "
-      );
+      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
       return {
         id: folderInfo.id,
@@ -555,9 +506,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     // ✅ SECOND: Check currentFolder state
     if (currentFolder && currentFolder.id === parsedFolderId) {
       const folderPath = buildFolderPath(currentFolder.id);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(
-        " / "
-      );
+      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
       return {
         id: currentFolder.id,
@@ -569,28 +518,23 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
 
     // ✅ THIRD: Search in allFiles array for the folder itself
     const folderItem = allFiles.find(
-      (item) => item.id === parsedFolderId && item.type === "folder"
+      (item) => item.id === parsedFolderId && item.type === 'folder'
     );
 
     if (folderItem) {
       const folderPath = buildFolderPath(parsedFolderId);
-      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(
-        " / "
-      );
+      const fullPath = ["My Files", ...folderPath.map((p) => p.name)].join(" / ");
 
       return {
         id: parsedFolderId,
         name: folderItem.name, // ✅ "File one" from API
         path: `/folder/${parsedFolderId}`,
-        fullPath:
-          fullPath.length > "My Files".length
-            ? fullPath
-            : `My Files / ${folderItem.name}`,
+        fullPath: fullPath.length > "My Files".length ? fullPath : `My Files / ${folderItem.name}`,
       };
     }
 
     // ✅ FOURTH: Fallback - search for any item with this ID
-    const anyItem = allFiles.find((item) => item.id === parsedFolderId);
+    const anyItem = allFiles.find(item => item.id === parsedFolderId);
     if (anyItem) {
       return {
         id: parsedFolderId,
@@ -639,7 +583,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       navigate(`/folder/${item.id}`);
     } else if (!isMobile) {
       // Root items don't need is_iframe check
-      if (item.type === "root" || item.type === "iframe") {
+      if (item.type === 'root' || item.type === 'iframe') {
         if (item.iframe_url) {
           setSelectedItemForIframe(item);
           setActiveTab("embedded-frame");
@@ -762,17 +706,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     setRenaming(true);
 
     try {
-      const response = await fileApi.renameItem(
-        selectedItemForRename.id,
-        newName.trim()
-      );
+      const response = await fileApi.renameItem(selectedItemForRename.id, newName.trim());
 
       if (response.status === "ok" || response.success) {
-        toast.success(
-          `${
-            selectedItemForRename.type === "folder" ? "Folder" : "File"
-          } renamed!`
-        );
+        toast.success(`${selectedItemForRename.type === "folder" ? "Folder" : "File"} renamed!`);
         setRenameModalOpen(false);
         resetRenameForm();
         loadFiles();
@@ -840,6 +777,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       }));
     }
   };
+
+
 
   const handleDragStart = (e, fileId) => {
     if (isMobile) return; // Disable drag on mobile
@@ -930,10 +869,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 <Star className="w-3.5 h-3.5 text-yellow-500 fill-current flex-shrink-0" />
               )}
               {/* IFRAME INDICATOR */}
-              {item.iframe_url &&
-                (item.type === "root" ||
-                  item.type === "iframe" ||
-                  item.is_iframe === true) && (
+              {item.iframe_url && (
+                item.type === 'root' ||
+                item.type === 'iframe' ||
+                item.is_iframe === true
+              ) && (
                   <Code
                     className="w-3 h-3 text-blue-500 flex-shrink-0"
                     title="Has embedded content - Click to view"
@@ -1047,20 +987,18 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     }
 
     // Duplicate check in current folder
-    const currentFolderFiles = files.filter(
-      (f) => (!folderId && !f.parent_id) || f.parent_id?.toString() === folderId
+    const currentFolderFiles = files.filter(f =>
+      (!folderId && !f.parent_id) ||
+      (f.parent_id?.toString() === folderId)
     );
 
-    const isDuplicate = currentFolderFiles.some(
-      (f) =>
-        f.id !== selectedItemForRename.id &&
-        f.name.toLowerCase() === name.toLowerCase()
+    const isDuplicate = currentFolderFiles.some(f =>
+      f.id !== selectedItemForRename.id &&
+      f.name.toLowerCase() === name.toLowerCase()
     );
 
     if (isDuplicate) {
-      setDuplicateWarning(
-        "An item with this name already exists in this folder."
-      );
+      setDuplicateWarning("An item with this name already exists in this folder.");
       return;
     }
 
@@ -1143,12 +1081,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                   Refresh
                 </DropdownMenuItem>
 
-                {canUpload && (
-                  <DropdownMenuItem onClick={() => setShowUploadModal(true)}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Upload Files
-                  </DropdownMenuItem>
-                )}
+                <DropdownMenuItem onClick={() => setShowUploadModal(true)}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Upload Files
+                </DropdownMenuItem>
 
                 <DropdownMenuItem onClick={() => setShowNewFolderModal(true)}>
                   <FolderPlus className="w-4 h-4 mr-2" />
@@ -1176,21 +1112,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               </Button> */}
 
               {/* Upload Files button */}
-              {canUpload && (
-                <Button
-                  onClick={() => setShowUploadModal(true)}
-                  size="sm"
-                  className={`
+              <Button
+                onClick={() => setShowUploadModal(true)}
+                size="sm"
+                className={`
     flex items-center gap-1 sm:gap-2 h-9 px-4 rounded-md font-medium transition-colors shadow-sm
     bg-red-600 text-white hover:bg-red-700
     dark:bg-[#1e3a8a] dark:hover:bg-[#1d4ed8] dark:text-gray-100
     disabled:opacity-70 disabled:cursor-not-allowed
   `}
-                >
-                  <Upload className="w-4 h-4" />
-                  <span className="hidden sm:inline">Upload</span>
-                </Button>
-              )}
+              >
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline">Upload</span>
+              </Button>
+
 
               {/* New Folder button */}
               <Button
@@ -1210,23 +1145,13 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       {/* TABS - Only show in root folder with iframe */}
       {shouldShowTabs && (
         <div className="border-b bg-background px-4 py-2">
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger
-                value="file-manager"
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="file-manager" className="flex items-center gap-2">
                 <FileText className="w-4 h-4" />
                 File Manager
               </TabsTrigger>
-              <TabsTrigger
-                value="embedded-frame"
-                className="flex items-center gap-2"
-              >
+              <TabsTrigger value="embedded-frame" className="flex items-center gap-2">
                 <Code className="w-4 h-4" />
                 PowerBI Analytics
               </TabsTrigger>
@@ -1239,15 +1164,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
       {shouldShowTabs ? (
         <div className="flex flex-col flex-1 overflow-auto">
           {/* FILE MANAGER TAB */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsContent
-              value="file-manager"
-              className="flex-1 overflow-auto m-0 p-4"
-            >
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsContent value="file-manager" className="flex-1 overflow-auto m-0 p-4">
               {loading ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
@@ -1275,33 +1193,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                   {/* Large colored icon */}
                                   <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-muted/50">
                                     {(() => {
-                                      const fileType =
-                                        getFileTypeFromItem(item);
+                                      const fileType = getFileTypeFromItem(item);
                                       switch (fileType) {
                                         case "document":
-                                          return (
-                                            <FileText className="w-8 h-8 text-blue-500" />
-                                          );
+                                          return <FileText className="w-8 h-8 text-blue-500" />;
                                         case "image":
-                                          return (
-                                            <Image className="w-8 h-8 text-green-500" />
-                                          );
+                                          return <Image className="w-8 h-8 text-green-500" />;
                                         case "video":
-                                          return (
-                                            <Video className="w-8 h-8 text-purple-500" />
-                                          );
+                                          return <Video className="w-8 h-8 text-purple-500" />;
                                         case "zip":
-                                          return (
-                                            <Archive className="w-8 h-8 text-orange-500" />
-                                          );
+                                          return <Archive className="w-8 h-8 text-orange-500" />;
                                         case "folder":
-                                          return (
-                                            <Folder className="w-8 h-8 text-red-500" />
-                                          );
+                                          return <Folder className="w-8 h-8 text-red-500" />;
                                         default:
-                                          return (
-                                            <FileText className="w-8 h-8 text-gray-500" />
-                                          );
+                                          return <FileText className="w-8 h-8 text-gray-500" />;
                                       }
                                     })()}
                                   </div>
@@ -1318,18 +1223,19 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                       {item.is_starred && (
                                         <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
                                       )}
-
-                                      {/* IFRAME INDICATOR */}
-                                      {item.iframe_url &&
-                                        (item.type === "root" ||
-                                          item.type === "iframe" ||
-                                          item.is_iframe === true) && (
-                                          <Code
-                                            className="w-3 h-3 text-blue-500 flex-shrink-0"
-                                            title="Has embedded content - Click to view"
-                                          />
-                                        )}
-                                    </div>
+                                      
+                                   {/* IFRAME INDICATOR */}
+    {item.iframe_url && (
+      item.type === 'root' ||
+      item.type === 'iframe' ||
+      item.is_iframe === true
+    ) && (
+      <Code
+        className="w-3 h-3 text-blue-500 flex-shrink-0"
+        title="Has embedded content - Click to view"
+      />
+    )}
+  </div>
 
                                     {/* File details */}
                                     <div className="text-xs text-muted-foreground space-y-1">
@@ -1343,25 +1249,16 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                   {/* Badges */}
                                   <div className="flex flex-wrap gap-1 justify-center">
                                     {item.is_starred && (
-                                      <Badge
-                                        variant="outline"
-                                        className="text-xs"
-                                      >
+                                      <Badge variant="outline" className="text-xs">
                                         Starred
                                       </Badge>
                                     )}
                                     {item.is_trashed && (
-                                      <Badge
-                                        variant="destructive"
-                                        className="text-xs"
-                                      >
+                                      <Badge variant="destructive" className="text-xs">
                                         Trashed
                                       </Badge>
                                     )}
-                                    <Badge
-                                      variant="outline"
-                                      className="capitalize text-xs"
-                                    >
+                                    <Badge variant="outline" className="capitalize text-xs">
                                       {item.type}
                                     </Badge>
                                   </div>
@@ -1374,14 +1271,9 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         size="sm"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          handleDownloadFile(
-                                            item.id,
-                                            item.name
-                                          );
+                                          handleDownloadFile(item.id, item.name);
                                         }}
-                                        disabled={
-                                          actionLoading.downloading[item.id]
-                                        }
+                                        disabled={actionLoading.downloading[item.id]}
                                         className="h-8 w-8 p-0"
                                       >
                                         {actionLoading.downloading[item.id] ? (
@@ -1406,18 +1298,15 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         align="end"
                                         className="w-48 bg-popover border border-border"
                                       >
+
+
                                         {item.type === "file" && (
                                           <DropdownMenuItem
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleDownloadFile(
-                                                item.id,
-                                                item.name
-                                              );
+                                              handleDownloadFile(item.id, item.name);
                                             }}
-                                            disabled={
-                                              actionLoading.downloading[item.id]
-                                            }
+                                            disabled={actionLoading.downloading[item.id]}
                                           >
                                             <Download className="w-4 h-4 mr-2" />
                                             Download
@@ -1429,9 +1318,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                             setFileToTrash(item); // 👈 store selected file
                                             setShowConfirmPopup(true); // 👈 open confirmation popup
                                           }}
-                                          disabled={
-                                            actionLoading.trashing[item.id]
-                                          }
+                                          disabled={actionLoading.trashing[item.id]}
                                           className="text-destructive focus:text-destructive"
                                         >
                                           <Trash2 className="w-4 h-4 mr-2" />
@@ -1494,33 +1381,26 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                               {filteredFiles.map((item) => (
                                 <TableRow
                                   key={item.id}
-                                  className={`hover:bg-muted/50 ${
-                                    selectedItemForIframe?.id === item.id
-                                      ? "bg-blue-50"
-                                      : ""
-                                  }`}
+                                  className={`hover:bg-muted/50 ${selectedItemForIframe?.id === item.id
+                                    ? "bg-blue-50"
+                                    : ""
+                                    }`}
                                   style={{
                                     opacity: movingStatus[item.id] ? 0.5 : 1,
                                   }}
                                 >
                                   <TableCell>
                                     <div
-                                      className={`flex items-center gap-2 ${
-                                        item.type === "folder"
-                                          ? "cursor-pointer"
-                                          : "cursor-move"
-                                      }`}
-                                      draggable={
-                                        item.type !== "folder" && !isMobile
-                                      }
+                                      className={`flex items-center gap-2 ${item.type === "folder"
+                                        ? "cursor-pointer"
+                                        : "cursor-move"
+                                        }`}
+                                      draggable={item.type !== "folder" && !isMobile}
                                       onDragStart={(e) =>
-                                        item.type !== "folder" &&
-                                        handleDragStart(e, item.id)
+                                        item.type !== "folder" && handleDragStart(e, item.id)
                                       }
                                       onDragOver={
-                                        item.type === "folder"
-                                          ? handleDragOver
-                                          : undefined
+                                        item.type === "folder" ? handleDragOver : undefined
                                       }
                                       onDrop={
                                         item.type === "folder"
@@ -1544,18 +1424,18 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
                                           )}
 
-                                          {/* IFRAME INDICATOR */}
-                                          {item.iframe_url &&
-                                            (item.type === "root" ||
-                                              item.type === "iframe" ||
-                                              item.is_iframe === true) && (
-                                              <Code
-                                                className="w-3 h-3 text-blue-500 flex-shrink-0"
-                                                title="Has embedded content - Click to view"
-                                              />
-                                            )}
-                                        </div>{" "}
-                                        {/* Mobile-only details */}
+{/* IFRAME INDICATOR */}
+    {item.iframe_url && (
+      item.type === 'root' ||
+      item.type === 'iframe' ||
+      item.is_iframe === true
+    ) && (
+      <Code
+        className="w-3 h-3 text-blue-500 flex-shrink-0"
+        title="Has embedded content - Click to view"
+      />
+    )}
+  </div>                                        {/* Mobile-only details */}
                                         <div className="md:hidden text-xs text-muted-foreground mt-1">
                                           {formatDate(item.updated_at)}
                                           {item.type !== "folder" && (
@@ -1571,9 +1451,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     {formatDate(item.updated_at)}
                                   </TableCell>
                                   <TableCell className="hidden sm:table-cell text-muted-foreground">
-                                    {item.size
-                                      ? formatFileSize(item.size)
-                                      : "-"}
+                                    {item.size ? formatFileSize(item.size) : "-"}
+
                                   </TableCell>
                                   <TableCell className="hidden lg:table-cell">
                                     <div className="flex gap-1">
@@ -1581,14 +1460,9 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         <Badge variant="outline">Starred</Badge>
                                       )}
                                       {item.is_trashed && (
-                                        <Badge variant="destructive">
-                                          Trashed
-                                        </Badge>
+                                        <Badge variant="destructive">Trashed</Badge>
                                       )}
-                                      <Badge
-                                        variant="outline"
-                                        className="capitalize"
-                                      >
+                                      <Badge variant="outline" className="capitalize">
                                         {item.type}
                                       </Badge>
                                     </div>
@@ -1599,20 +1473,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() =>
-                                            handleDownloadFile(
-                                              item.id,
-                                              item.name
-                                            )
-                                          }
-                                          disabled={
-                                            actionLoading.downloading[item.id]
-                                          }
+                                          onClick={() => handleDownloadFile(item.id, item.name)}
+                                          disabled={actionLoading.downloading[item.id]}
                                           className="h-8 w-8 p-0"
                                         >
-                                          {actionLoading.downloading[
-                                            item.id
-                                          ] ? (
+                                          {actionLoading.downloading[item.id] ? (
                                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
                                           ) : (
                                             <Download className="w-4 h-4" />
@@ -1621,11 +1486,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                       )}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                          >
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                             <MoreHorizontal className="w-4 h-4" />
                                           </Button>
                                         </DropdownMenuTrigger>
@@ -1634,32 +1495,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           className="w-48 bg-popover border border-border"
                                         >
                                           <DropdownMenuItem
-                                            onClick={() =>
-                                              handleStarFile(item.id)
-                                            }
-                                            disabled={
-                                              actionLoading.starring[item.id]
-                                            }
+                                            onClick={() => handleStarFile(item.id)}
+                                            disabled={actionLoading.starring[item.id]}
                                           >
                                             <Star className="w-4 h-4 mr-2" />
-                                            {item.is_starred
-                                              ? "Unstar"
-                                              : "Star"}
+                                            {item.is_starred ? "Unstar" : "Star"}
                                           </DropdownMenuItem>
 
                                           {item.type === "file" && (
                                             <DropdownMenuItem
-                                              onClick={() =>
-                                                handleDownloadFile(
-                                                  item.id,
-                                                  item.name
-                                                )
-                                              }
-                                              disabled={
-                                                actionLoading.downloading[
-                                                  item.id
-                                                ]
-                                              }
+                                              onClick={() => handleDownloadFile(item.id, item.name)}
+                                              disabled={actionLoading.downloading[item.id]}
                                             >
                                               <Download className="w-4 h-4 mr-2" />
                                               Download
@@ -1667,12 +1513,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           )}
 
                                           <DropdownMenuItem
-                                            onClick={() =>
-                                              handleTrashFile(item.id)
-                                            }
-                                            disabled={
-                                              actionLoading.trashing[item.id]
-                                            }
+                                            onClick={() => handleTrashFile(item.id)}
+                                            disabled={actionLoading.trashing[item.id]}
                                             className="text-destructive focus:text-destructive"
                                           >
                                             <Trash2 className="w-4 h-4 mr-2" />
@@ -1680,18 +1522,14 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           </DropdownMenuItem>
 
                                           <DropdownMenuItem
-                                            onClick={() =>
-                                              handleMoveFile(item.id, item.name)
-                                            }
+                                            onClick={() => handleMoveFile(item.id, item.name)}
                                           >
                                             <ArrowRightLeft className="w-4 h-4 mr-2" />
                                             Move
                                           </DropdownMenuItem>
 
                                           <DropdownMenuItem
-                                            onClick={() =>
-                                              handleRenameItem(item)
-                                            }
+                                            onClick={() => handleRenameItem(item)}
                                           >
                                             <Edit className="w-4 h-4 mr-2" />
                                             Rename
@@ -1729,11 +1567,9 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                     <iframe
                       src={getPreviewUrl()}
                       className="w-full h-full border-0"
-                      title={`Embedded content: ${
-                        selectedItemForIframe?.name || "Content"
-                      }`}
-                      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"
-                      loading="lazy"
+                      title={`Embedded content: ${selectedItemForIframe?.name || "Content"
+                        }`}
+sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"                      loading="lazy"
                       onError={(e) => console.error("Iframe load error:", e)}
                     />
                   ) : (
@@ -1748,6 +1584,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               </div>
             </TabsContent>
           </Tabs>
+
         </div>
       ) : (
         /* FALLBACK: Show without tabs if no iframe */
@@ -1757,48 +1594,43 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
             <div className="flex flex-col h-full">
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
-              {showIframePanel &&
-                selectedItemForIframe?.iframe_url &&
-                (selectedItemForIframe?.type === "root" ||
-                  selectedItemForIframe?.type === "iframe" ||
-                  selectedItemForIframe?.is_iframe === true) && (
-                  <div className="border-b">
-                    {" "}
-                    <div className="flex flex-col h-64">
-                      <div className="flex items-center justify-between p-3 border-b bg-muted/50">
-                        <div>
-                          <h3 className="font-semibold text-sm">
-                            Embedded Content
-                          </h3>
-                          <p className="text-xs text-muted-foreground">
-                            {selectedItemForIframe?.name ||
-                              "Select an item to preview"}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex-1 p-2">
-                        {getPreviewUrl() ? (
-                          <iframe
-                            src={getPreviewUrl()}
-                            className="w-full h-full border-0 rounded"
-                            title={`Embedded content: ${selectedItemForIframe.name}`}
-                            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-full text-muted-foreground">
-                            <div className="text-center">
-                              <Code className="h-8 w-8 mx-auto mb-2" />
-                              <p className="text-sm">
-                                {selectedItemForIframe
-                                  ? "No embedded content available"
-                                  : "Select an item with embedded content to preview"}
-                              </p>
-                            </div>
-                          </div>
-                        )}
+              {showIframePanel && selectedItemForIframe?.iframe_url && (
+                selectedItemForIframe?.type === 'root' ||
+                selectedItemForIframe?.type === 'iframe' ||
+                selectedItemForIframe?.is_iframe === true
+              ) && (
+                  <div className="border-b">                  <div className="flex flex-col h-64">
+                    <div className="flex items-center justify-between p-3 border-b bg-muted/50">
+                      <div>
+                        <h3 className="font-semibold text-sm">Embedded Content</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {selectedItemForIframe?.name || "Select an item to preview"}
+                        </p>
                       </div>
                     </div>
+                    <div className="flex-1 p-2">
+                      {getPreviewUrl() ? (
+                        <iframe
+                          src={getPreviewUrl()}
+                          className="w-full h-full border-0 rounded"
+                          title={`Embedded content: ${selectedItemForIframe.name}`}
+                          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center h-full text-muted-foreground">
+                          <div className="text-center">
+                            <Code className="h-8 w-8 mx-auto mb-2" />
+                            <p className="text-sm">
+                              {selectedItemForIframe
+                                ? "No embedded content available"
+                                : "Select an item with embedded content to preview"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                   </div>
                 )}
 
@@ -1846,11 +1678,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
             <div className="flex flex-col h-full p-4 pt-2">
               {/* IFRAME PANEL - Full width, above file list, always in root folder */}
               {/* IFRAME PANEL - Full width, above file list, always in root folder */}
-              {showIframePanel &&
-                selectedItemForIframe?.iframe_url &&
-                (selectedItemForIframe?.type === "root" ||
-                  selectedItemForIframe?.type === "iframe" ||
-                  selectedItemForIframe?.is_iframe === true) && (
+              {showIframePanel && selectedItemForIframe?.iframe_url && (
+                selectedItemForIframe?.type === 'root' ||
+                selectedItemForIframe?.type === 'iframe' ||
+                selectedItemForIframe?.is_iframe === true
+              ) && (
                   <div className="mb-4 border rounded-lg flex flex-col h-96">
                     <div className="flex items-center justify-between p-4 border-b">
                       <div>
@@ -1858,12 +1690,11 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                           {selectedItemForIframe?.name || "Embedded Content"}
                         </h3>
                         <p className="text-sm text-muted-foreground">
-                          {selectedItemForIframe?.type === "iframe" &&
-                          selectedItemForIframe?.id === "root-iframe"
+                          {selectedItemForIframe?.type === 'iframe' && selectedItemForIframe?.id === 'root-iframe'
                             ? "Root embedded content"
-                            : selectedItemForIframe?.type === "folder"
-                            ? "From folder"
-                            : "Interactive content"}
+                            : selectedItemForIframe?.type === 'folder'
+                              ? "From folder"
+                              : "Interactive content"}
                         </p>
                       </div>
                     </div>
@@ -1871,23 +1702,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                       <iframe
                         src={getPreviewUrl()}
                         className="w-full h-full border-0 rounded"
-                        title={`Embedded content: ${
-                          selectedItemForIframe?.name || "Content"
-                        }`}
+                        title={`Embedded content: ${selectedItemForIframe?.name || 'Content'}`}
                         sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                         loading="lazy"
-                        onError={(e) => console.error("Iframe load error:", e)}
+                        onError={(e) => console.error('Iframe load error:', e)}
                       />
                     </div>
                   </div>
                 )}
 
               {/* File List Panel - Full width always */}
-              <div
-                className={
-                  showIframePanel ? "flex-1" : "flex-1 rounded-md border"
-                }
-              >
+              <div className={showIframePanel ? "flex-1" : "flex-1 rounded-md border"}>
                 {loading ? (
                   <div className="flex items-center justify-center h-64">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-panel"></div>
@@ -1915,33 +1740,20 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     {/* Large colored icon */}
                                     <div className="w-12 h-12 flex items-center justify-center rounded-lg bg-muted/50">
                                       {(() => {
-                                        const fileType =
-                                          getFileTypeFromItem(item);
+                                        const fileType = getFileTypeFromItem(item);
                                         switch (fileType) {
                                           case "document":
-                                            return (
-                                              <FileText className="w-8 h-8 text-blue-500" />
-                                            );
+                                            return <FileText className="w-8 h-8 text-blue-500" />;
                                           case "image":
-                                            return (
-                                              <Image className="w-8 h-8 text-green-500" />
-                                            );
+                                            return <Image className="w-8 h-8 text-green-500" />;
                                           case "video":
-                                            return (
-                                              <Video className="w-8 h-8 text-purple-500" />
-                                            );
+                                            return <Video className="w-8 h-8 text-purple-500" />;
                                           case "zip":
-                                            return (
-                                              <Archive className="w-8 h-8 text-orange-500" />
-                                            );
+                                            return <Archive className="w-8 h-8 text-orange-500" />;
                                           case "folder":
-                                            return (
-                                              <Folder className="w-8 h-8 text-red-500" />
-                                            );
+                                            return <Folder className="w-8 h-8 text-red-500" />;
                                           default:
-                                            return (
-                                              <FileText className="w-8 h-8 text-gray-500" />
-                                            );
+                                            return <FileText className="w-8 h-8 text-gray-500" />;
                                         }
                                       })()}
                                     </div>
@@ -1959,17 +1771,18 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           <Star className="w-3 h-3 text-yellow-500 fill-current flex-shrink-0" />
                                         )}
 
-                                        {/* IFRAME INDICATOR */}
-                                        {item.iframe_url &&
-                                          (item.type === "root" ||
-                                            item.type === "iframe" ||
-                                            item.is_iframe === true) && (
-                                            <Code
-                                              className="w-3 h-3 text-blue-500 flex-shrink-0"
-                                              title="Has embedded content - Click to view"
-                                            />
-                                          )}
-                                      </div>
+{/* IFRAME INDICATOR */}
+    {item.iframe_url && (
+      item.type === 'root' ||
+      item.type === 'iframe' ||
+      item.is_iframe === true
+    ) && (
+      <Code
+        className="w-3 h-3 text-blue-500 flex-shrink-0"
+        title="Has embedded content - Click to view"
+      />
+    )}
+  </div>
                                       {/* File details */}
                                       <div className="text-xs text-muted-foreground space-y-1">
                                         <div>{formatDate(item.updated_at)}</div>
@@ -1982,25 +1795,16 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     {/* Badges */}
                                     <div className="flex flex-wrap gap-1 justify-center">
                                       {item.is_starred && (
-                                        <Badge
-                                          variant="outline"
-                                          className="text-xs"
-                                        >
+                                        <Badge variant="outline" className="text-xs">
                                           Starred
                                         </Badge>
                                       )}
                                       {item.is_trashed && (
-                                        <Badge
-                                          variant="destructive"
-                                          className="text-xs"
-                                        >
+                                        <Badge variant="destructive" className="text-xs">
                                           Trashed
                                         </Badge>
                                       )}
-                                      <Badge
-                                        variant="outline"
-                                        className="capitalize text-xs"
-                                      >
+                                      <Badge variant="outline" className="capitalize text-xs">
                                         {item.type}
                                       </Badge>
                                     </div>
@@ -2013,19 +1817,12 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           size="sm"
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            handleDownloadFile(
-                                              item.id,
-                                              item.name
-                                            );
+                                            handleDownloadFile(item.id, item.name);
                                           }}
-                                          disabled={
-                                            actionLoading.downloading[item.id]
-                                          }
+                                          disabled={actionLoading.downloading[item.id]}
                                           className="h-8 w-8 p-0"
                                         >
-                                          {actionLoading.downloading[
-                                            item.id
-                                          ] ? (
+                                          {actionLoading.downloading[item.id] ? (
                                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
                                           ) : (
                                             <Download className="w-4 h-4" />
@@ -2047,20 +1844,14 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           align="end"
                                           className="w-48 bg-popover border border-border"
                                         >
+
                                           {item.type === "file" && (
                                             <DropdownMenuItem
                                               onClick={(e) => {
                                                 e.stopPropagation();
-                                                handleDownloadFile(
-                                                  item.id,
-                                                  item.name
-                                                );
+                                                handleDownloadFile(item.id, item.name);
                                               }}
-                                              disabled={
-                                                actionLoading.downloading[
-                                                  item.id
-                                                ]
-                                              }
+                                              disabled={actionLoading.downloading[item.id]}
                                             >
                                               <Download className="w-4 h-4 mr-2" />
                                               Download
@@ -2072,22 +1863,18 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                               setFileToTrash(item); // Store selected file
                                               setShowConfirmPopup(true); // Open confirmation popup
                                             }}
-                                            disabled={
-                                              actionLoading.trashing[item.id]
-                                            }
+                                            disabled={actionLoading.trashing[item.id]}
                                             className="text-destructive focus:text-destructive"
                                           >
                                             <Trash2 className="w-4 h-4 mr-2" />
                                             Move to Trash
                                           </DropdownMenuItem>
 
+
                                           <DropdownMenuItem
                                             onClick={(e) => {
                                               e.stopPropagation();
-                                              handleMoveFile(
-                                                item.id,
-                                                item.name
-                                              );
+                                              handleMoveFile(item.id, item.name);
                                             }}
                                           >
                                             <ArrowRightLeft className="w-4 h-4 mr-2" />
@@ -2139,33 +1926,26 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                               {filteredFiles.map((item) => (
                                 <TableRow
                                   key={item.id}
-                                  className={`hover:bg-muted/50 ${
-                                    selectedItemForIframe?.id === item.id
-                                      ? "bg-blue-50"
-                                      : ""
-                                  }`}
+                                  className={`hover:bg-muted/50 ${selectedItemForIframe?.id === item.id
+                                    ? "bg-blue-50"
+                                    : ""
+                                    }`}
                                   style={{
                                     opacity: movingStatus[item.id] ? 0.5 : 1,
                                   }}
                                 >
                                   <TableCell>
                                     <div
-                                      className={`flex items-center gap-2 ${
-                                        item.type === "folder"
-                                          ? "cursor-pointer"
-                                          : "cursor-move"
-                                      }`}
-                                      draggable={
-                                        item.type !== "folder" && !isMobile
-                                      }
+                                      className={`flex items-center gap-2 ${item.type === "folder"
+                                        ? "cursor-pointer"
+                                        : "cursor-move"
+                                        }`}
+                                      draggable={item.type !== "folder" && !isMobile}
                                       onDragStart={(e) =>
-                                        item.type !== "folder" &&
-                                        handleDragStart(e, item.id)
+                                        item.type !== "folder" && handleDragStart(e, item.id)
                                       }
                                       onDragOver={
-                                        item.type === "folder"
-                                          ? handleDragOver
-                                          : undefined
+                                        item.type === "folder" ? handleDragOver : undefined
                                       }
                                       onDrop={
                                         item.type === "folder"
@@ -2188,15 +1968,16 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           {item.is_starred && (
                                             <Star className="w-4 h-4 text-yellow-500 fill-current" />
                                           )}
-                                          {item.iframe_url &&
-                                            (item.type === "root" ||
-                                              item.type === "iframe" ||
-                                              item.is_iframe === true) && (
-                                              <Code
-                                                className="w-4 h-4 text-blue-500 flex-shrink-0"
-                                                title="Has embedded content - Click to view"
-                                              />
-                                            )}
+                                          {item.iframe_url && (
+          item.type === 'root' ||
+          item.type === 'iframe' ||
+          item.is_iframe === true
+        ) && (
+          <Code
+            className="w-4 h-4 text-blue-500 flex-shrink-0"
+            title="Has embedded content - Click to view"
+          />
+        )}
                                         </div>
                                         {/* Mobile-only details */}
                                         <div className="md:hidden text-xs text-muted-foreground mt-1">
@@ -2214,10 +1995,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     {formatDate(item.updated_at)}
                                   </TableCell>
                                   <TableCell className="hidden sm:table-cell text-muted-foreground">
-                                    {item.size
-                                      ? formatFileSize(item.size)
-                                      : "-"}
+                                    {item.size ? formatFileSize(item.size) : "-"}
+
                                   </TableCell>
+
 
                                   {/* <TableCell className="hidden lg:table-cell">
                                     <div className="flex gap-1">
@@ -2233,38 +2014,28 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                     </div>
                                   </TableCell> */}
                                   <TableCell>
+
+
+
                                     <div className="flex items-center gap-1">
-                                      {item.type === "file" && canDownload && (
+                                      {item.type === "file" && canDownload && ((
                                         <Button
                                           variant="ghost"
                                           size="sm"
-                                          onClick={() =>
-                                            handleDownloadFile(
-                                              item.id,
-                                              item.name
-                                            )
-                                          }
-                                          disabled={
-                                            actionLoading.downloading[item.id]
-                                          }
+                                          onClick={() => handleDownloadFile(item.id, item.name)}
+                                          disabled={actionLoading.downloading[item.id]}
                                           className="h-8 w-8 p-0"
                                         >
-                                          {actionLoading.downloading[
-                                            item.id
-                                          ] ? (
+                                          {actionLoading.downloading[item.id] ? (
                                             <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-current"></div>
                                           ) : (
                                             <Download className="w-4 h-4" />
                                           )}
                                         </Button>
-                                      )}
+                                      ))}
                                       <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
-                                          <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            className="h-8 w-8 p-0"
-                                          >
+                                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                                             <MoreHorizontal className="w-4 h-4" />
                                           </Button>
                                         </DropdownMenuTrigger>
@@ -2279,36 +2050,19 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                                 if (canToggleStar) {
                                                   handleStarFile(item.id);
                                                 } else {
-                                                  alert(
-                                                    "You don’t have permission to star files."
-                                                  );
+                                                  alert("You don’t have permission to star files.");
                                                 }
                                               }}
-                                              disabled={
-                                                !canToggleStar ||
-                                                actionLoading.starring[item.id]
-                                              }
+                                              disabled={!canToggleStar || actionLoading.starring[item.id]}
                                             >
                                               <Star className="w-4 h-4 mr-2" />
-                                              {item.is_starred
-                                                ? "Unstar"
-                                                : "Star"}
-                                            </DropdownMenuItem>
-                                          )}
+                                              {item.is_starred ? "Unstar" : "Star"}
+                                            </DropdownMenuItem>)}
 
                                           {item.type === "file" && (
                                             <DropdownMenuItem
-                                              onClick={() =>
-                                                handleDownloadFile(
-                                                  item.id,
-                                                  item.name
-                                                )
-                                              }
-                                              disabled={
-                                                actionLoading.downloading[
-                                                  item.id
-                                                ]
-                                              }
+                                              onClick={() => handleDownloadFile(item.id, item.name)}
+                                              disabled={actionLoading.downloading[item.id]}
                                             >
                                               <Download className="w-4 h-4 mr-2" />
                                               Download
@@ -2320,9 +2074,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                                 setFileToTrash(item); // Store selected file
                                                 setShowConfirmPopup(true); // Open confirmation popup
                                               }}
-                                              disabled={
-                                                actionLoading.trashing[item.id]
-                                              }
+                                              disabled={actionLoading.trashing[item.id]}
                                               className="text-destructive focus:text-destructive"
                                             >
                                               <Trash2 className="w-4 h-4 mr-2" />
@@ -2331,22 +2083,14 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                                           )}
                                           {canMove && (
                                             <DropdownMenuItem
-                                              onClick={() =>
-                                                handleMoveFile(
-                                                  item.id,
-                                                  item.name
-                                                )
-                                              }
+                                              onClick={() => handleMoveFile(item.id, item.name)}
                                             >
                                               <ArrowRightLeft className="w-4 h-4 mr-2" />
                                               Move
-                                            </DropdownMenuItem>
-                                          )}
+                                            </DropdownMenuItem>)}
                                           {canRename && (
                                             <DropdownMenuItem
-                                              onClick={() =>
-                                                handleRenameItem(item)
-                                              }
+                                              onClick={() => handleRenameItem(item)}
                                             >
                                               <Edit className="w-4 h-4 mr-2" />
                                               Rename
@@ -2360,6 +2104,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                               ))}
                             </TableBody>
                           </Table>
+
                         )}
                       </>
                     )}
@@ -2407,7 +2152,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 {selectedItemForActions?.is_starred ? "Unstar" : "Star"}
               </Button>
             )}
-            {selectedItemForActions?.type === "file" && canDownload && (
+            {selectedItemForActions?.type === "file" && canDownload && ((
               <Button
                 variant="outline"
                 onClick={() =>
@@ -2422,7 +2167,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 <Download className="w-4 h-4" />
                 Download
               </Button>
-            )}
+            ))}
             {canMove && (
               <Button
                 variant="outline"
@@ -2461,8 +2206,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
               >
                 <Trash2 className="w-4 h-4" />
                 Move to Trash
-              </Button>
-            )}
+              </Button>)}
           </div>
         </SheetContent>
       </Sheet>
@@ -2472,13 +2216,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         <DialogContent className="sm:max-w-md mx-4">
           <DialogHeader>
             <DialogTitle className="text-lg">
-              Rename{" "}
-              {selectedItemForRename?.type === "folder" ? "Folder" : "File"}
+              Rename {selectedItemForRename?.type === "folder" ? "Folder" : "File"}
             </DialogTitle>
             <DialogDescription>
-              Enter a new name for "
-              <span className="font-medium">{selectedItemForRename?.name}</span>
-              "
+              Enter a new name for "<span className="font-medium">{selectedItemForRename?.name}</span>"
             </DialogDescription>
           </DialogHeader>
 
@@ -2492,15 +2233,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                   validateName(value);
                 }}
                 placeholder="Enter new name..."
-                onKeyPress={(e) =>
-                  e.key === "Enter" &&
-                  isNameValid &&
-                  !renaming &&
-                  handleRenameSubmit()
-                }
-                className={`text-base ${
-                  nameError ? "border-red-500 focus-visible:ring-red-500" : ""
-                }`}
+                onKeyPress={(e) => e.key === "Enter" && isNameValid && !renaming && handleRenameSubmit()}
+                className={`text-base ${nameError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 autoFocus
               />
 
@@ -2509,24 +2243,17 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
                 <div className="text-sm text-red-600 space-y-1">
                   {nameError.includes("empty") && (
                     <p className="flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" /> Name cannot be
-                      empty.
+                      <AlertCircle className="h-3.5 w-3.5" /> Name cannot be empty.
                     </p>
                   )}
                   {nameError.includes("100") && (
                     <p className="flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" /> Name too long (max
-                      100 characters).
+                      <AlertCircle className="h-3.5 w-3.5" /> Name too long (max 100 characters).
                     </p>
                   )}
                   {nameError.includes("allowed") && (
                     <p className="flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" /> Only letters,
-                      numbers, space,{" "}
-                      <code className="bg-red-100 px-1 rounded">_</code>,{" "}
-                      <code className="bg-red-100 px-1 rounded">-</code>,{" "}
-                      <code className="bg-red-100 px-1 rounded">.</code>{" "}
-                      allowed.
+                      <AlertCircle className="h-3.5 w-3.5" /> Only letters, numbers, space, <code className="bg-red-100 px-1 rounded">_</code>, <code className="bg-red-100 px-1 rounded">-</code>, <code className="bg-red-100 px-1 rounded">.</code> allowed.
                     </p>
                   )}
                 </div>
@@ -2553,9 +2280,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
             </Button>
             <Button
               onClick={handleRenameSubmit}
-              disabled={
-                renaming || !!nameError || !newName.trim() || !!duplicateWarning
-              }
+              disabled={renaming || !!nameError || !newName.trim() || !!duplicateWarning}
               className="w-full sm:w-auto flex items-center justify-center"
             >
               {renaming ? (
@@ -2570,6 +2295,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
 
       {/* File Upload Modal */}
       <FileUploadModal
@@ -2608,6 +2334,10 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
         />
       )}
 
+
+
+
+
       {showConfirmPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-[90%] max-w-sm text-center relative animate-fadeIn">
@@ -2639,6 +2369,7 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
           </div>
         </div>
       )}
+
 
       {showConfirmPopup && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50">
@@ -2679,6 +2410,8 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
           </div>
         </div>
       )}
+
+
     </div>
   );
 }
