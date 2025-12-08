@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -9,7 +9,29 @@ import { fileApi } from "../services/FileService";
 export default function FileUploadModal({ isOpen, onClose, onFileUploaded, currentFolder }) {
   const [uploadingFiles, setUploadingFiles] = useState([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [userPermissions, setUserPermissions] = useState([]);
+  const [hasUploadPermission, setHasUploadPermission] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Check user permissions on mount and when modal opens
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        const perms = Array.isArray(parsedUser.permissions)
+          ? parsedUser.permissions
+          : [];
+        setUserPermissions(perms);
+        setHasUploadPermission(perms.includes("files.upload"));
+      } catch (error) {
+        console.error("Error parsing user from localStorage:", error);
+        setHasUploadPermission(false);
+      }
+    } else {
+      setHasUploadPermission(false);
+    }
+  }, [isOpen]);
 
   // ✅ File rules
   const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
@@ -61,6 +83,12 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
 
   // ✅ Unified upload handler for single & multiple files
   const handleUpload = async (files) => {
+    // Check upload permission before starting upload
+    if (!hasUploadPermission) {
+      toast.error("❌ You don't have permission to upload files. Please contact your administrator.");
+      return;
+    }
+
     const fileArray = Array.from(files);
 
     const uploadingFilesList = fileArray.map((file) => ({
@@ -179,6 +207,13 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
   // ✅ File select with validation
   const handleFileSelect = (files) => {
     if (!files || files.length === 0) return;
+    
+    // Check permission first
+    if (!hasUploadPermission) {
+      toast.error("❌ You don't have permission to upload files. Please contact your administrator.");
+      return;
+    }
+    
     const validFiles = validateFiles(Array.from(files));
     if (validFiles.length > 0) handleUpload(validFiles);
   };
@@ -195,6 +230,13 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
   const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
+    
+    // Check permission first
+    if (!hasUploadPermission) {
+      toast.error("❌ You don't have permission to upload files. Please contact your administrator.");
+      return;
+    }
+    
     const files = e.dataTransfer.files;
     handleFileSelect(files);
   };
@@ -252,16 +294,27 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
 
         <div className="space-y-4">
           {/* Upload Area */}
-          <div
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDragOver
-                ? "border-panel bg-panel/5"
-                : "border-muted-foreground/25 hover:border-panel/50"
-              }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileInputRef.current?.click()}
-          >
+          {!hasUploadPermission ? (
+            <div className="border-2 border-dashed rounded-lg p-8 text-center bg-red-50 dark:bg-red-900/20 border-red-300 dark:border-red-800">
+              <AlertCircle className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <p className="text-lg font-medium mb-2 text-red-700 dark:text-red-400">
+                Upload Permission Required
+              </p>
+              <p className="text-sm text-red-600 dark:text-red-300">
+                You don't have permission to upload files. Please contact your administrator to request upload access.
+              </p>
+            </div>
+          ) : (
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${isDragOver
+                  ? "border-panel bg-panel/5"
+                  : "border-muted-foreground/25 hover:border-panel/50"
+                }`}
+              onDragOver={hasUploadPermission ? handleDragOver : undefined}
+              onDragLeave={hasUploadPermission ? handleDragLeave : undefined}
+              onDrop={hasUploadPermission ? handleDrop : undefined}
+              onClick={hasUploadPermission ? () => fileInputRef.current?.click() : undefined}
+            >
             <Upload className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
             <p className="text-lg font-medium mb-2">
               Drop files here or click to browse
@@ -279,8 +332,10 @@ export default function FileUploadModal({ isOpen, onClose, onFileUploaded, curre
               multiple
               className="hidden"
               onChange={(e) => handleFileSelect(e.target.files)}
+              disabled={!hasUploadPermission}
             />
           </div>
+          )}
 
           {/* Upload Progress */}
           {uploadingFiles.length > 0 && (
