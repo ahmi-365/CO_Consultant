@@ -245,26 +245,32 @@ allFilesData.forEach((item) => {
 });
 setFolderHierarchy(hierarchyMap);
 
-        // Now fetch paginated data for current folder
-        let response;
-        if (searchQuery && searchQuery.trim()) {
-          response = await fileApi.listadminFiles(null, params);
-        } else {
-          response = await fileApi.listadminFiles(folderId, params);
-        }
+       // Now fetch paginated data for current folder
+let response;
+const isSearchActive = searchQuery && searchQuery.trim();
 
-        const filesData = response.data || response;
+if (isSearchActive) {
+  response = await fileApi.listadminFiles(null, params);
+} else {
+  response = await fileApi.listadminFiles(folderId, params);
+}
 
-        // Update pagination state
-        setPagination(prev => ({
-          ...prev,
-          totalItems: response.pagination?.total || filesData.length,
-          totalPages: response.pagination?.total_pages || 1
-        }));
+const filesData = response.data || response;
 
-        // Filter files based on folder
+// Update pagination state
+setPagination(prev => ({
+  ...prev,
+  totalItems: response.pagination?.total || filesData.length,
+  totalPages: response.pagination?.total_pages || 1
+}));
+
+// Filter files based on folder
 let filteredFiles = filesData;
-if (!folderId) {
+
+// If searching, use ONLY the search results from API
+if (isSearchActive) {
+  filteredFiles = filesData; // Use search results directly, don't override
+} else if (!folderId) {
   const existingIds = new Set(allFilesData.map((item) => item.id));
   filteredFiles = allFilesData.filter(
     (item) => !existingIds.has(item.parent_id)
