@@ -247,7 +247,6 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
       // Use the new folder tree API
       const response = await fileApi.getFolderTree();
 
-      console.log("Folder tree response:", response); // Debug log
 
       // Handle different response formats
       if (response.status === "ok" && Array.isArray(response.data)) {
@@ -500,7 +499,6 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
   };
 
   const organizeItemsHierarchically = (items) => {
-    console.log("Raw items for organization:", items); // Debug log
 
     if (!items || items.length === 0) {
       return [];
@@ -520,15 +518,6 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
 
       for (const item of items) {
         const itemId = item.id;
-
-        // Skip if we've already seen this folder ID
-        // The first occurrence is kept (usually the one in proper hierarchy)
-        if (seenIds.has(itemId)) {
-          console.log(
-            `Skipping duplicate folder: ${item.name} (ID: ${itemId}) at depth ${depth}`
-          );
-          continue;
-        }
 
         // Mark this ID as seen
         seenIds.add(itemId);
@@ -551,7 +540,6 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     };
 
     const processedItems = processItems(items);
-    console.log("Processed folders (deduplicated):", processedItems); // Debug log
     return processedItems;
   };
 
