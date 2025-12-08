@@ -519,6 +519,15 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
       for (const item of items) {
         const itemId = item.id;
 
+        // Skip if we've already seen this folder ID
+        // The first occurrence is kept (usually the one in proper hierarchy)
+        if (seenIds.has(itemId)) {
+          console.log(
+            `Skipping duplicate folder: ${item.name} (ID: ${itemId}) at depth ${depth}`
+          );
+          continue;
+        }
+
         // Mark this ID as seen
         seenIds.add(itemId);
 
@@ -540,6 +549,7 @@ export default function EnhancedSidebar({ onUploadClick, isMobileView }) {
     };
 
     const processedItems = processItems(items);
+    console.log("Processed folders (deduplicated):", processedItems); // Debug log
     return processedItems;
   };
 

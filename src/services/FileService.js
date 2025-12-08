@@ -94,7 +94,9 @@ class FileCache {
 const fileCache = new FileCache();
 
 export const fileApi = {
-// Update the listFiles and listadminFiles methods in FileService.js
+// ✅ FIXED VERSION - Replace your listadminFiles function with this:
+
+// ✅ COMPLETE FIXED VERSION with getRootMetadata support
 
 async listadminFiles(parent_id, params = {}, options = {}) {
   const queryParams = new URLSearchParams();
@@ -128,8 +130,9 @@ async listadminFiles(parent_id, params = {}, options = {}) {
 
   const data = await response.json();
   
-  // Handle paginated response structure
+  // ✅ FIX: Preserve ALL top-level fields from API response
   return {
+    ...data, // Spreads iframe_url, is_iframe, root_id, status, etc.
     data: Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [],
     pagination: data.pagination || {
       current_page: params.page || 1,
@@ -138,6 +141,25 @@ async listadminFiles(parent_id, params = {}, options = {}) {
       total_pages: data.total_pages || 1
     }
   };
+},
+
+// ✅ Keep getRootMetadata as backup/alternative method
+async getRootMetadata() {
+  const url = `${API_URL}/onedrive/list`;
+  const response = await fetch(url, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch root metadata: ${response.status}`);
+  }
+
+  const data = await response.json();
+  console.log('📦 getRootMetadata response:', data);
+  return data; // Returns full response with iframe_url, is_iframe, etc.
 },
 
 
@@ -170,23 +192,7 @@ if (parent_id && !params.search) {
 
   return safeData;
 },
-async getRootMetadata() {
-  const url = `${API_URL}/onedrive/list`;
-  const response = await fetch(url, {
-    headers: {
-      'Authorization': `Bearer ${localStorage.getItem('token')}`,
-      'Content-Type': 'application/json',
-    },
-  });
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch root metadata: ${response.status}`);
-  }
-
-  const data = await response.json();
-  // Return the full response object to get iframe_url
-  return data;
-},
 async getFolderTree() {
   const url = `${API_URL}/onedrive/list-tree`;
   const response = await fetch(url, {

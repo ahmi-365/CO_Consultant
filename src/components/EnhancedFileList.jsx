@@ -123,18 +123,21 @@ export default function EnhancedFileList({ searchQuery, onRefresh }) {
     return !!item.permissions[action];
   }
 
-  // Determine if we should show tabs - NOW it can access selectedItemForIframe
-  const shouldShowTabs = useMemo(
-    () => {
-      // For root iframe, just check if URL exists (no is_iframe flag check)
-      if (selectedItemForIframe?.type === 'root' || selectedItemForIframe?.type === 'iframe') {
-        return !!rootIframeUrl;
-      }
-      // For folders/files, check both URL and is_iframe flag
-      return rootIframeUrl && selectedItemForIframe?.is_iframe === true;
-    },
-    [rootIframeUrl, selectedItemForIframe]
-  );
+const shouldShowTabs = useMemo(
+  () => {
+    
+    // For root iframe, just check if URL exists
+    if (selectedItemForIframe?.type === 'root' || selectedItemForIframe?.type === 'iframe') {
+      const result = !!rootIframeUrl;
+      return result;
+    }
+    
+    // For folders/files, check both URL and is_iframe flag
+    const result = rootIframeUrl && selectedItemForIframe?.is_iframe === true;
+    return result;
+  },
+  [rootIframeUrl, selectedItemForIframe]
+);
   const [activeSearchQuery, setActiveSearchQuery] = useState("");
   const [searchDebounceTimer, setSearchDebounceTimer] = useState(null);
 
@@ -260,29 +263,32 @@ setFolderHierarchy(hierarchyMap);
         }));
 
         // Filter files based on folder
-        let filteredFiles = filesData;
-        if (!folderId) {
-          const existingIds = new Set(allFilesData.map((item) => item.id));
-          filteredFiles = allFilesData.filter(
-            (item) => !existingIds.has(item.parent_id)
-          );
+let filteredFiles = filesData;
+if (!folderId) {
+  const existingIds = new Set(allFilesData.map((item) => item.id));
+  filteredFiles = allFilesData.filter(
+    (item) => !existingIds.has(item.parent_id)
+  );
 
-          if (response.iframe_url) {
-            setRootIframeUrl(response.iframe_url);
-            setSelectedItemForIframe({
-              id: 'root-iframe',
-              name: 'Root Embedded Content',
-              iframe_url: response.iframe_url,
-              type: 'root',
-              is_iframe: true
-            });
-            setShowIframePanel(true);
-          } else {
-            setRootIframeUrl(null);
-            setShowIframePanel(false);
-            setSelectedItemForIframe(null);
-          }
-        } else {
+  // ADD THESE DEBUG LOGS HERE 👇
+
+  // ✅ FIX: Check for root-level iframe_url AND is_iframe flag
+  if (response.iframe_url && response.is_iframe === true) {
+    setRootIframeUrl(response.iframe_url);
+    setSelectedItemForIframe({
+      id: 'root-iframe',
+      name: 'Root Embedded Content',
+      iframe_url: response.iframe_url,
+      type: 'root',
+      is_iframe: true
+    });
+    setShowIframePanel(true);
+  } else {
+    setRootIframeUrl(null);
+    setShowIframePanel(false);
+    setSelectedItemForIframe(null);
+  }
+}else {
           filteredFiles = filesData.filter(
             (item) => item.parent_id && item.parent_id.toString() === folderId
           );
@@ -1142,24 +1148,25 @@ const extractSrcFromIframe = (iframeCode) => {
         </div>
       </div>
 
-      {/* TABS - Only show in root folder with iframe */}
-      {shouldShowTabs && (
-        <div className="border-b bg-background px-4 py-2">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="file-manager" className="flex items-center gap-2">
-                <FileText className="w-4 h-4" />
-                File Manager
-              </TabsTrigger>
-              <TabsTrigger value="embedded-frame" className="flex items-center gap-2">
-                <Code className="w-4 h-4" />
-                PowerBI Analytics
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-      )}
+    {/* ADD THIS DEBUG SECTION */}
 
+{/* TABS - Only show in root folder with iframe */}
+{shouldShowTabs && (
+  <div className="border-b bg-background px-4 py-2">
+    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsTrigger value="file-manager" className="flex items-center gap-2">
+          <FileText className="w-4 h-4" />
+          File Manager
+        </TabsTrigger>
+        <TabsTrigger value="embedded-frame" className="flex items-center gap-2">
+          <Code className="w-4 h-4" />
+          PowerBI Analytics
+        </TabsTrigger>
+      </TabsList>
+    </Tabs>
+  </div>
+)}
       {/* MAIN CONTENT AREA */}
       {shouldShowTabs ? (
         <div className="flex flex-col flex-1 overflow-auto">
@@ -1552,39 +1559,39 @@ const extractSrcFromIframe = (iframeCode) => {
           </Tabs>
 
           {/* EMBEDDED FRAME TAB */}
-          <Tabs
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full h-[calc(100vh-100px)] flex flex-col" // 👈 full screen ke close height
-          >
-            <TabsContent
-              value="embedded-frame"
-              className="flex-1 overflow-auto m-0 flex flex-col h-full"
-            >
-              <div className="flex-1 p-4 h-full">
-                <div className="w-full h-full border rounded-lg overflow-hidden bg-white">
-                  {getPreviewUrl() ? (
-                    <iframe
-                      src={getPreviewUrl()}
-                      className="w-full h-full border-0"
-                      title={`Embedded content: ${selectedItemForIframe?.name || "Content"
-                        }`}
-sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"                      loading="lazy"
-                      onError={(e) => console.error("Iframe load error:", e)}
-                    />
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      <div className="text-center">
-                        <Code className="h-8 w-8 mx-auto mb-2" />
-                        <p className="text-sm">No embedded content available</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-
+       {/* EMBEDDED FRAME TAB */}
+<Tabs
+  value={activeTab}
+  onValueChange={setActiveTab}
+  className="w-full h-[calc(100vh-100px)] flex flex-col"
+>
+  <TabsContent
+    value="embedded-frame"
+    className="flex-1 overflow-auto m-0 flex flex-col h-full"
+  >
+    <div className="flex-1 p-4 h-full">
+      <div className="w-full h-full border rounded-lg overflow-hidden bg-white">
+        {getPreviewUrl() ? (
+          <iframe
+            src={getPreviewUrl()}
+            className="w-full h-full border-0"
+            title={`Embedded content: ${selectedItemForIframe?.name || "Content"}`}
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-presentation"
+            loading="lazy"
+            onError={(e) => console.error("Iframe load error:", e)}
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            <div className="text-center">
+              <Code className="h-8 w-8 mx-auto mb-2" />
+              <p className="text-sm">No embedded content available</p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  </TabsContent>
+</Tabs>
         </div>
       ) : (
         /* FALLBACK: Show without tabs if no iframe */
@@ -1595,10 +1602,10 @@ sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals a
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
               {/* IFRAME PANEL - Always show in root folder, full width, above file list */}
               {showIframePanel && selectedItemForIframe?.iframe_url && (
-                selectedItemForIframe?.type === 'root' ||
-                selectedItemForIframe?.type === 'iframe' ||
-                selectedItemForIframe?.is_iframe === true
-              ) && (
+  selectedItemForIframe?.type === 'root' ||
+  selectedItemForIframe?.type === 'iframe' ||
+  selectedItemForIframe?.is_iframe === true
+) && (
                   <div className="border-b">                  <div className="flex flex-col h-64">
                     <div className="flex items-center justify-between p-3 border-b bg-muted/50">
                       <div>
@@ -1674,10 +1681,7 @@ sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals a
               </div>
             </div>
           ) : (
-            /* Desktop Layout - Full width iframe above file list in root folder */
             <div className="flex flex-col h-full p-4 pt-2">
-              {/* IFRAME PANEL - Full width, above file list, always in root folder */}
-              {/* IFRAME PANEL - Full width, above file list, always in root folder */}
               {showIframePanel && selectedItemForIframe?.iframe_url && (
                 selectedItemForIframe?.type === 'root' ||
                 selectedItemForIframe?.type === 'iframe' ||
