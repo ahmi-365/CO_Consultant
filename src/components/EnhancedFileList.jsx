@@ -293,38 +293,54 @@ if (isSearchActive) {
     setRootIframeUrl(null);
     setShowIframePanel(false);
     setSelectedItemForIframe(null);
+  }} else {
+  filteredFiles = filesData.filter(
+    (item) => item.parent_id && item.parent_id.toString() === folderId
+  );
+
+  // ✅ FIX: Check BOTH iframe_url exists AND is_iframe is true
+  if (response.iframe_url && response.is_iframe === true) {
+    setRootIframeUrl(response.iframe_url);
+    setSelectedItemForIframe({
+      id: parseInt(folderId),
+      name: `Folder ${folderId}`,
+      iframe_url: response.iframe_url,
+      type: 'folder',
+      is_iframe: true
+    });
+    setShowIframePanel(true);
+  } else {
+    // Fallback to hierarchy map
+    const currentFolderData = hierarchyMap.get(parseInt(folderId));
+    if (currentFolderData) {
+      setCurrentFolder(currentFolderData);
+
+      // ✅ ADD NULL CHECK HERE
+      if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
+        setRootIframeUrl(currentFolderData.iframe_url);
+        setSelectedItemForIframe({
+          id: currentFolderData.id,
+          name: currentFolderData.name,
+          iframe_url: currentFolderData.iframe_url,
+          type: 'folder',
+          is_iframe: true
+        });
+        setShowIframePanel(true);
+      } else {
+        // ✅ IMPORTANT: Clear iframe state if no URL
+        setRootIframeUrl(null);
+        setShowIframePanel(false);
+        setSelectedItemForIframe(null);
+      }
+    } else {
+      // ✅ IMPORTANT: Clear iframe state if no folder data
+      setCurrentFolder(null);
+      setRootIframeUrl(null);
+      setShowIframePanel(false);
+      setSelectedItemForIframe(null);
+    }
   }
-}else {
-          filteredFiles = filesData.filter(
-            (item) => item.parent_id && item.parent_id.toString() === folderId
-          );
-
-          const currentFolderData = hierarchyMap.get(parseInt(folderId));
-          if (currentFolderData) {
-            setCurrentFolder(currentFolderData);
-
-            if (currentFolderData.iframe_url && currentFolderData.is_iframe === true) {
-              setRootIframeUrl(currentFolderData.iframe_url);
-              setSelectedItemForIframe({
-                id: currentFolderData.id,
-                name: currentFolderData.name,
-                iframe_url: currentFolderData.iframe_url,
-                type: 'folder',
-                is_iframe: true
-              });
-              setShowIframePanel(true);
-            } else {
-              setRootIframeUrl(null);
-              setShowIframePanel(false);
-              setSelectedItemForIframe(null);
-            }
-          } else {
-            setCurrentFolder(null);
-            setRootIframeUrl(null);
-            setShowIframePanel(false);
-            setSelectedItemForIframe(null);
-          }
-        }
+}
 
         setFiles(filteredFiles);
 
