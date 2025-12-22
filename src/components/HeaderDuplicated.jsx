@@ -23,14 +23,17 @@ const HeaderDuplicated = () => {
 
   const handleNavigation = () => {
     if (!user) {
-      navigate("/login");
+      // User not logged in - open login in new tab
+      window.open("/login", "_blank");
     } else if (
       user.roles?.includes("admin") ||
       user.roles?.includes("manager")
     ) {
-      navigate("/dash");
+      // Open dashboard in new tab
+      window.open("/dash", "_blank");
     } else {
-      navigate("/filemanager");
+      // Open file manager in new tab
+      window.open("/filemanager", "_blank");
     }
     setIsMobileMenuOpen(false);
   };
@@ -38,7 +41,7 @@ const HeaderDuplicated = () => {
   const getButtonText = () => {
     if (!user) return "Login";
     if (user.roles?.includes("admin") || user.roles?.includes("manager"))
-      return "Dashboard";
+      return "CO Access";
     return "File Manager";
   };
   const menuItems = [
@@ -77,16 +80,16 @@ const HeaderDuplicated = () => {
     <header className="fixed top-0 left-0 right-0 z-50 bg-gray-900 shadow-md backdrop-blur-md">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* ✅ Logo with Link */}
-          <Link to="/" className="flex items-center gap-3 cursor-pointer">
-            <div className="w-34 h-34 mt-8  rounded-lg flex items-center justify-center">
+          {/* ✅ Logo with Link - Horizontal Layout */}
+          <Link to="/" className="flex items-center gap-2 cursor-pointer">
+            <div className="w-40 h-30 flex items-center justify-center flex-shrink-0">
               <img
-                src="/assets/icon.png"
-                alt="Building Icon"
-                className="w-32 h-32 object-contain"
+                src="/assets/horizontallogo1.png"
+                alt="CO Consultants Logo"
+                className="w-full h-full object-contain"
               />
             </div>
-           
+          
           </Link>
 
           {/* ✅ Desktop Menu with Smart Links */}

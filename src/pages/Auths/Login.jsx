@@ -151,10 +151,20 @@ export default function LoginPage() {
       {/* Left Side: Form */}
       <div className="flex-1 flex items-center justify-center p-4 sm:p-6 lg:p-8 animate-slide-in-left">
         <div className="w-full max-w-sm space-y-6">
+          {/* Back to Website Link */}
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-semibold text-gray-900">Sign in</h1>
+            <a
+              href="/"
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium hover:underline"
+            >
+              ← Back to Website
+            </a>
+          </div>
+
           <div className="space-y-4">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Sign in</h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-gray-600">
                 Please log in to access your Project Management Workspace. All
                 your files & dashboards. One Secure Portal.
               </p>
@@ -185,10 +195,11 @@ export default function LoginPage() {
                   }}
                   onBlur={(e) => handleBlur("email", e.target.value)}
                   placeholder="Enter your email"
-                  className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.email
-                    ? "border-red-500 focus:ring-red-500"
-                    : "border-gray-300"
-                    }`}
+                  className={`w-full px-3 py-2 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                    errors.email
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-300"
+                  }`}
                 />
               </div>
 
@@ -216,10 +227,11 @@ export default function LoginPage() {
                     }}
                     onBlur={(e) => handleBlur("password", e.target.value)}
                     placeholder="Enter your password"
-                    className={`w-full px-3 py-2 pr-10 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${errors.password
-                      ? "border-red-500 focus:ring-red-500"
-                      : "border-gray-300"
-                      }`}
+                    className={`w-full px-3 py-2 pr-10 bg-white border rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all ${
+                      errors.password
+                        ? "border-red-500 focus:ring-red-500"
+                        : "border-gray-300"
+                    }`}
                   />
                   <button
                     type="button"
@@ -257,9 +269,10 @@ export default function LoginPage() {
                 type="submit"
                 disabled={isLoading || !email.trim() || !password.trim()}
                 className={`w-full font-medium py-2.5 px-4 rounded-lg transition-all shadow-sm text-white mt-4
-                  ${isLoading || !email.trim() || !password.trim()
-                    ? "bg-gray-400 cursor-not-allowed"
-                    : "bg-red-600 hover:bg-red-700 hover:shadow-md active:scale-[0.98]"
+                  ${
+                    isLoading || !email.trim() || !password.trim()
+                      ? "bg-gray-400 cursor-not-allowed"
+                      : "bg-red-600 hover:bg-red-700 hover:shadow-md active:scale-[0.98]"
                   }`}
               >
                 {isLoading ? (
@@ -321,11 +334,11 @@ export default function LoginPage() {
             <div className="absolute -inset-4 bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-xl rounded-3xl border border-white/20 transform rotate-3"></div>
             <div className="absolute -inset-2 bg-gradient-to-tl from-blue-400/20 to-purple-400/20 backdrop-blur-lg rounded-2xl border border-white/30 transform -rotate-1"></div>
             <div className="absolute top-1/2 right-12 -translate-y-1/2">
-              <div className="w-64 h-34 bg-white/10  backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center shadow-lg overflow-hidden">
+              <div className="w-96 h-96 bg-white/10 backdrop-blur-md rounded-3xl border border-white/30 flex items-center justify-center shadow-lg overflow-hidden">
                 <img
                   src="/assets/icon.png"
-                  alt="Icon"
-                  className="w-34 h-34 mt-8 pt-2 mb-0 object-contain"
+                  alt="CO Consultants Logo"
+                  className="w-80 h-80 object-contain"
                 />
               </div>
             </div>
@@ -333,7 +346,6 @@ export default function LoginPage() {
             <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-blue-300/50 rounded-full animate-pulse delay-300"></div>
           </div>
         </div>
-
 
         {/* Decorative Elements */}
         <div className="absolute top-8 left-8 w-24 h-24 border-2 border-white/20 rounded-full bg-white/5 backdrop-blur-sm"></div>

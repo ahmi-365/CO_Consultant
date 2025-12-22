@@ -41,17 +41,17 @@ const Header = () => {
 
   const handleNavigation = () => {
     if (!user) {
-      // User not logged in - show login
-      navigate("/login");
+      // User not logged in - open login in new tab
+      window.open("/login", "_blank");
     } else if (user.roles && user.roles.includes("admin")) {
       // User is admin - show dashboard
-      navigate("/dash");
+      window.open("/dash", "_blank");
     } else if (user.roles && user.roles.includes("manager")) {
       // User is manager - show dashboard
-      navigate("/dash");
+      window.open("/dash", "_blank");
     } else {
       // Regular user - show file manager
-      navigate("/filemanager");
+      window.open("/filemanager", "_blank");
     }
     setIsMobileMenuOpen(false);
   };
@@ -88,37 +88,18 @@ const Header = () => {
     >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-20">
-          {/* Logo */}
+          {/* Logo - Horizontal Layout */}
           <div
-            className="flex items-center gap-3 cursor-pointer"
+            className="flex items-center gap-2 cursor-pointer"
             onClick={() => scrollToSection("hero")}
           >
-            <div className="w-34 h-34 mt-8  rounded-lg flex items-center justify-center">
+            <div className="w-40 h-3s0 flex items-center justify-center flex-shrink-0">
               <img
-                src="/assets/icon.png"
-                alt="Building Icon"
-                className="w-32 h-32 object-contain"
+                src="/assets/horizontallogo1.png"
+                alt="CO Consultants Logo"
+                className="w-full h-full object-contain"
               />
             </div>
-            {/* Show company name only when scrolled or on mobile */}
-            {/* <span
-              className={`text-2xl font-bold text-white transition-opacity duration-300 ${
-                isScrolled || isMobileMenuOpen
-                  ? "opacity-100"
-                  : "opacity-100 md:opacity-0 lg:opacity-100"
-              }`}
-            >
-              CO Consultants
-            </span> */}
-
-            {/* <span
-  className={`block text-sm text-gray-300 tracking-wide mt-1 transition-opacity duration-300 md:opacity-100 ${
-    isScrolled || isMobileMenuOpen ? "opacity-100" : "opacity-0"
-  }`}
-  style={{ fontFamily: "'Oswald', sans-serif" }}
->
-  Construction Organised. Decisions Unlocked.
-</span> */}
           </div>
 
           {/* Desktop Navigation */}
